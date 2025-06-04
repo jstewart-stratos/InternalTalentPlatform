@@ -25,7 +25,7 @@ export default function Home() {
     }
   }, []);
 
-  const { data: employees = [], isLoading: isLoadingEmployees } = useQuery({
+  const { data: allEmployees = [], isLoading: isLoadingEmployees } = useQuery({
     queryKey: ["/api/employees", searchQuery, selectedDepartment, selectedExperience],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -52,6 +52,20 @@ export default function Home() {
       return response.json() as Promise<Employee[]>;
     },
   });
+
+  // Function to randomize and limit employees to 10
+  const getDisplayEmployees = (employees: Employee[]): Employee[] => {
+    if (searchQuery || selectedDepartment !== "All Departments" || selectedExperience !== "Any Level") {
+      // Show all results when filtering/searching
+      return employees;
+    }
+    
+    // Randomize and limit to 10 when showing general talent
+    const shuffled = [...employees].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, 10);
+  };
+
+  const employees = getDisplayEmployees(allEmployees);
 
   const { data: departments = [] } = useQuery({
     queryKey: ["/api/departments"],
