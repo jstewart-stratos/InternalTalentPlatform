@@ -26,6 +26,13 @@ export const messages = pgTable("messages", {
   createdAt: text("created_at").notNull(),
 });
 
+export const employeesRelations = pgTable("employees_relations", {
+  id: serial("id").primaryKey(),
+  employeeId: integer("employee_id").notNull(),
+  relatedEmployeeId: integer("related_employee_id").notNull(),
+  type: text("type").notNull(), // colleague, mentor, mentee, collaborator
+});
+
 export const insertEmployeeSchema = createInsertSchema(employees).omit({
   id: true,
 });
