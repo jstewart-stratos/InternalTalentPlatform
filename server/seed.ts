@@ -91,7 +91,8 @@ async function seed() {
   console.log(`Seeded ${sampleEmployees.length} employees`);
 }
 
-if (require.main === module) {
+// Run seed if this file is executed directly
+if (import.meta.url === `file://${process.argv[1]}`) {
   seed()
     .then(() => {
       console.log("Seeding completed");
