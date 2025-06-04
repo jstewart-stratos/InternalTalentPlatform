@@ -277,17 +277,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/projects", async (req, res) => {
     try {
-      console.log("Received project data:", req.body);
-      const projectData = insertProjectSchema.parse(req.body);
-      console.log("Validated project data:", projectData);
+      // Transform deadline string to Date object for validation
+      const requestData = {
+        ...req.body,
+        deadline: req.body.deadline ? new Date(req.body.deadline) : null,
+      };
+      
+      const projectData = insertProjectSchema.parse(requestData);
       const project = await storage.createProject(projectData);
       res.status(201).json(project);
     } catch (error) {
       if (error instanceof z.ZodError) {
-        console.log("Validation errors:", error.errors);
         res.status(400).json({ error: "Invalid project data", details: error.errors });
       } else {
-        console.log("Server error:", error);
         res.status(500).json({ error: "Failed to create project" });
       }
     }

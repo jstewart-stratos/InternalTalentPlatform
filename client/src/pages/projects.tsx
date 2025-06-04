@@ -103,7 +103,6 @@ export default function Projects() {
   });
 
   const onSubmit = (data: CreateProjectForm) => {
-    console.log("Form data:", data);
     const projectData: InsertProject = {
       title: data.title,
       description: data.description,
@@ -115,8 +114,14 @@ export default function Projects() {
       estimatedDuration: data.estimatedDuration || null,
       budget: data.budget || null,
     };
-    console.log("Project data being sent:", projectData);
-    createProjectMutation.mutate(projectData);
+    
+    // Convert deadline to ISO string for proper JSON serialization
+    const submitData = {
+      ...projectData,
+      deadline: projectData.deadline ? projectData.deadline.toISOString() : null,
+    };
+    
+    createProjectMutation.mutate(submitData as InsertProject);
   };
 
   const addSkill = () => {
