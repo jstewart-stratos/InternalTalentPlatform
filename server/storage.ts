@@ -235,6 +235,110 @@ export class DatabaseStorage implements IStorage {
 
     return trendingSkills;
   }
+
+  // Project methods
+  async createProject(insertProject: InsertProject): Promise<Project> {
+    const [project] = await db
+      .insert(projects)
+      .values(insertProject)
+      .returning();
+    return project;
+  }
+
+  async getAllProjects(): Promise<Project[]> {
+    return await db.select().from(projects);
+  }
+
+  async getProject(id: number): Promise<Project | undefined> {
+    const [project] = await db.select().from(projects).where(eq(projects.id, id));
+    return project || undefined;
+  }
+
+  async getProjectsByOwner(ownerId: number): Promise<Project[]> {
+    return await db.select().from(projects).where(eq(projects.ownerId, ownerId));
+  }
+
+  async updateProject(id: number, insertProject: Partial<InsertProject>): Promise<Project | undefined> {
+    const [project] = await db
+      .update(projects)
+      .set(insertProject)
+      .where(eq(projects.id, id))
+      .returning();
+    return project || undefined;
+  }
+
+  async deleteProject(id: number): Promise<boolean> {
+    const result = await db
+      .delete(projects)
+      .where(eq(projects.id, id))
+      .returning({ id: projects.id });
+    return result.length > 0;
+  }
+
+  async searchProjects(query: string, skills?: string[]): Promise<Project[]> {
+    const conditions = [];
+    
+    if (query.trim()) {
+      conditions.push(
+        or(
+          ilike(projects.title, `%${query}%`),
+          ilike(projects.description, `%${query}%`)
+        )
+      );
+    }
+
+    if (skills && skills.length > 0) {
+      // Search for projects that need any of the specified skills
+      conditions.push(
+        or(
+          ...skills.map(skill => 
+            sql`${projects.requiredSkills} @> ARRAY[${skill}]`
+          )
+        )
+      );
+    }
+
+    if (conditions.length === 0) {
+      return await this.getAllProjects();
+    }
+
+    return await db
+      .select()
+      .from(projects)
+      .where(and(...conditions));
+  }
+
+  // Project application methods
+  async createProjectApplication(insertApplication: InsertProjectApplication): Promise<ProjectApplication> {
+    const [application] = await db
+      .insert(projectApplications)
+      .values(insertApplication)
+      .returning();
+    return application;
+  }
+
+  async getProjectApplications(projectId: number): Promise<ProjectApplication[]> {
+    return await db
+      .select()
+      .from(projectApplications)
+      .where(eq(projectApplications.projectId, projectId));
+  }
+
+  async getUserApplications(applicantId: number): Promise<ProjectApplication[]> {
+    return await db
+      .select()
+      .from(projectApplications)
+      .where(eq(projectApplications.applicantId, applicantId));
+  }
+
+  async updateApplicationStatus(id: number, status: 'accepted' | 'rejected'): Promise<ProjectApplication | undefined> {
+    const [application] = await db
+      .update(projectApplications)
+      .set({ status })
+      .where(eq(projectApplications.id, id))
+      .returning();
+    return application || undefined;
+  }
 }
 
 export const storage = new DatabaseStorage();

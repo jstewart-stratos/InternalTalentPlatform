@@ -10,6 +10,7 @@ import CreateProfile from "@/pages/create-profile";
 import Analytics from "@/pages/analytics";
 import Admin from "@/pages/admin";
 import Skills from "@/pages/skills";
+import Projects from "@/pages/projects";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -21,6 +22,7 @@ function Router() {
       <Route path="/analytics" component={Analytics} />
       <Route path="/admin" component={Admin} />
       <Route path="/skills" component={Skills} />
+      <Route path="/projects" component={Projects} />
       <Route component={NotFound} />
     </Switch>
   );
