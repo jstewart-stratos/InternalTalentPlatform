@@ -1,24 +1,13 @@
-import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { Bell, Users, ChevronDown, LogOut, UserCircle, LogIn } from "lucide-react";
+import { Bell, Users, ChevronDown, LogOut, UserCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Navigation() {
   const [location] = useLocation();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [currentUser, setCurrentUser] = useState<{ name: string; initials: string } | null>(null);
-
-  // Check login status on component mount
-  useEffect(() => {
-    const userId = localStorage.getItem('currentUserId');
-    if (userId) {
-      setIsLoggedIn(true);
-      // For demo purposes, set a default user - in real app this would fetch from API
-      setCurrentUser({ name: "John Smith", initials: "JS" });
-    }
-  }, []);
+  const { user, isAuthenticated } = useAuth();
 
   const navItems = [
     { path: "/", label: "Discover Talent", active: location === "/" },
@@ -32,20 +21,27 @@ export default function Navigation() {
 
 
   const handleLogout = () => {
-    // Clear any stored user data
-    localStorage.removeItem('currentUserId');
-    localStorage.removeItem('userProfile');
-    setIsLoggedIn(false);
-    setCurrentUser(null);
-    // Redirect to home page
-    window.location.href = '/';
+    window.location.href = '/api/logout';
   };
 
-  const handleLogin = () => {
-    // For demo purposes, simulate login by setting a user
-    localStorage.setItem('currentUserId', '1');
-    setIsLoggedIn(true);
-    setCurrentUser({ name: "John Smith", initials: "JS" });
+  const getUserDisplayName = () => {
+    if (user?.firstName && user?.lastName) {
+      return `${user.firstName} ${user.lastName}`;
+    }
+    if (user?.email) {
+      return user.email;
+    }
+    return 'User';
+  };
+
+  const getUserInitials = () => {
+    if (user?.firstName && user?.lastName) {
+      return `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();
+    }
+    if (user?.email) {
+      return user.email[0].toUpperCase();
+    }
+    return 'U';
   };
 
   return (
@@ -78,35 +74,28 @@ export default function Navigation() {
               <Bell className="h-5 w-5" />
               <span className="sr-only">Notifications</span>
             </button>
-            {isLoggedIn ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger className="flex items-center space-x-3 hover:bg-gray-50 rounded-lg px-2 py-1">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=150" />
-                    <AvatarFallback>{currentUser?.initials || "JS"}</AvatarFallback>
-                  </Avatar>
-                  <span className="text-sm font-medium text-gray-900">{currentUser?.name || "John Smith"}</span>
-                  <ChevronDown className="h-3 w-3 text-secondary" />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem asChild>
-                    <Link href="/profile" className="flex items-center">
-                      <UserCircle className="h-4 w-4 mr-2" />
-                      My Profile
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleLogout} className="flex items-center text-red-600">
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Log Out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <Button onClick={handleLogin} className="flex items-center">
-                <LogIn className="h-4 w-4 mr-2" />
-                Login
-              </Button>
-            )}
+            <DropdownMenu>
+              <DropdownMenuTrigger className="flex items-center space-x-3 hover:bg-gray-50 rounded-lg px-2 py-1">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={user?.profileImageUrl || undefined} />
+                  <AvatarFallback>{getUserInitials()}</AvatarFallback>
+                </Avatar>
+                <span className="text-sm font-medium text-gray-900">{getUserDisplayName()}</span>
+                <ChevronDown className="h-3 w-3 text-secondary" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem asChild>
+                  <Link href="/profile" className="flex items-center">
+                    <UserCircle className="h-4 w-4 mr-2" />
+                    My Profile
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLogout} className="flex items-center text-red-600">
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Log Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>
