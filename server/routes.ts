@@ -171,6 +171,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Skill endorsement routes
+  app.post("/api/skill-endorsements", async (req, res) => {
+    try {
+      const validatedData = insertSkillEndorsementSchema.parse(req.body);
+      const endorsement = await storage.createSkillEndorsement(validatedData);
+      res.status(201).json(endorsement);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: "Invalid endorsement data", details: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to create endorsement" });
+      }
+    }
+  });
+
+  app.get("/api/skill-endorsements/:employeeId", async (req, res) => {
+    try {
+      const employeeId = parseInt(req.params.employeeId);
+      const endorsements = await storage.getSkillEndorsements(employeeId);
+      res.json(endorsements);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch endorsements" });
+    }
+  });
+
+  app.get("/api/skill-endorsements/:employeeId/:skill", async (req, res) => {
+    try {
+      const employeeId = parseInt(req.params.employeeId);
+      const skill = req.params.skill;
+      const endorsements = await storage.getSkillEndorsementsBySkill(employeeId, skill);
+      res.json(endorsements);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch skill endorsements" });
+    }
+  });
+
+  app.delete("/api/skill-endorsements/:employeeId/:endorserId/:skill", async (req, res) => {
+    try {
+      const employeeId = parseInt(req.params.employeeId);
+      const endorserId = parseInt(req.params.endorserId);
+      const skill = req.params.skill;
+      
+      const success = await storage.removeSkillEndorsement(employeeId, endorserId, skill);
+      
+      if (!success) {
+        return res.status(404).json({ error: "Endorsement not found" });
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to remove endorsement" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

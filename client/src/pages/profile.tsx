@@ -1,16 +1,20 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute } from "wouter";
-import { Mail, MapPin, Calendar, Award, Edit } from "lucide-react";
+import { Mail, MapPin, Calendar, Award, Edit, ThumbsUp, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import type { Employee } from "@shared/schema";
+import { useToast } from "@/hooks/use-toast";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import type { Employee, SkillEndorsement } from "@shared/schema";
 
 export default function Profile() {
   const [, params] = useRoute("/profile/:id?");
   const employeeId = params?.id ? parseInt(params.id) : 1; // Default to first employee
+  const currentUserId = 1; // In a real app, this would come from auth context
+  const { toast } = useToast();
 
   const { data: employee, isLoading } = useQuery({
     queryKey: ["/api/employees", employeeId],
@@ -18,6 +22,71 @@ export default function Profile() {
       const response = await fetch(`/api/employees/${employeeId}`);
       if (!response.ok) throw new Error("Failed to fetch employee");
       return response.json() as Promise<Employee>;
+    },
+  });
+
+  const { data: endorsements = [], isLoading: endorsementsLoading } = useQuery({
+    queryKey: ["/api/skill-endorsements", employeeId],
+    queryFn: async () => {
+      const response = await fetch(`/api/skill-endorsements/${employeeId}`);
+      if (!response.ok) throw new Error("Failed to fetch endorsements");
+      return response.json() as Promise<SkillEndorsement[]>;
+    },
+  });
+
+  const endorseMutation = useMutation({
+    mutationFn: async ({ skill }: { skill: string }) => {
+      const response = await fetch("/api/skill-endorsements", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          employeeId,
+          endorserId: currentUserId,
+          skill,
+        }),
+      });
+      if (!response.ok) throw new Error("Failed to endorse skill");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/skill-endorsements", employeeId] });
+      toast({
+        title: "Skill endorsed",
+        description: "Your endorsement has been added successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to add endorsement. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const removeEndorsementMutation = useMutation({
+    mutationFn: async ({ skill }: { skill: string }) => {
+      const response = await fetch(`/api/skill-endorsements/${employeeId}/${currentUserId}/${encodeURIComponent(skill)}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) throw new Error("Failed to remove endorsement");
+      return response.ok;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/skill-endorsements", employeeId] });
+      toast({
+        title: "Endorsement removed",
+        description: "Your endorsement has been removed successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to remove endorsement. Please try again.",
+        variant: "destructive",
+      });
     },
   });
 
@@ -94,6 +163,22 @@ export default function Profile() {
     }
   };
 
+  const getEndorsementCount = (skill: string) => {
+    return endorsements.filter(e => e.skill === skill).length;
+  };
+
+  const hasUserEndorsed = (skill: string) => {
+    return endorsements.some(e => e.skill === skill && e.endorserId === currentUserId);
+  };
+
+  const handleEndorseSkill = (skill: string) => {
+    if (hasUserEndorsed(skill)) {
+      removeEndorsementMutation.mutate({ skill });
+    } else {
+      endorseMutation.mutate({ skill });
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
       <Card className="mb-8">
@@ -149,16 +234,41 @@ export default function Profile() {
                 <Award className="h-5 w-5 mr-2" />
                 Skills & Expertise
               </h2>
-              <div className="flex flex-wrap gap-2">
-                {employee.skills.map((skill) => (
-                  <Badge
-                    key={skill}
-                    className={`text-sm ${getSkillColor(skill)}`}
-                    variant="secondary"
-                  >
-                    {skill}
-                  </Badge>
-                ))}
+              <div className="space-y-3">
+                {employee.skills.map((skill) => {
+                  const endorsementCount = getEndorsementCount(skill);
+                  const userHasEndorsed = hasUserEndorsed(skill);
+                  const isOwnProfile = employeeId === currentUserId;
+                  
+                  return (
+                    <div key={skill} className="flex items-center justify-between bg-gray-50 rounded-lg p-3">
+                      <div className="flex items-center space-x-3">
+                        <Badge
+                          className={`text-sm ${getSkillColor(skill)}`}
+                          variant="secondary"
+                        >
+                          {skill}
+                        </Badge>
+                        <div className="flex items-center text-sm text-gray-600">
+                          <Users className="h-4 w-4 mr-1" />
+                          <span>{endorsementCount} endorsement{endorsementCount !== 1 ? 's' : ''}</span>
+                        </div>
+                      </div>
+                      {!isOwnProfile && (
+                        <Button
+                          size="sm"
+                          variant={userHasEndorsed ? "default" : "outline"}
+                          onClick={() => handleEndorseSkill(skill)}
+                          disabled={endorseMutation.isPending || removeEndorsementMutation.isPending}
+                          className="flex items-center space-x-1"
+                        >
+                          <ThumbsUp className="h-3 w-3" />
+                          <span>{userHasEndorsed ? "Endorsed" : "Endorse"}</span>
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
 

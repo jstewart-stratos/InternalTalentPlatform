@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { employees, type InsertEmployee } from "@shared/schema";
+import { employees, skillEndorsements, type InsertEmployee, type InsertSkillEndorsement } from "@shared/schema";
 
 async function seed() {
   console.log("Seeding database...");
@@ -92,9 +92,46 @@ async function seed() {
     }
   ];
 
-  await db.insert(employees).values(sampleEmployees);
+  const insertedEmployees = await db.insert(employees).values(sampleEmployees).returning();
   
-  console.log(`Seeded ${sampleEmployees.length} employees`);
+  // Add sample skill endorsements
+  const sampleEndorsements: InsertSkillEndorsement[] = [
+    // Sarah Chen's skills endorsed by others
+    { employeeId: insertedEmployees[0].id, endorserId: insertedEmployees[1].id, skill: "React" },
+    { employeeId: insertedEmployees[0].id, endorserId: insertedEmployees[2].id, skill: "React" },
+    { employeeId: insertedEmployees[0].id, endorserId: insertedEmployees[3].id, skill: "TypeScript" },
+    { employeeId: insertedEmployees[0].id, endorserId: insertedEmployees[4].id, skill: "Node.js" },
+    
+    // Michael Rodriguez's skills endorsed by others
+    { employeeId: insertedEmployees[1].id, endorserId: insertedEmployees[0].id, skill: "Python" },
+    { employeeId: insertedEmployees[1].id, endorserId: insertedEmployees[2].id, skill: "Machine Learning" },
+    { employeeId: insertedEmployees[1].id, endorserId: insertedEmployees[5].id, skill: "SQL" },
+    
+    // Emily Johnson's skills endorsed by others
+    { employeeId: insertedEmployees[2].id, endorserId: insertedEmployees[0].id, skill: "User Research" },
+    { employeeId: insertedEmployees[2].id, endorserId: insertedEmployees[1].id, skill: "Figma" },
+    { employeeId: insertedEmployees[2].id, endorserId: insertedEmployees[3].id, skill: "Prototyping" },
+    { employeeId: insertedEmployees[2].id, endorserId: insertedEmployees[5].id, skill: "Design Systems" },
+    
+    // David Kim's skills endorsed by others
+    { employeeId: insertedEmployees[3].id, endorserId: insertedEmployees[1].id, skill: "Go-to-Market" },
+    { employeeId: insertedEmployees[3].id, endorserId: insertedEmployees[2].id, skill: "Content Strategy" },
+    { employeeId: insertedEmployees[3].id, endorserId: insertedEmployees[5].id, skill: "Analytics" },
+    
+    // Lisa Park's skills endorsed by others
+    { employeeId: insertedEmployees[4].id, endorserId: insertedEmployees[0].id, skill: "AWS" },
+    { employeeId: insertedEmployees[4].id, endorserId: insertedEmployees[1].id, skill: "Kubernetes" },
+    { employeeId: insertedEmployees[4].id, endorserId: insertedEmployees[5].id, skill: "Docker" },
+    
+    // Alex Thompson's skills endorsed by others
+    { employeeId: insertedEmployees[5].id, endorserId: insertedEmployees[1].id, skill: "Scrum Master" },
+    { employeeId: insertedEmployees[5].id, endorserId: insertedEmployees[2].id, skill: "Team Leadership" },
+    { employeeId: insertedEmployees[5].id, endorserId: insertedEmployees[3].id, skill: "Process Optimization" },
+  ];
+
+  await db.insert(skillEndorsements).values(sampleEndorsements);
+  
+  console.log(`Seeded ${sampleEmployees.length} employees and ${sampleEndorsements.length} skill endorsements`);
 }
 
 // Run seed if this file is executed directly
