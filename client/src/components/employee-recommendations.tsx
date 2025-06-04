@@ -39,6 +39,10 @@ const recommendationIcons = {
 
 export default function EmployeeRecommendations({ project, onEmployeeSelect }: EmployeeRecommendationsProps) {
   const [expandedCards, setExpandedCards] = useState<Set<number>>(new Set());
+  const { currentUser, isLoading: userLoading } = useUser();
+
+  // Check if current user is the project owner
+  const isProjectOwner = currentUser && currentUser.id === project.ownerId;
 
   const { data: recommendations = [], isLoading } = useQuery({
     queryKey: ["/api/recommendations/employees", project.id],
@@ -47,7 +51,7 @@ export default function EmployeeRecommendations({ project, onEmployeeSelect }: E
       if (!res.ok) throw new Error("Failed to fetch recommendations");
       return res.json() as EmployeeRecommendation[];
     },
-    enabled: !!project.id
+    enabled: !!project.id && !!isProjectOwner
   });
 
   const toggleExpanded = (employeeId: number) => {
@@ -59,6 +63,49 @@ export default function EmployeeRecommendations({ project, onEmployeeSelect }: E
     }
     setExpandedCards(newExpanded);
   };
+
+  if (userLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Brain className="h-5 w-5 text-accent" />
+            Recommended Team Members
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center py-8">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-accent"></div>
+            <span className="ml-3 text-gray-600">Loading...</span>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!isProjectOwner) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Lock className="h-5 w-5 text-gray-500" />
+            Recommended Team Members
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8">
+            <Lock className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-700 mb-2">
+              Project Owner Access Required
+            </h3>
+            <p className="text-gray-600">
+              AI-powered team recommendations are only available to project owners to maintain privacy and security.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (isLoading) {
     return (
