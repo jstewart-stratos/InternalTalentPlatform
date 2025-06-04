@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Brain, Users, Star, Target, TrendingUp, Lightbulb, Mail, ChevronRight } from "lucide-react";
+import { Brain, Users, Star, Target, TrendingUp, Lightbulb, Mail, ChevronRight, Lock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useUser } from "@/contexts/user-context";
 import { Employee, Project } from "@shared/schema";
 
 interface EmployeeRecommendation {
