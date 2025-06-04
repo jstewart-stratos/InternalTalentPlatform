@@ -11,6 +11,7 @@ export const employees = pgTable("employees", {
   bio: text("bio"),
   profileImage: text("profile_image"),
   yearsExperience: integer("years_experience").notNull(),
+  experienceLevel: text("experience_level").notNull().default("Mid-level"),
   skills: text("skills").array().notNull(),
   availability: text("availability").notNull().default("available"), // available, busy, unavailable
   availabilityMessage: text("availability_message"),

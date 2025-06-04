@@ -20,6 +20,7 @@ async function seed() {
       bio: "Specialized in building scalable web applications with modern frameworks. Available for consulting on frontend architecture and performance optimization.",
       profileImage: "https://images.unsplash.com/photo-1494790108755-2616b612b515?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=150",
       yearsExperience: 5,
+      experienceLevel: "Senior",
       skills: ["React", "TypeScript", "Node.js", "GraphQL", "Jest", "Webpack"],
       availability: "available",
       availabilityMessage: "Available now"

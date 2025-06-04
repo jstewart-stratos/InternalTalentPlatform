@@ -8,6 +8,7 @@ import Home from "@/pages/home";
 import Profile from "@/pages/profile";
 import Messages from "@/pages/messages";
 import Analytics from "@/pages/analytics";
+import Admin from "@/pages/admin";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -17,6 +18,7 @@ function Router() {
       <Route path="/profile/:id?" component={Profile} />
       <Route path="/messages" component={Messages} />
       <Route path="/analytics" component={Analytics} />
+      <Route path="/admin" component={Admin} />
       <Route component={NotFound} />
     </Switch>
   );
