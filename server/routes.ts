@@ -31,6 +31,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to fetch user" });
     }
   });
+
+  // Get current user's employee profile
+  app.get('/api/employees/current', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      const employee = await storage.getEmployeeByEmail(user.email || '');
+      if (!employee) {
+        return res.status(404).json({ error: "Employee profile not found" });
+      }
+      
+      res.json(employee);
+    } catch (error) {
+      console.error("Error fetching current employee:", error);
+      res.status(500).json({ message: "Failed to fetch employee profile" });
+    }
+  });
+
   // Employee routes
   app.get("/api/employees", async (req, res) => {
     try {

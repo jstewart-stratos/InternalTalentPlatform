@@ -4,16 +4,24 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
+import { useQuery } from "@tanstack/react-query";
+import { Employee } from "@shared/schema";
 
 export default function Navigation() {
   const [location] = useLocation();
   const { user, isAuthenticated } = useAuth();
 
+  // Fetch current user's employee profile
+  const { data: currentEmployee } = useQuery({
+    queryKey: ["/api/employees/current"],
+    enabled: isAuthenticated && !!user,
+    retry: false,
+  });
+
   const navItems = [
     { path: "/", label: "Discover Talent", active: location === "/" },
     { path: "/skills", label: "Skills Network", active: location === "/skills" },
     { path: "/projects", label: "Projects Hub", active: location === "/projects" },
-    { path: "/profile", label: "My Profile", active: location.startsWith("/profile") },
     { path: "/analytics", label: "Analytics", active: location === "/analytics" || location === "/skills-gap-analysis" },
     { path: "/admin", label: "Admin", active: location === "/admin" },
   ];
@@ -85,7 +93,7 @@ export default function Navigation() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuItem asChild>
-                  <Link href={user?.employeeProfile ? `/profile/${user.employeeProfile.id}` : "/profile/create"} className="flex items-center">
+                  <Link href={currentEmployee ? `/profile/${currentEmployee.id}` : "/profile/create"} className="flex items-center">
                     <UserCircle className="h-4 w-4 mr-2" />
                     My Profile
                   </Link>
