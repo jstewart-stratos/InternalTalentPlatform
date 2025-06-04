@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -13,6 +13,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { X, Plus, User, Mail, Building, MapPin, Briefcase, Award, Target } from "lucide-react";
 import { insertEmployeeSchema, type InsertEmployee } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/useAuth";
 
 const createProfileSchema = insertEmployeeSchema.extend({
   skills: z.array(z.string()).min(1, "At least one skill is required"),
@@ -24,6 +25,7 @@ type CreateProfileForm = z.infer<typeof createProfileSchema>;
 export default function CreateProfile() {
   const [newSkill, setNewSkill] = useState("");
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const { data: departments = [] } = useQuery({
     queryKey: ["/api/departments"],
@@ -37,8 +39,8 @@ export default function CreateProfile() {
   const form = useForm<CreateProfileForm>({
     resolver: zodResolver(createProfileSchema),
     defaultValues: {
-      name: "",
-      email: "",
+      name: user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : "",
+      email: user?.email || "",
       title: "",
       department: "",
       bio: "",
@@ -49,6 +51,18 @@ export default function CreateProfile() {
     },
     mode: "onChange",
   });
+
+  // Update form values when user data loads
+  useEffect(() => {
+    if (user) {
+      if (user.firstName && user.lastName) {
+        form.setValue("name", `${user.firstName} ${user.lastName}`);
+      }
+      if (user.email) {
+        form.setValue("email", user.email);
+      }
+    }
+  }, [user, form]);
 
   const createEmployee = useMutation({
     mutationFn: async (data: InsertEmployee) => {
@@ -66,10 +80,9 @@ export default function CreateProfile() {
     },
     onSuccess: (newEmployee) => {
       queryClient.invalidateQueries({ queryKey: ["/api/employees"] });
-      // Store user ID for session management
-      localStorage.setItem('currentUserId', newEmployee.id.toString());
-      // Redirect to the new profile
-      window.location.href = `/profile/${newEmployee.id}`;
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      // Redirect to main platform
+      window.location.href = `/`;
     },
   });
 

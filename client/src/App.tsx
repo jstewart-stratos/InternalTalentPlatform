@@ -17,23 +17,38 @@ import Projects from "@/pages/projects";
 import NotFound from "@/pages/not-found";
 
 function Router() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
 
+  // Show landing page for non-authenticated users
+  if (isLoading || !isAuthenticated) {
+    return (
+      <Switch>
+        <Route path="/" component={Landing} />
+        <Route component={NotFound} />
+      </Switch>
+    );
+  }
+
+  // Redirect authenticated users without employee profiles to create profile
+  if (user && !user.hasEmployeeProfile) {
+    return (
+      <Switch>
+        <Route path="/profile/create" component={CreateProfile} />
+        <Route component={() => <CreateProfile />} />
+      </Switch>
+    );
+  }
+
+  // Normal authenticated user routes
   return (
     <Switch>
-      {isLoading || !isAuthenticated ? (
-        <Route path="/" component={Landing} />
-      ) : (
-        <>
-          <Route path="/" component={Home} />
-          <Route path="/profile/create" component={CreateProfile} />
-          <Route path="/profile/:id?" component={Profile} />
-          <Route path="/analytics" component={Analytics} />
-          <Route path="/admin" component={Admin} />
-          <Route path="/skills" component={Skills} />
-          <Route path="/projects" component={Projects} />
-        </>
-      )}
+      <Route path="/" component={Home} />
+      <Route path="/profile/create" component={CreateProfile} />
+      <Route path="/profile/:id?" component={Profile} />
+      <Route path="/analytics" component={Analytics} />
+      <Route path="/admin" component={Admin} />
+      <Route path="/skills" component={Skills} />
+      <Route path="/projects" component={Projects} />
       <Route component={NotFound} />
     </Switch>
   );
