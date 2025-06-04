@@ -198,6 +198,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all endorsements
+  app.get("/api/all-endorsements", async (req, res) => {
+    try {
+      const allEmployees = await storage.getAllEmployees();
+      const allEndorsements = [];
+      
+      for (const employee of allEmployees) {
+        const endorsements = await storage.getSkillEndorsements(employee.id);
+        allEndorsements.push(...endorsements);
+      }
+      
+      res.json(allEndorsements);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch endorsements" });
+    }
+  });
+
   // Email route for Contact Me functionality
   const emailSchema = z.object({
     to: z.string().email("Invalid email address"),

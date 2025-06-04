@@ -6,7 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import SearchFilters from "@/components/search-filters";
 import EmployeeCard from "@/components/employee-card";
 import TrendingSkills from "@/components/trending-skills";
-import type { Employee } from "@shared/schema";
+import SkillTree from "@/components/skill-tree";
+import type { Employee, SkillEndorsement } from "@shared/schema";
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -87,6 +88,15 @@ export default function Home() {
         successfulMatches: number;
         projectsCompleted: number;
       }>;
+    },
+  });
+
+  const { data: allEndorsements = [] } = useQuery({
+    queryKey: ["/api/all-endorsements"],
+    queryFn: async () => {
+      const response = await fetch("/api/all-endorsements");
+      if (!response.ok) throw new Error("Failed to fetch endorsements");
+      return response.json() as Promise<SkillEndorsement[]>;
     },
   });
 
@@ -221,6 +231,24 @@ export default function Home() {
             <p className="text-gray-500">Try adjusting your search criteria to find more results.</p>
           </div>
         )}
+      </div>
+
+      {/* Interactive Skill Tree Section */}
+      <div className="bg-white py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <SkillTree 
+            employees={allEmployees} 
+            endorsements={allEndorsements}
+            onSkillSelect={(skill) => {
+              setSearchQuery(skill);
+              // Scroll to results section after search
+              setTimeout(() => {
+                const resultsSection = document.querySelector('#results-section');
+                resultsSection?.scrollIntoView({ behavior: 'smooth' });
+              }, 100);
+            }}
+          />
+        </div>
       </div>
 
       {/* Trending Skills Section */}
