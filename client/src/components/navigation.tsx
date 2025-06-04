@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Bell, Users, ChevronDown, LogOut, UserCircle } from "lucide-react";
+import { Bell, Users, ChevronDown, LogOut, UserCircle, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -10,6 +11,7 @@ import { Employee } from "@shared/schema";
 export default function Navigation() {
   const [location] = useLocation();
   const { user, isAuthenticated } = useAuth();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Fetch current user's employee profile
   const { data: currentEmployee } = useQuery({
@@ -25,6 +27,14 @@ export default function Navigation() {
     { path: "/analytics", label: "Analytics", active: location === "/analytics" || location === "/skills-gap-analysis" },
     { path: "/admin", label: "Admin", active: location === "/admin" },
   ];
+
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
+  };
 
 
 
@@ -78,34 +88,105 @@ export default function Navigation() {
             </nav>
           </div>
           <div className="flex items-center space-x-4">
-            <button className="text-secondary hover:text-gray-900">
-              <Bell className="h-5 w-5" />
-              <span className="sr-only">Notifications</span>
+            {/* Desktop user menu */}
+            <div className="hidden md:flex items-center space-x-4">
+              <button className="text-secondary hover:text-gray-900">
+                <Bell className="h-5 w-5" />
+                <span className="sr-only">Notifications</span>
+              </button>
+              <DropdownMenu>
+                <DropdownMenuTrigger className="flex items-center space-x-3 hover:bg-gray-50 rounded-lg px-2 py-1">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={user?.profileImageUrl || undefined} />
+                    <AvatarFallback>{getUserInitials()}</AvatarFallback>
+                  </Avatar>
+                  <span className="text-sm font-medium text-gray-900">{getUserDisplayName()}</span>
+                  <ChevronDown className="h-3 w-3 text-secondary" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem asChild>
+                    <Link href={currentEmployee ? `/profile/${currentEmployee.id}` : "/profile/create"} className="flex items-center">
+                      <UserCircle className="h-4 w-4 mr-2" />
+                      My Profile
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleLogout} className="flex items-center text-red-600">
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Log Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            {/* Mobile menu button */}
+            <button
+              onClick={toggleMobileMenu}
+              className="md:hidden p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+            >
+              {isMobileMenuOpen ? (
+                <X className="h-6 w-6" />
+              ) : (
+                <Menu className="h-6 w-6" />
+              )}
             </button>
-            <DropdownMenu>
-              <DropdownMenuTrigger className="flex items-center space-x-3 hover:bg-gray-50 rounded-lg px-2 py-1">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={user?.profileImageUrl || undefined} />
-                  <AvatarFallback>{getUserInitials()}</AvatarFallback>
-                </Avatar>
-                <span className="text-sm font-medium text-gray-900">{getUserDisplayName()}</span>
-                <ChevronDown className="h-3 w-3 text-secondary" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem asChild>
-                  <Link href={currentEmployee ? `/profile/${currentEmployee.id}` : "/profile/create"} className="flex items-center">
-                    <UserCircle className="h-4 w-4 mr-2" />
-                    My Profile
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleLogout} className="flex items-center text-red-600">
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Log Out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
           </div>
         </div>
+
+        {/* Mobile menu overlay */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden">
+            <div className="px-4 pt-2 pb-3 space-y-1 bg-white border-t border-gray-200 shadow-lg">
+              {navItems.map((item) => (
+                <Link
+                  key={item.path}
+                  href={item.path}
+                  onClick={closeMobileMenu}
+                  className={`block px-3 py-2 rounded-md text-base font-medium ${
+                    item.active
+                      ? "text-primary bg-orange-50 border-l-4 border-primary"
+                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              ))}
+              
+              {/* Mobile user section */}
+              <div className="pt-4 pb-3 border-t border-gray-200">
+                <div className="flex items-center px-3">
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage src={user?.profileImageUrl || undefined} />
+                    <AvatarFallback>{getUserInitials()}</AvatarFallback>
+                  </Avatar>
+                  <div className="ml-3">
+                    <div className="text-base font-medium text-gray-800">{getUserDisplayName()}</div>
+                    <div className="text-sm text-gray-500">{user?.email}</div>
+                  </div>
+                </div>
+                <div className="mt-3 space-y-1 px-2">
+                  <Link
+                    href={currentEmployee ? `/profile/${currentEmployee.id}` : "/profile/create"}
+                    onClick={closeMobileMenu}
+                    className="flex items-center px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                  >
+                    <UserCircle className="h-5 w-5 mr-3" />
+                    My Profile
+                  </Link>
+                  <button
+                    onClick={() => {
+                      closeMobileMenu();
+                      handleLogout();
+                    }}
+                    className="flex items-center w-full px-3 py-2 rounded-md text-base font-medium text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    <LogOut className="h-5 w-5 mr-3" />
+                    Log Out
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </nav>
   );
