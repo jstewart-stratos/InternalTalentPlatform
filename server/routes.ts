@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertEmployeeSchema, insertSkillEndorsementSchema, insertProjectSchema } from "@shared/schema";
 import { sendEmail } from "./sendgrid";
+import { getProjectRecommendationsForEmployee, getEmployeeRecommendationsForProject, getSkillGapAnalysis } from "./ai-recommendations";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -331,6 +332,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to delete project" });
+    }
+  });
+
+  // AI Recommendation routes
+  app.get("/api/recommendations/projects/:employeeId", async (req, res) => {
+    try {
+      const employeeId = parseInt(req.params.employeeId);
+      const employee = await storage.getEmployee(employeeId);
+      
+      if (!employee) {
+        return res.status(404).json({ error: "Employee not found" });
+      }
+
+      const allProjects = await storage.getAllProjects();
+      const activeProjects = allProjects.filter(p => p.status !== 'completed');
+      
+      const recommendations = await getProjectRecommendationsForEmployee(employee, activeProjects);
+      res.json(recommendations);
+    } catch (error) {
+      console.error("Error getting project recommendations:", error);
+      res.status(500).json({ error: "Failed to generate project recommendations" });
+    }
+  });
+
+  app.get("/api/recommendations/employees/:projectId", async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      const project = await storage.getProject(projectId);
+      
+      if (!project) {
+        return res.status(404).json({ error: "Project not found" });
+      }
+
+      const allEmployees = await storage.getAllEmployees();
+      const recommendations = await getEmployeeRecommendationsForProject(project, allEmployees);
+      res.json(recommendations);
+    } catch (error) {
+      console.error("Error getting employee recommendations:", error);
+      res.status(500).json({ error: "Failed to generate employee recommendations" });
+    }
+  });
+
+  app.post("/api/recommendations/skill-gap", async (req, res) => {
+    try {
+      const { employeeId, projectId } = req.body;
+      
+      const employee = await storage.getEmployee(employeeId);
+      const project = await storage.getProject(projectId);
+      
+      if (!employee || !project) {
+        return res.status(404).json({ error: "Employee or project not found" });
+      }
+
+      const skillGapAnalysis = await getSkillGapAnalysis(employee, project);
+      res.json(skillGapAnalysis);
+    } catch (error) {
+      console.error("Error generating skill gap analysis:", error);
+      res.status(500).json({ error: "Failed to generate skill gap analysis" });
     }
   });
 
