@@ -33,6 +33,7 @@ async function seed() {
       bio: "Expert in predictive analytics and business intelligence. Can help with data strategy, model development, and team mentoring.",
       profileImage: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=150",
       yearsExperience: 8,
+      experienceLevel: "Lead",
       skills: ["Python", "Machine Learning", "SQL", "TensorFlow", "R", "Tableau"],
       availability: "busy",
       availabilityMessage: "Available in 2 weeks"
@@ -45,6 +46,7 @@ async function seed() {
       bio: "Passionate about creating user-centered designs. Can assist with user research, interaction design, and design system development.",
       profileImage: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=150",
       yearsExperience: 6,
+      experienceLevel: "Senior",
       skills: ["User Research", "Figma", "Prototyping", "Design Systems", "Usability Testing", "Adobe Creative Suite"],
       availability: "available",
       availabilityMessage: "Available now"
@@ -57,6 +59,7 @@ async function seed() {
       bio: "Experienced in product launches and growth marketing. Available for strategic consulting and campaign development.",
       profileImage: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=150",
       yearsExperience: 4,
+      experienceLevel: "Mid-level",
       skills: ["Go-to-Market", "Content Strategy", "Analytics", "SEO", "Social Media", "Email Marketing", "A/B Testing", "Product Positioning"],
       availability: "available",
       availabilityMessage: "Available now"
@@ -69,6 +72,7 @@ async function seed() {
       bio: "Cloud infrastructure specialist with expertise in CI/CD pipelines. Can help with system architecture and deployment automation.",
       profileImage: "https://images.unsplash.com/photo-1580489944761-15a19d654956?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=150",
       yearsExperience: 7,
+      experienceLevel: "Senior",
       skills: ["AWS", "Kubernetes", "Docker", "Jenkins", "Terraform", "Monitoring", "Security", "Microservices"],
       availability: "busy",
       availabilityMessage: "Available in 1 week"
@@ -81,6 +85,7 @@ async function seed() {
       bio: "Certified Scrum Master with experience managing cross-functional teams. Available for project planning and agile coaching.",
       profileImage: "https://images.unsplash.com/photo-1519345182560-3f2917c472ef?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=150",
       yearsExperience: 9,
+      experienceLevel: "Lead",
       skills: ["Scrum Master", "Team Leadership", "Process Optimization", "Agile Coaching", "Risk Management", "Stakeholder Management", "Budgeting"],
       availability: "available",
       availabilityMessage: "Available now"

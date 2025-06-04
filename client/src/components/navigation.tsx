@@ -12,6 +12,7 @@ export default function Navigation() {
     { path: "/profile", label: "My Profile", active: location.startsWith("/profile") },
     { path: "/messages", label: "Messages", active: location === "/messages" },
     { path: "/analytics", label: "Analytics", active: location === "/analytics" },
+    { path: "/admin", label: "Admin", active: location === "/admin" },
   ];
 
   const handleEmployeeSelect = (employee: Employee) => {

@@ -52,6 +52,7 @@ export default function Admin() {
   const createEmployeeMutation = useMutation({
     mutationFn: (data: InsertEmployee) => apiRequest(`/api/employees`, {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     }),
     onSuccess: () => {

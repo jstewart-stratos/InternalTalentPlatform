@@ -8,6 +8,7 @@ export interface IStorage {
   getEmployeeByEmail(email: string): Promise<Employee | undefined>;
   createEmployee(employee: InsertEmployee): Promise<Employee>;
   updateEmployee(id: number, employee: Partial<InsertEmployee>): Promise<Employee | undefined>;
+  deleteEmployee(id: number): Promise<boolean>;
   getAllEmployees(): Promise<Employee[]>;
   searchEmployees(query: string, department?: string, experienceLevel?: string): Promise<Employee[]>;
 
@@ -45,6 +46,14 @@ export class DatabaseStorage implements IStorage {
       .where(eq(employees.id, id))
       .returning();
     return employee || undefined;
+  }
+
+  async deleteEmployee(id: number): Promise<boolean> {
+    const result = await db
+      .delete(employees)
+      .where(eq(employees.id, id))
+      .returning({ id: employees.id });
+    return result.length > 0;
   }
 
   async getAllEmployees(): Promise<Employee[]> {
