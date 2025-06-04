@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Calendar, Clock, DollarSign, Users, AlertCircle, CheckCircle, Pause, Play, ArrowLeft, Mail, User } from "lucide-react";
+import EmployeeRecommendations from "@/components/employee-recommendations";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -256,6 +257,15 @@ export default function Projects() {
               </div>
             </CardContent>
           </Card>
+
+          {/* AI Employee Recommendations */}
+          <EmployeeRecommendations 
+            project={selectedProject}
+            onEmployeeSelect={(employee) => {
+              // Handle employee selection - could open contact dialog
+              console.log("Selected employee:", employee);
+            }}
+          />
         </div>
       </div>
     );
