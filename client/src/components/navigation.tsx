@@ -85,7 +85,7 @@ export default function Navigation() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuItem asChild>
-                  <Link href="/profile" className="flex items-center">
+                  <Link href={user?.employeeProfile ? `/profile/${user.employeeProfile.id}` : "/profile/create"} className="flex items-center">
                     <UserCircle className="h-4 w-4 mr-2" />
                     My Profile
                   </Link>

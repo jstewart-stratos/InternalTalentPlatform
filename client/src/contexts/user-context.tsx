@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { Employee } from "@shared/schema";
+import { useAuth } from "@/hooks/useAuth";
 
 interface UserContextType {
   currentUser: Employee | null;
@@ -12,16 +13,16 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 export function UserProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<Employee | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { user: authUser, isAuthenticated } = useAuth();
 
   useEffect(() => {
-    // For demo purposes, set a default user (Sarah Chen - ID 40)
-    // In a real app, this would come from authentication
     const fetchCurrentUser = async () => {
       try {
-        const res = await fetch("/api/employees/40");
-        if (res.ok) {
-          const user = await res.json();
-          setCurrentUser(user);
+        // Use the authenticated user's employee profile if available
+        if (isAuthenticated && authUser?.employeeProfile) {
+          setCurrentUser(authUser.employeeProfile);
+        } else {
+          setCurrentUser(null);
         }
       } catch (error) {
         console.error("Failed to fetch current user:", error);
@@ -31,7 +32,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     };
 
     fetchCurrentUser();
-  }, []);
+  }, [authUser, isAuthenticated]);
 
   return (
     <UserContext.Provider value={{ currentUser, setCurrentUser, isLoading }}>
