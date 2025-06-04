@@ -1,6 +1,8 @@
 import { Link, useLocation } from "wouter";
 import { Bell, Users, ChevronDown } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import QuickSearch from "@/components/quick-search";
+import type { Employee } from "@shared/schema";
 
 export default function Navigation() {
   const [location] = useLocation();
@@ -11,6 +13,17 @@ export default function Navigation() {
     { path: "/messages", label: "Messages", active: location === "/messages" },
     { path: "/analytics", label: "Analytics", active: location === "/analytics" },
   ];
+
+  const handleEmployeeSelect = (employee: Employee) => {
+    window.location.href = `/profile/${employee.id}`;
+  };
+
+  const handleSkillSelect = (skill: string) => {
+    // Navigate to home page with skill search
+    const params = new URLSearchParams();
+    params.set('q', skill);
+    window.location.href = `/?${params.toString()}`;
+  };
 
   return (
     <nav className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
@@ -38,6 +51,13 @@ export default function Navigation() {
             </nav>
           </div>
           <div className="flex items-center space-x-4">
+            <div className="hidden lg:block">
+              <QuickSearch 
+                onEmployeeSelect={handleEmployeeSelect}
+                onSkillSelect={handleSkillSelect}
+                placeholder="Search employees and skills..."
+              />
+            </div>
             <button className="text-secondary hover:text-gray-900">
               <Bell className="h-5 w-5" />
               <span className="sr-only">Notifications</span>

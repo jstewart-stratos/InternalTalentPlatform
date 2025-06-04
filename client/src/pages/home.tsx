@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Search, UserPlus, Users, TrendingUp, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,17 @@ export default function Home() {
   const [selectedDepartment, setSelectedDepartment] = useState("All Departments");
   const [selectedExperience, setSelectedExperience] = useState("Any Level");
   const [sortBy, setSortBy] = useState("relevance");
+
+  // Check for URL parameters on component mount
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const queryParam = urlParams.get('q');
+    if (queryParam) {
+      setSearchQuery(queryParam);
+      // Clear URL parameters after setting the state
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
 
   const { data: employees = [], isLoading: isLoadingEmployees } = useQuery({
     queryKey: ["/api/employees", searchQuery, selectedDepartment, selectedExperience],
