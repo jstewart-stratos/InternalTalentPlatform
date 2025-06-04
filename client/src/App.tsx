@@ -9,6 +9,7 @@ import Profile from "@/pages/profile";
 import CreateProfile from "@/pages/create-profile";
 import Analytics from "@/pages/analytics";
 import Admin from "@/pages/admin";
+import Skills from "@/pages/skills";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -19,6 +20,7 @@ function Router() {
       <Route path="/profile/:id?" component={Profile} />
       <Route path="/analytics" component={Analytics} />
       <Route path="/admin" component={Admin} />
+      <Route path="/skills" component={Skills} />
       <Route component={NotFound} />
     </Switch>
   );

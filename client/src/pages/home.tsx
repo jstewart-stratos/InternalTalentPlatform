@@ -6,7 +6,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import SearchFilters from "@/components/search-filters";
 import EmployeeCard from "@/components/employee-card";
 import TrendingSkills from "@/components/trending-skills";
-import AnimatedSkillTree from "@/components/animated-skill-tree";
 import type { Employee, SkillEndorsement } from "@shared/schema";
 
 export default function Home() {
@@ -91,14 +90,7 @@ export default function Home() {
     },
   });
 
-  const { data: allEndorsements = [] } = useQuery({
-    queryKey: ["/api/all-endorsements"],
-    queryFn: async () => {
-      const response = await fetch("/api/all-endorsements");
-      if (!response.ok) throw new Error("Failed to fetch endorsements");
-      return response.json() as Promise<SkillEndorsement[]>;
-    },
-  });
+
 
   const handleSearch = (query: string, department: string, experienceLevel: string) => {
     setSearchQuery(query);
@@ -231,24 +223,6 @@ export default function Home() {
             <p className="text-gray-500">Try adjusting your search criteria to find more results.</p>
           </div>
         )}
-      </div>
-
-      {/* Interactive Skill Tree Section */}
-      <div className="bg-white py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <AnimatedSkillTree 
-            employees={allEmployees} 
-            endorsements={allEndorsements}
-            onSkillSelect={(skill) => {
-              setSearchQuery(skill);
-              // Scroll to results section after search
-              setTimeout(() => {
-                const resultsSection = document.querySelector('#results-section');
-                resultsSection?.scrollIntoView({ behavior: 'smooth' });
-              }, 100);
-            }}
-          />
-        </div>
       </div>
 
       {/* Trending Skills Section */}
