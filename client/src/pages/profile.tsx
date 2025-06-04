@@ -207,10 +207,6 @@ export default function Profile() {
                   </div>
                 </div>
                 <div className="flex flex-col space-y-2 mt-4 md:mt-0">
-                  <Button>
-                    <Mail className="h-4 w-4 mr-2" />
-                    Send Message
-                  </Button>
                   <Button variant="outline">
                     <Edit className="h-4 w-4 mr-2" />
                     Edit Profile
