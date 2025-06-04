@@ -4,8 +4,6 @@ import { Bell, Users, ChevronDown, LogOut, UserCircle, LogIn } from "lucide-reac
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import QuickSearch from "@/components/quick-search";
-import type { Employee } from "@shared/schema";
 
 export default function Navigation() {
   const [location] = useLocation();
@@ -30,16 +28,7 @@ export default function Navigation() {
     { path: "/admin", label: "Admin", active: location === "/admin" },
   ];
 
-  const handleEmployeeSelect = (employee: Employee) => {
-    window.location.href = `/profile/${employee.id}`;
-  };
 
-  const handleSkillSelect = (skill: string) => {
-    // Navigate to home page with skill search
-    const params = new URLSearchParams();
-    params.set('q', skill);
-    window.location.href = `/?${params.toString()}`;
-  };
 
   const handleLogout = () => {
     // Clear any stored user data
@@ -84,13 +73,6 @@ export default function Navigation() {
             </nav>
           </div>
           <div className="flex items-center space-x-4">
-            <div className="hidden lg:block">
-              <QuickSearch 
-                onEmployeeSelect={handleEmployeeSelect}
-                onSkillSelect={handleSkillSelect}
-                placeholder="Search employees and skills..."
-              />
-            </div>
             <button className="text-secondary hover:text-gray-900">
               <Bell className="h-5 w-5" />
               <span className="sr-only">Notifications</span>
