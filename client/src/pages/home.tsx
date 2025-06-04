@@ -116,7 +116,7 @@ export default function Home() {
                   variant="outline" 
                   className="border-2 border-accent text-accent bg-transparent px-8 py-3 hover:bg-accent hover:text-primary font-semibold"
                   onClick={() => {
-                    window.location.href = '/profile';
+                    window.location.href = '/profile/create';
                   }}
                 >
                   <UserPlus className="mr-2 h-4 w-4" />
