@@ -9,7 +9,6 @@ import Home from "@/pages/home";
 import Profile from "@/pages/profile";
 import CreateProfile from "@/pages/create-profile";
 import Analytics from "@/pages/analytics";
-import SkillsGapAnalysis from "@/pages/skills-gap-analysis";
 import Admin from "@/pages/admin";
 import Skills from "@/pages/skills";
 import Projects from "@/pages/projects";
