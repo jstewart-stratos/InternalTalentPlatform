@@ -7,8 +7,9 @@ async function seed() {
   // Check if employees already exist
   const existingEmployees = await db.select().from(employees);
   if (existingEmployees.length > 0) {
-    console.log("Database already seeded");
-    return;
+    console.log("Database already contains data, clearing and reseeding...");
+    await db.delete(skillEndorsements);
+    await db.delete(employees);
   }
 
   const sampleEmployees: InsertEmployee[] = [
@@ -89,44 +90,139 @@ async function seed() {
       skills: ["Scrum Master", "Team Leadership", "Process Optimization", "Agile Coaching", "Risk Management", "Stakeholder Management", "Budgeting"],
       availability: "available",
       availabilityMessage: "Available now"
+    },
+    {
+      name: "Jessica Martinez",
+      email: "jessica.martinez@stratoswealth.com",
+      title: "Senior Financial Advisor",
+      department: "Wealth Management",
+      bio: "Certified Financial Planner with expertise in retirement planning and estate management. Specializes in helping high-net-worth clients achieve their financial goals.",
+      profileImage: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=150",
+      yearsExperience: 12,
+      experienceLevel: "Senior",
+      skills: ["Retirement Planning", "Estate Planning", "Tax Strategy", "Investment Management", "Risk Assessment", "Portfolio Optimization", "CFP Certification", "Fiduciary Planning"],
+      availability: "available",
+      availabilityMessage: "Available for consultations"
+    },
+    {
+      name: "Robert Wilson",
+      email: "robert.wilson@stratoswealth.com",
+      title: "Wealth Management Director",
+      department: "Wealth Management",
+      bio: "Former hedge fund manager turned wealth advisor. Expertise in alternative investments and institutional-level financial strategies for ultra-high-net-worth clients.",
+      profileImage: "https://images.unsplash.com/photo-1560250097-0b93528c311a?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=150",
+      yearsExperience: 18,
+      experienceLevel: "Lead",
+      skills: ["Alternative Investments", "Hedge Fund Strategies", "Private Equity", "Family Office Services", "Trust Management", "International Tax Planning", "Wealth Transfer", "Due Diligence"],
+      availability: "busy",
+      availabilityMessage: "Available in 3 weeks"
+    },
+    {
+      name: "Amanda Foster",
+      email: "amanda.foster@stratoswealth.com",
+      title: "Insurance & Risk Specialist",
+      department: "Wealth Management",
+      bio: "Chartered Life Underwriter specializing in life insurance, disability coverage, and comprehensive risk management for affluent families.",
+      profileImage: "https://images.unsplash.com/photo-1551836022-d5d88e9218df?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=150",
+      yearsExperience: 8,
+      experienceLevel: "Senior",
+      skills: ["Life Insurance", "Disability Insurance", "Long-term Care Planning", "Risk Management", "CLU Designation", "Underwriting Analysis", "Business Succession", "Key Person Insurance"],
+      availability: "available",
+      availabilityMessage: "Available this week"
+    },
+    {
+      name: "Christopher Lee",
+      email: "christopher.lee@stratoswealth.com",
+      title: "Tax Planning Strategist",
+      department: "Tax Services",
+      bio: "CPA with advanced expertise in complex tax planning strategies. Helps clients minimize tax liability through sophisticated planning techniques.",
+      profileImage: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=150",
+      yearsExperience: 15,
+      experienceLevel: "Lead",
+      skills: ["Tax Planning", "CPA Certification", "Estate Tax", "Gift Tax", "Charitable Planning", "Business Tax Strategy", "Multi-state Tax", "International Tax"],
+      availability: "available",
+      availabilityMessage: "Available for complex cases"
+    },
+    {
+      name: "Michelle Chang",
+      email: "michelle.chang@stratoswealth.com",
+      title: "Portfolio Manager",
+      department: "Investment Management",
+      bio: "CFA charterholder specializing in equity research and portfolio construction. Focuses on ESG investing and quantitative analysis.",
+      profileImage: "https://images.unsplash.com/photo-1589156229687-496a31ad1d1f?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=150",
+      yearsExperience: 10,
+      experienceLevel: "Senior",
+      skills: ["Portfolio Management", "CFA Charter", "ESG Investing", "Equity Research", "Quantitative Analysis", "Asset Allocation", "Risk Modeling", "Performance Attribution"],
+      availability: "available",
+      availabilityMessage: "Available now"
+    },
+    {
+      name: "Daniel Rodriguez",
+      email: "daniel.rodriguez@stratoswealth.com",
+      title: "Financial Planning Associate",
+      department: "Financial Planning",
+      bio: "Recent CFP graduate with expertise in comprehensive financial planning for young professionals and growing families.",
+      profileImage: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=150",
+      yearsExperience: 3,
+      experienceLevel: "Junior",
+      skills: ["Financial Planning", "Budgeting", "Debt Management", "Education Planning", "First-time Home Buyers", "Young Professional Planning", "Goal Setting", "Cash Flow Analysis"],
+      availability: "available",
+      availabilityMessage: "Available for new clients"
+    },
+    {
+      name: "Karen Thompson",
+      email: "karen.thompson@stratoswealth.com",
+      title: "Retirement Planning Specialist",
+      department: "Retirement Services",
+      bio: "Retirement income specialist with deep expertise in Social Security optimization, Medicare planning, and 401(k) rollovers.",
+      profileImage: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=150",
+      yearsExperience: 14,
+      experienceLevel: "Senior",
+      skills: ["Social Security Optimization", "Medicare Planning", "401k Rollovers", "Pension Analysis", "Required Minimum Distributions", "Health Savings Accounts", "Longevity Planning", "Income Replacement"],
+      availability: "busy",
+      availabilityMessage: "Available in 2 weeks"
     }
   ];
 
   const insertedEmployees = await db.insert(employees).values(sampleEmployees).returning();
   
   // Add sample skill endorsements
+  const currentDate = new Date().toISOString();
   const sampleEndorsements: InsertSkillEndorsement[] = [
     // Sarah Chen's skills endorsed by others
-    { employeeId: insertedEmployees[0].id, endorserId: insertedEmployees[1].id, skill: "React" },
-    { employeeId: insertedEmployees[0].id, endorserId: insertedEmployees[2].id, skill: "React" },
-    { employeeId: insertedEmployees[0].id, endorserId: insertedEmployees[3].id, skill: "TypeScript" },
-    { employeeId: insertedEmployees[0].id, endorserId: insertedEmployees[4].id, skill: "Node.js" },
+    { employeeId: insertedEmployees[0].id, endorserId: insertedEmployees[1].id, skill: "React", createdAt: currentDate },
+    { employeeId: insertedEmployees[0].id, endorserId: insertedEmployees[2].id, skill: "React", createdAt: currentDate },
+    { employeeId: insertedEmployees[0].id, endorserId: insertedEmployees[3].id, skill: "TypeScript", createdAt: currentDate },
+    { employeeId: insertedEmployees[0].id, endorserId: insertedEmployees[4].id, skill: "Node.js", createdAt: currentDate },
     
-    // Michael Rodriguez's skills endorsed by others
-    { employeeId: insertedEmployees[1].id, endorserId: insertedEmployees[0].id, skill: "Python" },
-    { employeeId: insertedEmployees[1].id, endorserId: insertedEmployees[2].id, skill: "Machine Learning" },
-    { employeeId: insertedEmployees[1].id, endorserId: insertedEmployees[5].id, skill: "SQL" },
+    // Financial advisor skill endorsements
+    { employeeId: insertedEmployees[6].id, endorserId: insertedEmployees[7].id, skill: "Retirement Planning", createdAt: currentDate },
+    { employeeId: insertedEmployees[6].id, endorserId: insertedEmployees[8].id, skill: "Estate Planning", createdAt: currentDate },
+    { employeeId: insertedEmployees[6].id, endorserId: insertedEmployees[9].id, skill: "CFP Certification", createdAt: currentDate },
     
-    // Emily Johnson's skills endorsed by others
-    { employeeId: insertedEmployees[2].id, endorserId: insertedEmployees[0].id, skill: "User Research" },
-    { employeeId: insertedEmployees[2].id, endorserId: insertedEmployees[1].id, skill: "Figma" },
-    { employeeId: insertedEmployees[2].id, endorserId: insertedEmployees[3].id, skill: "Prototyping" },
-    { employeeId: insertedEmployees[2].id, endorserId: insertedEmployees[5].id, skill: "Design Systems" },
+    { employeeId: insertedEmployees[7].id, endorserId: insertedEmployees[6].id, skill: "Alternative Investments", createdAt: currentDate },
+    { employeeId: insertedEmployees[7].id, endorserId: insertedEmployees[10].id, skill: "Private Equity", createdAt: currentDate },
+    { employeeId: insertedEmployees[7].id, endorserId: insertedEmployees[8].id, skill: "Wealth Transfer", createdAt: currentDate },
     
-    // David Kim's skills endorsed by others
-    { employeeId: insertedEmployees[3].id, endorserId: insertedEmployees[1].id, skill: "Go-to-Market" },
-    { employeeId: insertedEmployees[3].id, endorserId: insertedEmployees[2].id, skill: "Content Strategy" },
-    { employeeId: insertedEmployees[3].id, endorserId: insertedEmployees[5].id, skill: "Analytics" },
+    { employeeId: insertedEmployees[8].id, endorserId: insertedEmployees[6].id, skill: "Life Insurance", createdAt: currentDate },
+    { employeeId: insertedEmployees[8].id, endorserId: insertedEmployees[7].id, skill: "Risk Management", createdAt: currentDate },
+    { employeeId: insertedEmployees[8].id, endorserId: insertedEmployees[12].id, skill: "CLU Designation", createdAt: currentDate },
     
-    // Lisa Park's skills endorsed by others
-    { employeeId: insertedEmployees[4].id, endorserId: insertedEmployees[0].id, skill: "AWS" },
-    { employeeId: insertedEmployees[4].id, endorserId: insertedEmployees[1].id, skill: "Kubernetes" },
-    { employeeId: insertedEmployees[4].id, endorserId: insertedEmployees[5].id, skill: "Docker" },
+    { employeeId: insertedEmployees[9].id, endorserId: insertedEmployees[6].id, skill: "Tax Planning", createdAt: currentDate },
+    { employeeId: insertedEmployees[9].id, endorserId: insertedEmployees[7].id, skill: "Estate Tax", createdAt: currentDate },
+    { employeeId: insertedEmployees[9].id, endorserId: insertedEmployees[10].id, skill: "CPA Certification", createdAt: currentDate },
     
-    // Alex Thompson's skills endorsed by others
-    { employeeId: insertedEmployees[5].id, endorserId: insertedEmployees[1].id, skill: "Scrum Master" },
-    { employeeId: insertedEmployees[5].id, endorserId: insertedEmployees[2].id, skill: "Team Leadership" },
-    { employeeId: insertedEmployees[5].id, endorserId: insertedEmployees[3].id, skill: "Process Optimization" },
+    { employeeId: insertedEmployees[10].id, endorserId: insertedEmployees[7].id, skill: "Portfolio Management", createdAt: currentDate },
+    { employeeId: insertedEmployees[10].id, endorserId: insertedEmployees[9].id, skill: "CFA Charter", createdAt: currentDate },
+    { employeeId: insertedEmployees[10].id, endorserId: insertedEmployees[6].id, skill: "ESG Investing", createdAt: currentDate },
+    
+    { employeeId: insertedEmployees[11].id, endorserId: insertedEmployees[6].id, skill: "Financial Planning", createdAt: currentDate },
+    { employeeId: insertedEmployees[11].id, endorserId: insertedEmployees[10].id, skill: "Budgeting", createdAt: currentDate },
+    { employeeId: insertedEmployees[11].id, endorserId: insertedEmployees[12].id, skill: "Young Professional Planning", createdAt: currentDate },
+    
+    { employeeId: insertedEmployees[12].id, endorserId: insertedEmployees[6].id, skill: "Social Security Optimization", createdAt: currentDate },
+    { employeeId: insertedEmployees[12].id, endorserId: insertedEmployees[7].id, skill: "Medicare Planning", createdAt: currentDate },
+    { employeeId: insertedEmployees[12].id, endorserId: insertedEmployees[8].id, skill: "401k Rollovers", createdAt: currentDate },
   ];
 
   await db.insert(skillEndorsements).values(sampleEndorsements);
