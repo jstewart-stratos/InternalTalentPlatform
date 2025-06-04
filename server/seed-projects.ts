@@ -3,59 +3,59 @@ import { projects } from "@shared/schema";
 
 const sampleProjects = [
   {
-    title: "Customer Analytics Dashboard",
-    description: "Build a comprehensive analytics dashboard to visualize customer behavior patterns, track key metrics, and generate actionable insights for the sales team. The dashboard should include real-time data visualization, custom reporting capabilities, and automated alerts.",
+    title: "E-Commerce Frontend Modernization",
+    description: "Modernize our e-commerce platform frontend using React and TypeScript. Implement responsive design, improve performance, and integrate with our GraphQL API. Focus on user experience and accessibility standards.",
     ownerId: 40, // Sarah Chen
     status: "planning" as const,
     priority: "high" as const,
     deadline: new Date("2025-02-15"),
-    requiredSkills: ["React", "Data Visualization", "SQL", "Python", "Tableau"],
-    estimatedDuration: "6 weeks",
-    budget: "$15,000"
+    requiredSkills: ["React", "TypeScript", "GraphQL", "CSS", "JavaScript"],
+    estimatedDuration: "8 weeks",
+    budget: "$22,000"
   },
   {
-    title: "Mobile App UI/UX Redesign",
-    description: "Complete redesign of our mobile application interface to improve user experience and increase engagement. This includes user research, wireframing, prototyping, and creating a modern design system that aligns with our brand guidelines.",
+    title: "Data Analytics Platform Development",
+    description: "Build a comprehensive data analytics platform using Python and machine learning algorithms. Implement data visualization dashboards, predictive models, and automated reporting features for business intelligence.",
     ownerId: 41, // Michael Rodriguez
     status: "active" as const,
-    priority: "medium" as const,
-    deadline: new Date("2025-01-30"),
-    requiredSkills: ["UI/UX Design", "Figma", "User Research", "Prototyping", "Mobile Design"],
-    estimatedDuration: "4 weeks",
-    budget: "$8,000"
+    priority: "high" as const,
+    deadline: new Date("2025-02-28"),
+    requiredSkills: ["Python", "Machine Learning", "SQL", "Tableau", "Data Science"],
+    estimatedDuration: "10 weeks",
+    budget: "$30,000"
   },
   {
-    title: "AI-Powered Content Recommendation Engine",
-    description: "Develop a machine learning system that analyzes user behavior and preferences to recommend personalized content. The system should use collaborative filtering and natural language processing to improve recommendation accuracy over time.",
+    title: "User Experience Research Initiative",
+    description: "Conduct comprehensive user research and redesign key product interfaces. Focus on user journey mapping, usability testing, wireframing, and creating a cohesive design system using Figma.",
     ownerId: 42, // Emily Johnson
     status: "planning" as const,
-    priority: "critical" as const,
-    deadline: new Date("2025-03-20"),
-    requiredSkills: ["Machine Learning", "Python", "TensorFlow", "Data Science", "API Development"],
-    estimatedDuration: "10 weeks",
+    priority: "medium" as const,
+    deadline: new Date("2025-03-15"),
+    requiredSkills: ["UX Design", "User Research", "Figma", "Prototyping", "Usability Testing"],
+    estimatedDuration: "6 weeks",
+    budget: "$18,000"
+  },
+  {
+    title: "Node.js API Infrastructure Upgrade",
+    description: "Modernize our backend API infrastructure using Node.js and TypeScript. Implement GraphQL endpoints, improve performance, add comprehensive testing with Jest, and enhance security measures.",
+    ownerId: 43, // David Park
+    status: "active" as const,
+    priority: "high" as const,
+    deadline: new Date("2025-02-10"),
+    requiredSkills: ["Node.js", "TypeScript", "GraphQL", "Jest", "API Development"],
+    estimatedDuration: "8 weeks",
     budget: "$25,000"
   },
   {
-    title: "Automated Testing Framework",
-    description: "Create a comprehensive automated testing framework for our web applications. This includes unit tests, integration tests, and end-to-end testing with continuous integration pipeline integration and detailed reporting capabilities.",
-    ownerId: 43, // David Park
-    status: "active" as const,
-    priority: "medium" as const,
-    deadline: new Date("2025-02-28"),
-    requiredSkills: ["Test Automation", "Selenium", "Jest", "CI/CD", "JavaScript"],
-    estimatedDuration: "5 weeks",
-    budget: "$12,000"
-  },
-  {
-    title: "Customer Support Chatbot",
-    description: "Build an intelligent chatbot to handle common customer inquiries and support requests. The bot should integrate with our existing CRM system, provide natural language responses, and escalate complex issues to human agents.",
+    title: "DevOps Pipeline Automation",
+    description: "Implement comprehensive CI/CD pipelines and infrastructure automation. Focus on containerization with Docker, deployment automation, monitoring, and cloud infrastructure management using modern DevOps practices.",
     ownerId: 44, // Lisa Wang
     status: "planning" as const,
-    priority: "medium" as const,
-    deadline: new Date("2025-02-10"),
-    requiredSkills: ["Natural Language Processing", "Chatbot Development", "Node.js", "API Integration"],
-    estimatedDuration: "7 weeks",
-    budget: "$18,000"
+    priority: "high" as const,
+    deadline: new Date("2025-03-01"),
+    requiredSkills: ["DevOps", "Docker", "CI/CD", "AWS", "Infrastructure"],
+    estimatedDuration: "9 weeks",
+    budget: "$28,000"
   },
   {
     title: "Data Migration to Cloud",

@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { insertEmployeeSchema, insertSkillEndorsementSchema, insertProjectSchema } from "@shared/schema";
 import { sendEmail } from "./sendgrid";
 import { getProjectRecommendationsForEmployee, getEmployeeRecommendationsForProject, getSkillGapAnalysis } from "./ai-recommendations";
+import { getProjectRecommendationsForEmployee as getSkillBasedProjectRecs, getEmployeeRecommendationsForProject as getSkillBasedEmployeeRecs } from "./skill-matching";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -348,8 +349,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const allProjects = await storage.getAllProjects();
       const activeProjects = allProjects.filter(p => p.status !== 'completed');
       
-      const recommendations = await getProjectRecommendationsForEmployee(employee, activeProjects);
-      res.json(recommendations);
+      try {
+        // Try AI recommendations first
+        const recommendations = await getProjectRecommendationsForEmployee(employee, activeProjects);
+        res.json(recommendations);
+      } catch (aiError) {
+        console.log("AI recommendations unavailable, using skill-based matching");
+        // Fallback to skill-based matching
+        const skillMatches = getSkillBasedProjectRecs(employee, activeProjects);
+        const formattedRecommendations = skillMatches.map(match => ({
+          project: match.project,
+          compatibilityScore: match.compatibilityScore,
+          matchingSkills: match.matchingSkills,
+          missingSkills: (match.project.requiredSkills || []).filter(skill => 
+            !match.matchingSkills.includes(skill)
+          ),
+          reasoning: `Based on skill analysis: ${match.matchingSkills.length} of ${match.totalRequiredSkills} required skills match. Experience level: ${employee.experienceLevel}.`,
+          recommendationLevel: match.recommendationLevel
+        }));
+        res.json(formattedRecommendations);
+      }
     } catch (error) {
       console.error("Error getting project recommendations:", error);
       res.status(500).json({ error: "Failed to generate project recommendations" });
@@ -366,8 +385,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const allEmployees = await storage.getAllEmployees();
-      const recommendations = await getEmployeeRecommendationsForProject(project, allEmployees);
-      res.json(recommendations);
+      
+      try {
+        // Try AI recommendations first
+        const recommendations = await getEmployeeRecommendationsForProject(project, allEmployees);
+        res.json(recommendations);
+      } catch (aiError) {
+        console.log("AI recommendations unavailable, using skill-based matching");
+        // Fallback to skill-based matching
+        const skillMatches = getSkillBasedEmployeeRecs(project, allEmployees);
+        const formattedRecommendations = skillMatches.map(match => ({
+          employee: match.employee,
+          compatibilityScore: match.compatibilityScore,
+          matchingSkills: match.matchingSkills,
+          additionalValue: [match.employee.department, match.employee.experienceLevel],
+          reasoning: `Skill-based match: ${match.matchingSkills.length} of ${match.totalRequiredSkills} required skills. ${match.employee.experienceLevel} level expertise in ${match.employee.department}.`,
+          recommendationLevel: match.recommendationLevel
+        }));
+        res.json(formattedRecommendations);
+      }
     } catch (error) {
       console.error("Error getting employee recommendations:", error);
       res.status(500).json({ error: "Failed to generate employee recommendations" });
