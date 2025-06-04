@@ -84,14 +84,24 @@ export default function SearchFilters({ onSearch, departments, isLoading }: Sear
           </Badge>
         ))}
       </div>
-      <Button
-        onClick={handleSearch}
-        disabled={isLoading}
-        className="bg-primary text-white hover:bg-blue-700"
-      >
-        <Search className="mr-2 h-4 w-4" />
-        {isLoading ? "Searching..." : "Search Talent"}
-      </Button>
+      <div className="flex gap-3">
+        <Button
+          onClick={handleSearch}
+          disabled={isLoading}
+          className="bg-primary text-white hover:bg-blue-700"
+        >
+          <Search className="mr-2 h-4 w-4" />
+          {isLoading ? "Searching..." : "Search Talent"}
+        </Button>
+        <Button
+          onClick={() => onSearch("", "All Departments", "Any Level")}
+          disabled={isLoading}
+          variant="outline"
+          className="border-primary text-primary hover:bg-primary hover:text-white"
+        >
+          View All Employees
+        </Button>
+      </div>
     </div>
   );
 }

@@ -54,6 +54,12 @@ export default function Home() {
     setSearchQuery(query);
     setSelectedDepartment(department);
     setSelectedExperience(experienceLevel);
+    
+    // Scroll to results section after search
+    setTimeout(() => {
+      const resultsSection = document.querySelector('#results-section');
+      resultsSection?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
   };
 
   return (
@@ -121,7 +127,7 @@ export default function Home() {
       </div>
 
       {/* Results Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+      <div id="results-section" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
         <div className="flex justify-between items-center mb-8">
           <h3 className="text-2xl font-bold text-gray-900">Available Talent</h3>
           <div className="flex items-center space-x-4">
