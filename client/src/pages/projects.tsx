@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Calendar, Clock, DollarSign, Users, AlertCircle, CheckCircle, Pause, Play } from "lucide-react";
+import { Plus, Calendar, Clock, DollarSign, Users, AlertCircle, CheckCircle, Pause, Play, ArrowLeft, Mail, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -53,6 +53,7 @@ const statusIcons = {
 export default function Projects() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [skillInput, setSkillInput] = useState("");
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const queryClient = useQueryClient();
 
   const { data: projects = [], isLoading } = useQuery({
@@ -126,6 +127,135 @@ export default function Projects() {
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-accent mb-4"></div>
             <p className="text-gray-600">Loading projects...</p>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show detailed project view if a project is selected
+  if (selectedProject) {
+    const StatusIcon = statusIcons[selectedProject.status];
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Back Button */}
+          <Button
+            variant="outline"
+            onClick={() => setSelectedProject(null)}
+            className="mb-6"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Projects
+          </Button>
+
+          {/* Project Header */}
+          <Card className="mb-6">
+            <CardHeader>
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <CardTitle className="text-2xl font-bold mb-2">
+                    {selectedProject.title}
+                  </CardTitle>
+                  <div className="flex gap-3 mb-4">
+                    <Badge className={statusColors[selectedProject.status]}>
+                      <StatusIcon className="h-3 w-3 mr-1" />
+                      {selectedProject.status}
+                    </Badge>
+                    <Badge className={priorityColors[selectedProject.priority]}>
+                      {selectedProject.priority} priority
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Project Description */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Project Description</h3>
+                <p className="text-gray-700 leading-relaxed">
+                  {selectedProject.description}
+                </p>
+              </div>
+
+              {/* Project Details Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="flex items-center p-4 bg-gray-50 rounded-lg">
+                  <Calendar className="h-5 w-5 text-gray-500 mr-3" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Deadline</p>
+                    <p className="text-sm font-semibold">{formatDate(selectedProject.deadline)}</p>
+                  </div>
+                </div>
+                
+                {selectedProject.estimatedDuration && (
+                  <div className="flex items-center p-4 bg-gray-50 rounded-lg">
+                    <Clock className="h-5 w-5 text-gray-500 mr-3" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Duration</p>
+                      <p className="text-sm font-semibold">{selectedProject.estimatedDuration}</p>
+                    </div>
+                  </div>
+                )}
+                
+                {selectedProject.budget && (
+                  <div className="flex items-center p-4 bg-gray-50 rounded-lg">
+                    <DollarSign className="h-5 w-5 text-gray-500 mr-3" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Budget</p>
+                      <p className="text-sm font-semibold">{selectedProject.budget}</p>
+                    </div>
+                  </div>
+                )}
+                
+                <div className="flex items-center p-4 bg-gray-50 rounded-lg">
+                  <User className="h-5 w-5 text-gray-500 mr-3" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Project Owner</p>
+                    <p className="text-sm font-semibold">Sarah Chen</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Required Skills */}
+              {selectedProject.requiredSkills && selectedProject.requiredSkills.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Required Skills</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedProject.requiredSkills.map((skill) => (
+                      <Badge key={skill} variant="outline" className="bg-blue-50 text-blue-700">
+                        {skill}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Application Section */}
+              <div className="border-t pt-6">
+                <h3 className="text-lg font-semibold mb-4">Apply to Join This Project</h3>
+                <div className="bg-blue-50 p-6 rounded-lg">
+                  <div className="flex items-start space-x-4">
+                    <div className="flex-1">
+                      <p className="text-gray-700 mb-4">
+                        Interested in contributing to this project? Send a message to the project owner
+                        to express your interest and share your relevant experience.
+                      </p>
+                      <div className="flex gap-3">
+                        <Button className="bg-accent hover:bg-accent/90">
+                          <Mail className="h-4 w-4 mr-2" />
+                          Contact Project Owner
+                        </Button>
+                        <Button variant="outline">
+                          <Users className="h-4 w-4 mr-2" />
+                          View Team Members
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
@@ -341,7 +471,11 @@ export default function Projects() {
             {projects.map((project) => {
               const StatusIcon = statusIcons[project.status];
               return (
-                <Card key={project.id} className="hover:shadow-lg transition-shadow">
+                <Card 
+                  key={project.id} 
+                  className="hover:shadow-lg transition-shadow cursor-pointer"
+                  onClick={() => setSelectedProject(project)}
+                >
                   <CardHeader className="pb-3">
                     <div className="flex justify-between items-start">
                       <CardTitle className="text-lg font-semibold line-clamp-2">
