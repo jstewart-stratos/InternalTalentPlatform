@@ -186,48 +186,53 @@ async function seed() {
 
   const insertedEmployees = await db.insert(employees).values(sampleEmployees).returning();
   
-  // Add sample skill endorsements
-  const currentDate = new Date().toISOString();
-  const sampleEndorsements: InsertSkillEndorsement[] = [
+  // Add sample skill endorsements  
+  const endorsementData = [
     // Sarah Chen's skills endorsed by others
-    { employeeId: insertedEmployees[0].id, endorserId: insertedEmployees[1].id, skill: "React", createdAt: currentDate },
-    { employeeId: insertedEmployees[0].id, endorserId: insertedEmployees[2].id, skill: "React", createdAt: currentDate },
-    { employeeId: insertedEmployees[0].id, endorserId: insertedEmployees[3].id, skill: "TypeScript", createdAt: currentDate },
-    { employeeId: insertedEmployees[0].id, endorserId: insertedEmployees[4].id, skill: "Node.js", createdAt: currentDate },
+    { employeeId: insertedEmployees[0].id, endorserId: insertedEmployees[1].id, skill: "React" },
+    { employeeId: insertedEmployees[0].id, endorserId: insertedEmployees[2].id, skill: "React" },
+    { employeeId: insertedEmployees[0].id, endorserId: insertedEmployees[3].id, skill: "TypeScript" },
+    { employeeId: insertedEmployees[0].id, endorserId: insertedEmployees[4].id, skill: "Node.js" },
     
     // Financial advisor skill endorsements
-    { employeeId: insertedEmployees[6].id, endorserId: insertedEmployees[7].id, skill: "Retirement Planning", createdAt: currentDate },
-    { employeeId: insertedEmployees[6].id, endorserId: insertedEmployees[8].id, skill: "Estate Planning", createdAt: currentDate },
-    { employeeId: insertedEmployees[6].id, endorserId: insertedEmployees[9].id, skill: "CFP Certification", createdAt: currentDate },
+    { employeeId: insertedEmployees[6].id, endorserId: insertedEmployees[7].id, skill: "Retirement Planning" },
+    { employeeId: insertedEmployees[6].id, endorserId: insertedEmployees[8].id, skill: "Estate Planning" },
+    { employeeId: insertedEmployees[6].id, endorserId: insertedEmployees[9].id, skill: "CFP Certification" },
     
-    { employeeId: insertedEmployees[7].id, endorserId: insertedEmployees[6].id, skill: "Alternative Investments", createdAt: currentDate },
-    { employeeId: insertedEmployees[7].id, endorserId: insertedEmployees[10].id, skill: "Private Equity", createdAt: currentDate },
-    { employeeId: insertedEmployees[7].id, endorserId: insertedEmployees[8].id, skill: "Wealth Transfer", createdAt: currentDate },
+    { employeeId: insertedEmployees[7].id, endorserId: insertedEmployees[6].id, skill: "Alternative Investments" },
+    { employeeId: insertedEmployees[7].id, endorserId: insertedEmployees[10].id, skill: "Private Equity" },
+    { employeeId: insertedEmployees[7].id, endorserId: insertedEmployees[8].id, skill: "Wealth Transfer" },
     
-    { employeeId: insertedEmployees[8].id, endorserId: insertedEmployees[6].id, skill: "Life Insurance", createdAt: currentDate },
-    { employeeId: insertedEmployees[8].id, endorserId: insertedEmployees[7].id, skill: "Risk Management", createdAt: currentDate },
-    { employeeId: insertedEmployees[8].id, endorserId: insertedEmployees[12].id, skill: "CLU Designation", createdAt: currentDate },
+    { employeeId: insertedEmployees[8].id, endorserId: insertedEmployees[6].id, skill: "Life Insurance" },
+    { employeeId: insertedEmployees[8].id, endorserId: insertedEmployees[7].id, skill: "Risk Management" },
+    { employeeId: insertedEmployees[8].id, endorserId: insertedEmployees[12].id, skill: "CLU Designation" },
     
-    { employeeId: insertedEmployees[9].id, endorserId: insertedEmployees[6].id, skill: "Tax Planning", createdAt: currentDate },
-    { employeeId: insertedEmployees[9].id, endorserId: insertedEmployees[7].id, skill: "Estate Tax", createdAt: currentDate },
-    { employeeId: insertedEmployees[9].id, endorserId: insertedEmployees[10].id, skill: "CPA Certification", createdAt: currentDate },
+    { employeeId: insertedEmployees[9].id, endorserId: insertedEmployees[6].id, skill: "Tax Planning" },
+    { employeeId: insertedEmployees[9].id, endorserId: insertedEmployees[7].id, skill: "Estate Tax" },
+    { employeeId: insertedEmployees[9].id, endorserId: insertedEmployees[10].id, skill: "CPA Certification" },
     
-    { employeeId: insertedEmployees[10].id, endorserId: insertedEmployees[7].id, skill: "Portfolio Management", createdAt: currentDate },
-    { employeeId: insertedEmployees[10].id, endorserId: insertedEmployees[9].id, skill: "CFA Charter", createdAt: currentDate },
-    { employeeId: insertedEmployees[10].id, endorserId: insertedEmployees[6].id, skill: "ESG Investing", createdAt: currentDate },
+    { employeeId: insertedEmployees[10].id, endorserId: insertedEmployees[7].id, skill: "Portfolio Management" },
+    { employeeId: insertedEmployees[10].id, endorserId: insertedEmployees[9].id, skill: "CFA Charter" },
+    { employeeId: insertedEmployees[10].id, endorserId: insertedEmployees[6].id, skill: "ESG Investing" },
     
-    { employeeId: insertedEmployees[11].id, endorserId: insertedEmployees[6].id, skill: "Financial Planning", createdAt: currentDate },
-    { employeeId: insertedEmployees[11].id, endorserId: insertedEmployees[10].id, skill: "Budgeting", createdAt: currentDate },
-    { employeeId: insertedEmployees[11].id, endorserId: insertedEmployees[12].id, skill: "Young Professional Planning", createdAt: currentDate },
+    { employeeId: insertedEmployees[11].id, endorserId: insertedEmployees[6].id, skill: "Financial Planning" },
+    { employeeId: insertedEmployees[11].id, endorserId: insertedEmployees[10].id, skill: "Budgeting" },
+    { employeeId: insertedEmployees[11].id, endorserId: insertedEmployees[12].id, skill: "Young Professional Planning" },
     
-    { employeeId: insertedEmployees[12].id, endorserId: insertedEmployees[6].id, skill: "Social Security Optimization", createdAt: currentDate },
-    { employeeId: insertedEmployees[12].id, endorserId: insertedEmployees[7].id, skill: "Medicare Planning", createdAt: currentDate },
-    { employeeId: insertedEmployees[12].id, endorserId: insertedEmployees[8].id, skill: "401k Rollovers", createdAt: currentDate },
+    { employeeId: insertedEmployees[12].id, endorserId: insertedEmployees[6].id, skill: "Social Security Optimization" },
+    { employeeId: insertedEmployees[12].id, endorserId: insertedEmployees[7].id, skill: "Medicare Planning" },
+    { employeeId: insertedEmployees[12].id, endorserId: insertedEmployees[8].id, skill: "401k Rollovers" },
   ];
 
-  await db.insert(skillEndorsements).values(sampleEndorsements);
+  // Insert endorsements with current timestamp
+  for (const endorsement of endorsementData) {
+    await db.insert(skillEndorsements).values({
+      ...endorsement,
+      createdAt: new Date().toISOString()
+    });
+  }
   
-  console.log(`Seeded ${sampleEmployees.length} employees and ${sampleEndorsements.length} skill endorsements`);
+  console.log(`Seeded ${sampleEmployees.length} employees and ${endorsementData.length} skill endorsements`);
 }
 
 // Run seed if this file is executed directly
