@@ -77,7 +77,7 @@ export default function Home() {
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button 
-                  className="bg-white text-primary px-8 py-3 hover:bg-gray-50"
+                  className="bg-accent text-primary px-8 py-3 hover:bg-yellow-400 font-semibold"
                   onClick={() => {
                     const searchSection = document.querySelector('#search-section');
                     searchSection?.scrollIntoView({ behavior: 'smooth' });
@@ -88,7 +88,7 @@ export default function Home() {
                 </Button>
                 <Button 
                   variant="outline" 
-                  className="border-2 border-white text-white bg-transparent px-8 py-3 hover:bg-white hover:text-primary"
+                  className="border-2 border-accent text-accent bg-transparent px-8 py-3 hover:bg-accent hover:text-primary font-semibold"
                   onClick={() => {
                     window.location.href = '/profile';
                   }}
@@ -269,7 +269,7 @@ export default function Home() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
-              className="bg-white text-primary px-8 py-4 text-lg hover:bg-gray-50"
+              className="bg-accent text-primary px-8 py-4 text-lg hover:bg-yellow-400 font-semibold"
               onClick={() => {
                 window.location.href = '/profile';
               }}
@@ -279,7 +279,7 @@ export default function Home() {
             </Button>
             <Button 
               variant="outline" 
-              className="border-2 border-white text-white bg-transparent px-8 py-4 text-lg hover:bg-white hover:text-primary"
+              className="border-2 border-accent text-accent bg-transparent px-8 py-4 text-lg hover:bg-accent hover:text-primary font-semibold"
               onClick={() => {
                 window.location.href = '/analytics';
               }}

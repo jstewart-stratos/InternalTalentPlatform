@@ -4,47 +4,47 @@
 
 :root {
   --background: 0 0% 100%;
-  --foreground: 20 14.3% 4.1%;
-  --muted: 60 4.8% 95.9%;
-  --muted-foreground: 25 5.3% 44.7%;
+  --foreground: 210 20% 15%; /* #1f2937 */
+  --muted: 210 11% 96%; /* #f8f9fa */
+  --muted-foreground: 210 10% 45%; /* #6b7280 */
   --popover: 0 0% 100%;
-  --popover-foreground: 20 14.3% 4.1%;
+  --popover-foreground: 210 20% 15%;
   --card: 0 0% 100%;
-  --card-foreground: 20 14.3% 4.1%;
-  --border: 20 5.9% 90%;
-  --input: 20 5.9% 90%;
-  --primary: 217 91% 60%; /* #2563EB */
-  --primary-foreground: 213 100% 99%; /* #F1F5F9 */
-  --secondary: 210 40% 55%; /* #64748B */
-  --secondary-foreground: 210 40% 98%;
-  --accent: 158 64% 52%; /* #059669 */
-  --accent-foreground: 158 64% 12%;
+  --card-foreground: 210 20% 15%;
+  --border: 210 11% 90%; /* #e5e7eb */
+  --input: 210 11% 90%;
+  --primary: 210 100% 20%; /* #003366 Navy Blue */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 210 10% 20%; /* #333333 Dark Gray */
+  --secondary-foreground: 0 0% 100%;
+  --accent: 45 100% 55%; /* #FFB81C Gold */
+  --accent-foreground: 210 100% 20%;
   --destructive: 0 84.2% 60.2%;
   --destructive-foreground: 60 9.1% 97.8%;
-  --ring: 217 91% 60%;
+  --ring: 210 100% 20%;
   --radius: 0.5rem;
 }
 
 .dark {
-  --background: 240 10% 3.9%;
-  --foreground: 0 0% 98%;
-  --muted: 240 3.7% 15.9%;
-  --muted-foreground: 240 5% 64.9%;
-  --popover: 240 10% 3.9%;
-  --popover-foreground: 0 0% 98%;
-  --card: 240 10% 3.9%;
-  --card-foreground: 0 0% 98%;
-  --border: 240 3.7% 15.9%;
-  --input: 240 3.7% 15.9%;
-  --primary: 217 91% 60%;
-  --primary-foreground: 213 100% 99%;
-  --secondary: 240 3.7% 15.9%;
-  --secondary-foreground: 0 0% 98%;
-  --accent: 240 3.7% 15.9%;
-  --accent-foreground: 0 0% 98%;
+  --background: 210 100% 10%; /* Dark navy background */
+  --foreground: 0 0% 95%;
+  --muted: 210 50% 15%;
+  --muted-foreground: 210 20% 70%;
+  --popover: 210 100% 10%;
+  --popover-foreground: 0 0% 95%;
+  --card: 210 100% 12%;
+  --card-foreground: 0 0% 95%;
+  --border: 210 50% 20%;
+  --input: 210 50% 20%;
+  --primary: 45 100% 55%; /* Gold primary in dark mode */
+  --primary-foreground: 210 100% 10%;
+  --secondary: 210 20% 25%;
+  --secondary-foreground: 0 0% 95%;
+  --accent: 210 100% 60%; /* Light blue accent */
+  --accent-foreground: 210 100% 10%;
   --destructive: 0 62.8% 30.6%;
   --destructive-foreground: 0 0% 98%;
-  --ring: 240 4.9% 83.9%;
+  --ring: 45 100% 55%;
   --radius: 0.5rem;
 }
 
@@ -61,6 +61,6 @@
 
 @layer utilities {
   .gradient-bg {
-    background: linear-gradient(to right, hsl(var(--primary)), #1d4ed8);
+    background: linear-gradient(135deg, #003366 0%, #004080 50%, #FFB81C 100%);
   }
 }
