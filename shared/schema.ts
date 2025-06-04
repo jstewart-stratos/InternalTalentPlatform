@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, json } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, json, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -38,6 +38,30 @@ export const skillSearches = pgTable("skill_searches", {
   searchedAt: text("searched_at").notNull(),
 });
 
+export const projects = pgTable("projects", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  ownerId: integer("owner_id").notNull().references(() => employees.id),
+  status: text("status", { enum: ["planning", "active", "paused", "completed"] }).default("planning").notNull(),
+  priority: text("priority", { enum: ["low", "medium", "high", "critical"] }).default("medium").notNull(),
+  deadline: timestamp("deadline"),
+  requiredSkills: text("required_skills").array().default([]).notNull(),
+  estimatedDuration: text("estimated_duration"),
+  budget: text("budget"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const projectApplications = pgTable("project_applications", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull().references(() => projects.id),
+  applicantId: integer("applicant_id").notNull().references(() => employees.id),
+  message: text("message"),
+  status: text("status", { enum: ["pending", "accepted", "rejected"] }).default("pending").notNull(),
+  appliedAt: timestamp("applied_at").defaultNow().notNull(),
+});
+
 export const insertEmployeeSchema = createInsertSchema(employees).omit({
   id: true,
 });
@@ -47,7 +71,22 @@ export const insertSkillEndorsementSchema = createInsertSchema(skillEndorsements
   createdAt: true,
 });
 
+export const insertProjectSchema = createInsertSchema(projects).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertProjectApplicationSchema = createInsertSchema(projectApplications).omit({
+  id: true,
+  appliedAt: true,
+});
+
 export type InsertEmployee = z.infer<typeof insertEmployeeSchema>;
 export type Employee = typeof employees.$inferSelect;
 export type InsertSkillEndorsement = z.infer<typeof insertSkillEndorsementSchema>;
 export type SkillEndorsement = typeof skillEndorsements.$inferSelect;
+export type InsertProject = z.infer<typeof insertProjectSchema>;
+export type Project = typeof projects.$inferSelect;
+export type InsertProjectApplication = z.infer<typeof insertProjectApplicationSchema>;
+export type ProjectApplication = typeof projectApplications.$inferSelect;

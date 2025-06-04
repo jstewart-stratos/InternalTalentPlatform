@@ -1,4 +1,4 @@
-import { employees, skillEndorsements, skillSearches, type Employee, type InsertEmployee, type SkillEndorsement, type InsertSkillEndorsement } from "@shared/schema";
+import { employees, skillEndorsements, skillSearches, projects, projectApplications, type Employee, type InsertEmployee, type SkillEndorsement, type InsertSkillEndorsement, type Project, type InsertProject, type ProjectApplication, type InsertProjectApplication } from "@shared/schema";
 import { db } from "./db";
 import { eq, or, and, ilike, sql } from "drizzle-orm";
 
@@ -21,6 +21,21 @@ export interface IStorage {
   // Skill search tracking methods
   trackSkillSearch(skill: string): Promise<void>;
   getTrendingSkills(): Promise<Array<{ skill: string; searchCount: number; employeeCount: number; trending: boolean }>>;
+
+  // Project methods
+  createProject(project: InsertProject): Promise<Project>;
+  getAllProjects(): Promise<Project[]>;
+  getProject(id: number): Promise<Project | undefined>;
+  getProjectsByOwner(ownerId: number): Promise<Project[]>;
+  updateProject(id: number, project: Partial<InsertProject>): Promise<Project | undefined>;
+  deleteProject(id: number): Promise<boolean>;
+  searchProjects(query: string, skills?: string[]): Promise<Project[]>;
+
+  // Project application methods
+  createProjectApplication(application: InsertProjectApplication): Promise<ProjectApplication>;
+  getProjectApplications(projectId: number): Promise<ProjectApplication[]>;
+  getUserApplications(applicantId: number): Promise<ProjectApplication[]>;
+  updateApplicationStatus(id: number, status: 'accepted' | 'rejected'): Promise<ProjectApplication | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
