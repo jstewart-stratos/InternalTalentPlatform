@@ -164,42 +164,61 @@ export class DatabaseStorage implements IStorage {
   async getTrendingSkills(): Promise<Array<{ skill: string; searchCount: number; employeeCount: number; trending: boolean }>> {
     const employees = await this.getAllEmployees();
     
-    // Get search counts for the last 30 days
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    
-    const searchData = await db
-      .select({
-        skill: skillSearches.skill,
-        searchCount: sql<number>`count(*)`.as('searchCount')
-      })
-      .from(skillSearches)
-      .where(sql`${skillSearches.searchedAt} >= ${thirtyDaysAgo.toISOString()}`)
-      .groupBy(skillSearches.skill)
-      .orderBy(sql`count(*) desc`)
-      .limit(20);
-
-    // Calculate employee counts and trending status
-    const skillStats = searchData.map(item => {
-      const employeeCount = employees.filter(emp => 
-        emp.skills.some(skill => skill.toLowerCase() === item.skill.toLowerCase())
-      ).length;
-
-      // Consider trending if searched more than 3 times in last 7 days
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      
-      const trending = item.searchCount >= 3;
-
-      return {
-        skill: item.skill,
-        searchCount: item.searchCount,
-        employeeCount,
-        trending
-      };
+    // Create skill frequency map from all employee skills
+    const skillMap = new Map<string, number>();
+    employees.forEach(emp => {
+      emp.skills.forEach(skill => {
+        const normalizedSkill = skill.trim();
+        skillMap.set(normalizedSkill, (skillMap.get(normalizedSkill) || 0) + 1);
+      });
     });
 
-    return skillStats;
+    // Get recent search data (last 30 days) if available
+    let searchData: Array<{ skill: string; searchCount: number }> = [];
+    try {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
+      searchData = await db
+        .select({
+          skill: skillSearches.skill,
+          searchCount: sql<number>`count(*)`.as('searchCount')
+        })
+        .from(skillSearches)
+        .where(sql`${skillSearches.searchedAt} >= ${thirtyDaysAgo.toISOString()}`)
+        .groupBy(skillSearches.skill)
+        .orderBy(sql`count(*) desc`)
+        .limit(10);
+    } catch (error) {
+      // If search tracking fails, continue with skill popularity data
+    }
+
+    // Combine search data with skill popularity
+    const searchMap = new Map(searchData.map(item => [item.skill.toLowerCase(), item.searchCount]));
+    
+    // Create trending skills based on employee count and search frequency
+    const trendingSkills = Array.from(skillMap.entries())
+      .map(([skill, employeeCount]) => {
+        const searchCount = searchMap.get(skill.toLowerCase()) || 0;
+        const trending = employeeCount >= 2 || searchCount >= 2; // Trending if 2+ employees or 2+ searches
+        
+        return {
+          skill,
+          searchCount,
+          employeeCount,
+          trending
+        };
+      })
+      .sort((a, b) => {
+        // Sort by search count first, then by employee count
+        if (b.searchCount !== a.searchCount) {
+          return b.searchCount - a.searchCount;
+        }
+        return b.employeeCount - a.employeeCount;
+      })
+      .slice(0, 12);
+
+    return trendingSkills;
   }
 }
 

@@ -129,6 +129,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/track-search", async (req, res) => {
+    try {
+      const { skill } = req.body;
+      if (!skill || typeof skill !== 'string') {
+        return res.status(400).json({ error: "Skill is required" });
+      }
+      
+      await storage.trackSkillSearch(skill);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to track search" });
+    }
+  });
+
   // Skill endorsement routes
   app.post("/api/skill-endorsements", async (req, res) => {
     try {

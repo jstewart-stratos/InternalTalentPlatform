@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import SearchFilters from "@/components/search-filters";
 import EmployeeCard from "@/components/employee-card";
+import TrendingSkills from "@/components/trending-skills";
 import type { Employee } from "@shared/schema";
 
 export default function Home() {
@@ -208,46 +209,8 @@ export default function Home() {
         )}
       </div>
 
-      {/* Features Section */}
-      <div className="bg-white py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Why Choose Stratos Skill Swap?</h2>
-            <p className="text-lg text-secondary max-w-2xl mx-auto">
-              Streamline internal collaboration and unlock your organization's hidden potential.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-primary rounded-xl flex items-center justify-center mx-auto mb-4">
-                <Search className="text-white h-8 w-8" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">Smart Skill Matching</h3>
-              <p className="text-secondary">
-                Advanced algorithms match your project needs with the right internal talent based on skills, experience, and availability.
-              </p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-accent rounded-xl flex items-center justify-center mx-auto mb-4">
-                <Users className="text-white h-8 w-8" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">Team Collaboration</h3>
-              <p className="text-secondary">
-                Built-in messaging and project management tools to facilitate seamless collaboration between team members.
-              </p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-orange-500 rounded-xl flex items-center justify-center mx-auto mb-4">
-                <TrendingUp className="text-white h-8 w-8" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">Analytics & Insights</h3>
-              <p className="text-secondary">
-                Track skill utilization, identify knowledge gaps, and measure the impact of internal collaboration on productivity.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Trending Skills Section */}
+      <TrendingSkills />
 
       {/* Stats Section */}
       {stats && (
