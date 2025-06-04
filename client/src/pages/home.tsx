@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import SearchFilters from "@/components/search-filters";
 import EmployeeCard from "@/components/employee-card";
 import TrendingSkills from "@/components/trending-skills";
-import SkillTree from "@/components/skill-tree";
+import AnimatedSkillTree from "@/components/animated-skill-tree";
 import type { Employee, SkillEndorsement } from "@shared/schema";
 
 export default function Home() {
@@ -236,7 +236,7 @@ export default function Home() {
       {/* Interactive Skill Tree Section */}
       <div className="bg-white py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <SkillTree 
+          <AnimatedSkillTree 
             employees={allEmployees} 
             endorsements={allEndorsements}
             onSkillSelect={(skill) => {

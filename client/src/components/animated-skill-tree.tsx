@@ -196,7 +196,7 @@ export default function AnimatedSkillTree({ employees, endorsements, onSkillSele
   const renderConnections = () => {
     if (nodePositions.size === 0) return null;
 
-    const connections = [];
+    const connections: JSX.Element[] = [];
     const traverseTree = (node: SkillNode, parentPos?: { x: number; y: number }) => {
       const nodePos = nodePositions.get(node.id);
       if (parentPos && nodePos && expandedNodes.has(node.id)) {
