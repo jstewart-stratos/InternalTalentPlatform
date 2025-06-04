@@ -93,19 +93,29 @@ export default function Projects() {
       if (!response.ok) throw new Error("Failed to create project");
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (newProject) => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
       setIsCreateDialogOpen(false);
       form.reset();
+      // Open the newly created project details
+      setSelectedProject(newProject);
     },
   });
 
   const onSubmit = (data: CreateProjectForm) => {
+    console.log("Form data:", data);
     const projectData: InsertProject = {
-      ...data,
-      ownerId: currentUser?.id || 40, // Use current user as owner
+      title: data.title,
+      description: data.description,
+      ownerId: currentUser?.id || 40,
+      status: data.status || "planning",
+      priority: data.priority || "medium",
       deadline: data.deadline ? new Date(data.deadline) : null,
+      requiredSkills: data.requiredSkills || [],
+      estimatedDuration: data.estimatedDuration || null,
+      budget: data.budget || null,
     };
+    console.log("Project data being sent:", projectData);
     createProjectMutation.mutate(projectData);
   };
 
