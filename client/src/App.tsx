@@ -22,6 +22,7 @@ function Router() {
       <Route path="/profile/create" component={CreateProfile} />
       <Route path="/profile/:id?" component={Profile} />
       <Route path="/analytics" component={Analytics} />
+      <Route path="/skills-gap-analysis" component={SkillsGapAnalysis} />
       <Route path="/admin" component={Admin} />
       <Route path="/skills" component={Skills} />
       <Route path="/projects" component={Projects} />
