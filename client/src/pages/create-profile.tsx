@@ -47,14 +47,22 @@ export default function CreateProfile() {
       availability: "Available",
       yearsExperience: 0,
     },
+    mode: "onChange",
   });
 
   const createEmployee = useMutation({
     mutationFn: async (data: InsertEmployee) => {
-      return await apiRequest("/api/employees", {
+      const response = await fetch("/api/employees", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify(data),
       });
+      if (!response.ok) {
+        throw new Error("Failed to create employee");
+      }
+      return response.json();
     },
     onSuccess: (newEmployee) => {
       queryClient.invalidateQueries({ queryKey: ["/api/employees"] });
@@ -185,15 +193,21 @@ export default function CreateProfile() {
 
                   <FormField
                     control={form.control}
-                    name="location"
+                    name="yearsExperience"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="flex items-center">
-                          <MapPin className="h-4 w-4 mr-2" />
-                          Location
+                          <Award className="h-4 w-4 mr-2" />
+                          Years of Experience
                         </FormLabel>
                         <FormControl>
-                          <Input placeholder="e.g., New York, NY" {...field} />
+                          <Input 
+                            type="number" 
+                            min="0" 
+                            placeholder="e.g., 5" 
+                            {...field}
+                            onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
