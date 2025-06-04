@@ -181,6 +181,84 @@ async function seed() {
       skills: ["Social Security Optimization", "Medicare Planning", "401k Rollovers", "Pension Analysis", "Required Minimum Distributions", "Health Savings Accounts", "Longevity Planning", "Income Replacement"],
       availability: "busy",
       availabilityMessage: "Available in 2 weeks"
+    },
+    {
+      name: "Patricia Williams",
+      email: "patricia.williams@stratoswealth.com",
+      title: "Executive Administrative Assistant",
+      department: "Administration",
+      bio: "Senior executive assistant with expertise in calendar management, travel coordination, and executive support. Specializes in high-level administrative operations and confidential document handling.",
+      profileImage: "https://images.unsplash.com/photo-1580489944761-15a19d654956?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=150",
+      yearsExperience: 16,
+      experienceLevel: "Senior",
+      skills: ["Executive Support", "Calendar Management", "Travel Coordination", "Meeting Planning", "Document Management", "Confidentiality", "Microsoft Office Suite", "Expense Reporting"],
+      availability: "available",
+      availabilityMessage: "Available for administrative support"
+    },
+    {
+      name: "Jennifer Davis",
+      email: "jennifer.davis@stratoswealth.com",
+      title: "Client Services Coordinator",
+      department: "Client Services",
+      bio: "Client-focused administrative professional specializing in client onboarding, appointment scheduling, and customer relationship management systems.",
+      profileImage: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=150",
+      yearsExperience: 8,
+      experienceLevel: "Mid-Level",
+      skills: ["Client Onboarding", "Appointment Scheduling", "CRM Systems", "Customer Service", "Data Entry", "Phone Etiquette", "Follow-up Procedures", "Client Communication"],
+      availability: "available",
+      availabilityMessage: "Available now"
+    },
+    {
+      name: "Lisa Anderson",
+      email: "lisa.anderson@stratoswealth.com",
+      title: "Office Manager",
+      department: "Administration",
+      bio: "Experienced office manager responsible for facility operations, vendor management, and administrative team coordination. Expert in office systems and process improvement.",
+      profileImage: "https://images.unsplash.com/photo-1551836022-d5d88e9218df?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=150",
+      yearsExperience: 12,
+      experienceLevel: "Senior",
+      skills: ["Office Management", "Vendor Management", "Facility Operations", "Team Coordination", "Process Improvement", "Budget Management", "Inventory Management", "Staff Supervision"],
+      availability: "available",
+      availabilityMessage: "Available for consultations"
+    },
+    {
+      name: "Maria Garcia",
+      email: "maria.garcia@stratoswealth.com",
+      title: "Administrative Specialist",
+      department: "Human Resources",
+      bio: "HR administrative specialist with expertise in employee records management, benefits administration, and recruitment support.",
+      profileImage: "https://images.unsplash.com/photo-1589156229687-496a31ad1d1f?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=150",
+      yearsExperience: 6,
+      experienceLevel: "Mid-Level",
+      skills: ["Employee Records", "Benefits Administration", "Recruitment Support", "HRIS Systems", "Payroll Processing", "Compliance Documentation", "New Hire Orientation", "Training Coordination"],
+      availability: "available",
+      availabilityMessage: "Available this week"
+    },
+    {
+      name: "Susan Miller",
+      email: "susan.miller@stratoswealth.com",
+      title: "Legal Administrative Assistant",
+      department: "Legal",
+      bio: "Legal administrative professional with expertise in document preparation, case file management, and legal research support for compliance and regulatory matters.",
+      profileImage: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=150",
+      yearsExperience: 10,
+      experienceLevel: "Senior",
+      skills: ["Legal Document Preparation", "Case File Management", "Legal Research", "Court Filings", "Regulatory Compliance", "Contract Administration", "Legal Software", "Confidential Communication"],
+      availability: "busy",
+      availabilityMessage: "Available in 1 week"
+    },
+    {
+      name: "Rebecca Johnson",
+      email: "rebecca.johnson@stratoswealth.com",
+      title: "Marketing Assistant",
+      department: "Marketing",
+      bio: "Creative marketing administrative professional specializing in social media management, event coordination, and marketing material preparation.",
+      profileImage: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=150",
+      yearsExperience: 4,
+      experienceLevel: "Junior",
+      skills: ["Social Media Management", "Event Coordination", "Marketing Materials", "Content Creation", "Email Marketing", "Database Management", "Graphic Design", "Campaign Support"],
+      availability: "available",
+      availabilityMessage: "Available for marketing projects"
     }
   ];
 
@@ -222,6 +300,31 @@ async function seed() {
     { employeeId: insertedEmployees[12].id, endorserId: insertedEmployees[6].id, skill: "Social Security Optimization" },
     { employeeId: insertedEmployees[12].id, endorserId: insertedEmployees[7].id, skill: "Medicare Planning" },
     { employeeId: insertedEmployees[12].id, endorserId: insertedEmployees[8].id, skill: "401k Rollovers" },
+    
+    // Administrative assistant skill endorsements
+    { employeeId: insertedEmployees[13].id, endorserId: insertedEmployees[7].id, skill: "Executive Support" },
+    { employeeId: insertedEmployees[13].id, endorserId: insertedEmployees[14].id, skill: "Calendar Management" },
+    { employeeId: insertedEmployees[13].id, endorserId: insertedEmployees[15].id, skill: "Travel Coordination" },
+    
+    { employeeId: insertedEmployees[14].id, endorserId: insertedEmployees[6].id, skill: "Client Onboarding" },
+    { employeeId: insertedEmployees[14].id, endorserId: insertedEmployees[13].id, skill: "CRM Systems" },
+    { employeeId: insertedEmployees[14].id, endorserId: insertedEmployees[15].id, skill: "Customer Service" },
+    
+    { employeeId: insertedEmployees[15].id, endorserId: insertedEmployees[13].id, skill: "Office Management" },
+    { employeeId: insertedEmployees[15].id, endorserId: insertedEmployees[16].id, skill: "Process Improvement" },
+    { employeeId: insertedEmployees[15].id, endorserId: insertedEmployees[14].id, skill: "Team Coordination" },
+    
+    { employeeId: insertedEmployees[16].id, endorserId: insertedEmployees[15].id, skill: "Employee Records" },
+    { employeeId: insertedEmployees[16].id, endorserId: insertedEmployees[17].id, skill: "Benefits Administration" },
+    { employeeId: insertedEmployees[16].id, endorserId: insertedEmployees[13].id, skill: "HRIS Systems" },
+    
+    { employeeId: insertedEmployees[17].id, endorserId: insertedEmployees[7].id, skill: "Legal Document Preparation" },
+    { employeeId: insertedEmployees[17].id, endorserId: insertedEmployees[16].id, skill: "Regulatory Compliance" },
+    { employeeId: insertedEmployees[17].id, endorserId: insertedEmployees[15].id, skill: "Case File Management" },
+    
+    { employeeId: insertedEmployees[18].id, endorserId: insertedEmployees[3].id, skill: "Social Media Management" },
+    { employeeId: insertedEmployees[18].id, endorserId: insertedEmployees[14].id, skill: "Event Coordination" },
+    { employeeId: insertedEmployees[18].id, endorserId: insertedEmployees[15].id, skill: "Content Creation" },
   ];
 
   // Insert endorsements with current timestamp
