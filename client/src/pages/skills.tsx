@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import AnimatedSkillTree from "@/components/animated-skill-tree";
 import EmployeeCard from "@/components/employee-card";
 import type { Employee, SkillEndorsement } from "@shared/schema";
 
@@ -203,19 +202,7 @@ export default function Skills() {
           </div>
         </div>
 
-        {/* Skills Tree Visualization */}
-        {isLoading ? (
-          <div className="text-center py-16">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-accent mb-4"></div>
-            <p className="text-gray-600">Loading skill network...</p>
-          </div>
-        ) : (
-          <AnimatedSkillTree 
-            employees={allEmployees} 
-            endorsements={allEndorsements}
-            onSkillSelect={handleSkillSelect}
-          />
-        )}
+
       </div>
 
       {/* Cross-Referenced Talent Results */}
