@@ -30,8 +30,8 @@ export default function Navigation() {
     // Clear any stored user data
     localStorage.removeItem('currentUserId');
     localStorage.removeItem('userProfile');
-    // Redirect to profile creation
-    window.location.href = '/profile/create';
+    // Redirect to home page
+    window.location.href = '/';
   };
 
   return (
@@ -71,14 +71,28 @@ export default function Navigation() {
               <Bell className="h-5 w-5" />
               <span className="sr-only">Notifications</span>
             </button>
-            <div className="flex items-center space-x-3">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=150" />
-                <AvatarFallback>JS</AvatarFallback>
-              </Avatar>
-              <span className="text-sm font-medium text-gray-900">John Smith</span>
-              <ChevronDown className="h-3 w-3 text-secondary" />
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger className="flex items-center space-x-3 hover:bg-gray-50 rounded-lg px-2 py-1">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=150" />
+                  <AvatarFallback>JS</AvatarFallback>
+                </Avatar>
+                <span className="text-sm font-medium text-gray-900">John Smith</span>
+                <ChevronDown className="h-3 w-3 text-secondary" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem asChild>
+                  <Link href="/profile" className="flex items-center">
+                    <UserCircle className="h-4 w-4 mr-2" />
+                    My Profile
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLogout} className="flex items-center text-red-600">
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Log Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>

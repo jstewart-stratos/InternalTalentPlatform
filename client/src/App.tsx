@@ -6,7 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import Navigation from "@/components/navigation";
 import Home from "@/pages/home";
 import Profile from "@/pages/profile";
-
+import CreateProfile from "@/pages/create-profile";
 import Analytics from "@/pages/analytics";
 import Admin from "@/pages/admin";
 import NotFound from "@/pages/not-found";
@@ -15,8 +15,8 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/profile/create" component={CreateProfile} />
       <Route path="/profile/:id?" component={Profile} />
-
       <Route path="/analytics" component={Analytics} />
       <Route path="/admin" component={Admin} />
       <Route component={NotFound} />
