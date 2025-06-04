@@ -77,7 +77,7 @@ export default function Home() {
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button 
-                  className="bg-accent text-primary px-8 py-3 hover:bg-yellow-400 font-semibold"
+                  className="bg-accent text-primary px-8 py-3 hover:bg-orange-500 font-semibold"
                   onClick={() => {
                     const searchSection = document.querySelector('#search-section');
                     searchSection?.scrollIntoView({ behavior: 'smooth' });
@@ -269,7 +269,7 @@ export default function Home() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
-              className="bg-accent text-primary px-8 py-4 text-lg hover:bg-yellow-400 font-semibold"
+              className="bg-accent text-primary px-8 py-4 text-lg hover:bg-orange-500 font-semibold"
               onClick={() => {
                 window.location.href = '/profile';
               }}
