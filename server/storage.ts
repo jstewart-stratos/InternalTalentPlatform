@@ -1,4 +1,4 @@
-import { employees, skillEndorsements, skillSearches, projects, projectApplications, type Employee, type InsertEmployee, type SkillEndorsement, type InsertSkillEndorsement, type Project, type InsertProject, type ProjectApplication, type InsertProjectApplication } from "@shared/schema";
+import { employees, skillEndorsements, skillSearches, projects, projectApplications, users, type Employee, type InsertEmployee, type SkillEndorsement, type InsertSkillEndorsement, type Project, type InsertProject, type ProjectApplication, type InsertProjectApplication, type User, type UpsertUser } from "@shared/schema";
 import { db } from "./db";
 import { eq, or, and, ilike, sql } from "drizzle-orm";
 
