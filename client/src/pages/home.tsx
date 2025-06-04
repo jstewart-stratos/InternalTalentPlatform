@@ -70,11 +70,23 @@ export default function Home() {
                 Connect with colleagues who have the skills you need. Build stronger teams through internal collaboration and knowledge sharing.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
-                <Button className="bg-white text-primary px-8 py-3 hover:bg-gray-50">
+                <Button 
+                  className="bg-white text-primary px-8 py-3 hover:bg-gray-50"
+                  onClick={() => {
+                    const searchSection = document.querySelector('#search-section');
+                    searchSection?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                >
                   <Search className="mr-2 h-4 w-4" />
                   Search Skills
                 </Button>
-                <Button variant="outline" className="border-2 border-white text-white px-8 py-3 hover:bg-white hover:text-primary">
+                <Button 
+                  variant="outline" 
+                  className="border-2 border-white text-white bg-transparent px-8 py-3 hover:bg-white hover:text-primary"
+                  onClick={() => {
+                    window.location.href = '/profile';
+                  }}
+                >
                   <UserPlus className="mr-2 h-4 w-4" />
                   Create Profile
                 </Button>
@@ -93,7 +105,7 @@ export default function Home() {
       </div>
 
       {/* Search Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <div id="search-section" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold text-gray-900 mb-4">Discover Skills & Expertise</h2>
           <p className="text-lg text-secondary max-w-2xl mx-auto">
@@ -250,11 +262,22 @@ export default function Home() {
             Join thousands of employees who are already leveraging internal expertise to drive innovation and success.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button className="bg-white text-primary px-8 py-4 text-lg hover:bg-gray-50">
+            <Button 
+              className="bg-white text-primary px-8 py-4 text-lg hover:bg-gray-50"
+              onClick={() => {
+                window.location.href = '/profile';
+              }}
+            >
               <UserPlus className="mr-2 h-5 w-5" />
               Get Started Today
             </Button>
-            <Button variant="outline" className="border-2 border-white text-white px-8 py-4 text-lg hover:bg-white hover:text-primary">
+            <Button 
+              variant="outline" 
+              className="border-2 border-white text-white bg-transparent px-8 py-4 text-lg hover:bg-white hover:text-primary"
+              onClick={() => {
+                window.location.href = '/analytics';
+              }}
+            >
               <BarChart3 className="mr-2 h-5 w-5" />
               Learn More
             </Button>
