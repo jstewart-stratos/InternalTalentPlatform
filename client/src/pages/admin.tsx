@@ -71,6 +71,7 @@ export default function Admin() {
     mutationFn: ({ id, data }: { id: number, data: Partial<InsertEmployee> }) => 
       apiRequest(`/api/employees/${id}`, {
         method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       }),
     onSuccess: () => {
@@ -110,6 +111,7 @@ export default function Admin() {
       title: formData.get('title') as string,
       department: formData.get('department') as string,
       experienceLevel: formData.get('experienceLevel') as string,
+      yearsExperience: parseInt(formData.get('yearsExperience') as string) || 0,
       skills,
       bio: formData.get('bio') as string || undefined
     };
