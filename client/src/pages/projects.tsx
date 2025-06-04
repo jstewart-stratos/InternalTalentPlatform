@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Calendar, Clock, DollarSign, Users, AlertCircle, CheckCircle, Pause, Play, ArrowLeft, Mail, User } from "lucide-react";
+import { useUser } from "@/contexts/user-context";
 import EmployeeRecommendations from "@/components/employee-recommendations";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,6 +57,7 @@ export default function Projects() {
   const [skillInput, setSkillInput] = useState("");
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const queryClient = useQueryClient();
+  const { currentUser } = useUser();
 
   const { data: projects = [], isLoading } = useQuery({
     queryKey: ["/api/projects"],
@@ -82,10 +84,15 @@ export default function Projects() {
 
   const createProjectMutation = useMutation({
     mutationFn: async (data: InsertProject) => {
-      return await apiRequest("/api/projects", {
+      const response = await fetch("/api/projects", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify(data),
       });
+      if (!response.ok) throw new Error("Failed to create project");
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
@@ -97,6 +104,7 @@ export default function Projects() {
   const onSubmit = (data: CreateProjectForm) => {
     const projectData: InsertProject = {
       ...data,
+      ownerId: currentUser?.id || 40, // Use current user as owner
       deadline: data.deadline ? new Date(data.deadline) : null,
     };
     createProjectMutation.mutate(projectData);
