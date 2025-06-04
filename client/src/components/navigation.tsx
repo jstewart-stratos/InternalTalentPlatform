@@ -1,6 +1,7 @@
 import { Link, useLocation } from "wouter";
-import { Bell, Users, ChevronDown } from "lucide-react";
+import { Bell, Users, ChevronDown, LogOut, UserCircle } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import QuickSearch from "@/components/quick-search";
 import type { Employee } from "@shared/schema";
 
@@ -23,6 +24,14 @@ export default function Navigation() {
     const params = new URLSearchParams();
     params.set('q', skill);
     window.location.href = `/?${params.toString()}`;
+  };
+
+  const handleLogout = () => {
+    // Clear any stored user data
+    localStorage.removeItem('currentUserId');
+    localStorage.removeItem('userProfile');
+    // Redirect to profile creation
+    window.location.href = '/profile/create';
   };
 
   return (
