@@ -1,4 +1,4 @@
-import { employees, messages, skillEndorsements, type Employee, type InsertEmployee, type Message, type InsertMessage, type SkillEndorsement, type InsertSkillEndorsement } from "@shared/schema";
+import { employees, skillEndorsements, type Employee, type InsertEmployee, type SkillEndorsement, type InsertSkillEndorsement } from "@shared/schema";
 import { db } from "./db";
 import { eq, or, and, ilike, sql } from "drizzle-orm";
 
@@ -11,13 +11,6 @@ export interface IStorage {
   deleteEmployee(id: number): Promise<boolean>;
   getAllEmployees(): Promise<Employee[]>;
   searchEmployees(query: string, department?: string, experienceLevel?: string): Promise<Employee[]>;
-
-  // Message methods
-  getMessage(id: number): Promise<Message | undefined>;
-  createMessage(message: InsertMessage): Promise<Message>;
-  getMessagesForEmployee(employeeId: number): Promise<Message[]>;
-  getConversation(employee1Id: number, employee2Id: number): Promise<Message[]>;
-  markMessageAsRead(id: number): Promise<void>;
 
   // Skill endorsement methods
   createSkillEndorsement(endorsement: InsertSkillEndorsement): Promise<SkillEndorsement>;
@@ -109,59 +102,7 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(employees);
   }
 
-  async getMessage(id: number): Promise<Message | undefined> {
-    const [message] = await db.select().from(messages).where(eq(messages.id, id));
-    return message || undefined;
-  }
 
-  async createMessage(insertMessage: InsertMessage): Promise<Message> {
-    const [message] = await db
-      .insert(messages)
-      .values({
-        ...insertMessage,
-        createdAt: new Date().toISOString()
-      })
-      .returning();
-    return message;
-  }
-
-  async getMessagesForEmployee(employeeId: number): Promise<Message[]> {
-    return await db
-      .select()
-      .from(messages)
-      .where(
-        or(
-          eq(messages.toEmployeeId, employeeId),
-          eq(messages.fromEmployeeId, employeeId)
-        )
-      );
-  }
-
-  async getConversation(employee1Id: number, employee2Id: number): Promise<Message[]> {
-    return await db
-      .select()
-      .from(messages)
-      .where(
-        or(
-          and(
-            eq(messages.fromEmployeeId, employee1Id),
-            eq(messages.toEmployeeId, employee2Id)
-          ),
-          and(
-            eq(messages.fromEmployeeId, employee2Id),
-            eq(messages.toEmployeeId, employee1Id)
-          )
-        )
-      )
-      .orderBy(messages.createdAt);
-  }
-
-  async markMessageAsRead(id: number): Promise<void> {
-    await db
-      .update(messages)
-      .set({ isRead: true })
-      .where(eq(messages.id, id));
-  }
 
   async createSkillEndorsement(insertEndorsement: InsertSkillEndorsement): Promise<SkillEndorsement> {
     const [endorsement] = await db
