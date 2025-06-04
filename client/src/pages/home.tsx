@@ -53,16 +53,16 @@ export default function Home() {
     },
   });
 
-  // Function to randomize and limit employees to 10
+  // Function to randomize and limit employees to 9
   const getDisplayEmployees = (employees: Employee[]): Employee[] => {
     if (searchQuery || selectedDepartment !== "All Departments" || selectedExperience !== "Any Level") {
       // Show all results when filtering/searching
       return employees;
     }
     
-    // Randomize and limit to 10 when showing general talent
+    // Randomize and limit to 9 when showing general talent
     const shuffled = [...employees].sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, 10);
+    return shuffled.slice(0, 9);
   };
 
   const employees = getDisplayEmployees(allEmployees);
