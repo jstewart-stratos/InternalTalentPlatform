@@ -25,8 +25,7 @@ export default function Navigation() {
     { path: "/skills", label: "Skills Network", active: location === "/skills" },
     { path: "/projects", label: "Projects Hub", active: location === "/projects" },
     { path: "/profile", label: "My Profile", active: location.startsWith("/profile") },
-    { path: "/analytics", label: "Analytics", active: location === "/analytics" },
-    { path: "/skills-gap-analysis", label: "Skills Gap Analysis", active: location === "/skills-gap-analysis" },
+    { path: "/analytics", label: "Analytics", active: location === "/analytics" || location === "/skills-gap-analysis" },
     { path: "/admin", label: "Admin", active: location === "/admin" },
   ];
 
