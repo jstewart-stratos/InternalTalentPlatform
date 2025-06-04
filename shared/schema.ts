@@ -53,6 +53,7 @@ export const insertMessageSchema = createInsertSchema(messages).omit({
 
 export const insertSkillEndorsementSchema = createInsertSchema(skillEndorsements).omit({
   id: true,
+  createdAt: true,
 });
 
 export type InsertEmployee = z.infer<typeof insertEmployeeSchema>;
