@@ -26,6 +26,7 @@ export default function Navigation() {
     { path: "/projects", label: "Projects Hub", active: location === "/projects" },
     { path: "/profile", label: "My Profile", active: location.startsWith("/profile") },
     { path: "/analytics", label: "Analytics", active: location === "/analytics" },
+    { path: "/skills-gap-analysis", label: "Skills Gap Analysis", active: location === "/skills-gap-analysis" },
     { path: "/admin", label: "Admin", active: location === "/admin" },
   ];
 
