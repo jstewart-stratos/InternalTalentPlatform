@@ -1,12 +1,16 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { Network, Users, Award, ArrowLeft } from "lucide-react";
+import { Network, Users, Award, ArrowLeft, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import AnimatedSkillTree from "@/components/animated-skill-tree";
+import EmployeeCard from "@/components/employee-card";
 import type { Employee, SkillEndorsement } from "@shared/schema";
 
 export default function Skills() {
   const [, setLocation] = useLocation();
+  const [selectedSkill, setSelectedSkill] = useState<string | null>(null);
 
   const { data: allEmployees = [], isLoading: isLoadingEmployees } = useQuery({
     queryKey: ["/api/employees"],
@@ -27,9 +31,13 @@ export default function Skills() {
   });
 
   const handleSkillSelect = (skill: string) => {
-    // Navigate to home page with search query
-    setLocation(`/?q=${encodeURIComponent(skill)}`);
+    setSelectedSkill(skill);
   };
+
+  // Filter employees by selected skill
+  const filteredEmployees = selectedSkill 
+    ? allEmployees.filter(emp => emp.skills?.includes(selectedSkill))
+    : [];
 
   const isLoading = isLoadingEmployees || isLoadingEndorsements;
 
@@ -98,6 +106,46 @@ export default function Skills() {
           />
         )}
       </div>
+
+      {/* Available Talent Section */}
+      {selectedSkill && (
+        <div className="bg-white py-16 border-t">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold text-gray-900 mb-4">
+                Available Talent for "{selectedSkill}"
+              </h2>
+              <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+                Connect with colleagues who have expertise in {selectedSkill}
+              </p>
+              <Button
+                onClick={() => setSelectedSkill(null)}
+                variant="outline"
+                className="mt-4"
+              >
+                <Search className="h-4 w-4 mr-2" />
+                Browse All Skills
+              </Button>
+            </div>
+
+            {filteredEmployees.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredEmployees.map((employee) => (
+                  <EmployeeCard key={employee.id} employee={employee} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No employees found</h3>
+                <p className="text-gray-500">
+                  No employees currently have "{selectedSkill}" listed in their skills.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Instructions Section */}
       <div className="bg-gray-50 py-16">
