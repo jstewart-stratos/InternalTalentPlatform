@@ -33,7 +33,7 @@ export default function Navigation() {
           <div className="flex items-center space-x-8">
             <Link href="/" className="flex items-center">
               <Users className="text-primary text-2xl mr-3" />
-              <span className="text-xl font-bold text-gray-900">TalentConnect</span>
+              <span className="text-xl font-bold text-gray-900">Stratos Skill Swap</span>
             </Link>
             <nav className="hidden md:flex space-x-8">
               {navItems.map((item) => (

@@ -198,7 +198,7 @@ export default function Home() {
       <div className="bg-white py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Why Choose TalentConnect?</h2>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Why Choose Stratos Skill Swap?</h2>
             <p className="text-lg text-secondary max-w-2xl mx-auto">
               Streamline internal collaboration and unlock your organization's hidden potential.
             </p>
