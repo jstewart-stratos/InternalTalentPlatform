@@ -1,4 +1,4 @@
-import { employees, messages, type Employee, type InsertEmployee, type Message, type InsertMessage } from "@shared/schema";
+import { employees, messages, skillEndorsements, type Employee, type InsertEmployee, type Message, type InsertMessage, type SkillEndorsement, type InsertSkillEndorsement } from "@shared/schema";
 import { db } from "./db";
 import { eq, or, and, ilike, sql } from "drizzle-orm";
 
@@ -18,6 +18,12 @@ export interface IStorage {
   getMessagesForEmployee(employeeId: number): Promise<Message[]>;
   getConversation(employee1Id: number, employee2Id: number): Promise<Message[]>;
   markMessageAsRead(id: number): Promise<void>;
+
+  // Skill endorsement methods
+  createSkillEndorsement(endorsement: InsertSkillEndorsement): Promise<SkillEndorsement>;
+  getSkillEndorsements(employeeId: number): Promise<SkillEndorsement[]>;
+  getSkillEndorsementsBySkill(employeeId: number, skill: string): Promise<SkillEndorsement[]>;
+  removeSkillEndorsement(employeeId: number, endorserId: number, skill: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -155,6 +161,50 @@ export class DatabaseStorage implements IStorage {
       .update(messages)
       .set({ isRead: true })
       .where(eq(messages.id, id));
+  }
+
+  async createSkillEndorsement(insertEndorsement: InsertSkillEndorsement): Promise<SkillEndorsement> {
+    const [endorsement] = await db
+      .insert(skillEndorsements)
+      .values({
+        ...insertEndorsement,
+        createdAt: new Date().toISOString()
+      })
+      .returning();
+    return endorsement;
+  }
+
+  async getSkillEndorsements(employeeId: number): Promise<SkillEndorsement[]> {
+    return await db
+      .select()
+      .from(skillEndorsements)
+      .where(eq(skillEndorsements.employeeId, employeeId));
+  }
+
+  async getSkillEndorsementsBySkill(employeeId: number, skill: string): Promise<SkillEndorsement[]> {
+    return await db
+      .select()
+      .from(skillEndorsements)
+      .where(
+        and(
+          eq(skillEndorsements.employeeId, employeeId),
+          eq(skillEndorsements.skill, skill)
+        )
+      );
+  }
+
+  async removeSkillEndorsement(employeeId: number, endorserId: number, skill: string): Promise<boolean> {
+    const result = await db
+      .delete(skillEndorsements)
+      .where(
+        and(
+          eq(skillEndorsements.employeeId, employeeId),
+          eq(skillEndorsements.endorserId, endorserId),
+          eq(skillEndorsements.skill, skill)
+        )
+      )
+      .returning({ id: skillEndorsements.id });
+    return result.length > 0;
   }
 }
 

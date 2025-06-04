@@ -34,6 +34,14 @@ export const employeesRelations = pgTable("employees_relations", {
   type: text("type").notNull(), // colleague, mentor, mentee, collaborator
 });
 
+export const skillEndorsements = pgTable("skill_endorsements", {
+  id: serial("id").primaryKey(),
+  employeeId: integer("employee_id").notNull(),
+  endorserId: integer("endorser_id").notNull(),
+  skill: text("skill").notNull(),
+  createdAt: text("created_at").notNull(),
+});
+
 export const insertEmployeeSchema = createInsertSchema(employees).omit({
   id: true,
 });
@@ -43,7 +51,14 @@ export const insertMessageSchema = createInsertSchema(messages).omit({
   createdAt: true,
 });
 
+export const insertSkillEndorsementSchema = createInsertSchema(skillEndorsements).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type InsertEmployee = z.infer<typeof insertEmployeeSchema>;
 export type Employee = typeof employees.$inferSelect;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
 export type Message = typeof messages.$inferSelect;
+export type InsertSkillEndorsement = z.infer<typeof insertSkillEndorsementSchema>;
+export type SkillEndorsement = typeof skillEndorsements.$inferSelect;
