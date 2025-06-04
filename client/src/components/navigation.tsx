@@ -9,6 +9,7 @@ export default function Navigation() {
 
   const navItems = [
     { path: "/", label: "Discover Talent", active: location === "/" },
+    { path: "/skill-tree", label: "Skill Tree", active: location === "/skill-tree" },
     { path: "/profile", label: "My Profile", active: location.startsWith("/profile") },
     { path: "/messages", label: "Messages", active: location === "/messages" },
     { path: "/analytics", label: "Analytics", active: location === "/analytics" },

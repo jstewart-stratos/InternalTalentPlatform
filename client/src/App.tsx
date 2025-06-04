@@ -9,6 +9,7 @@ import Profile from "@/pages/profile";
 import Messages from "@/pages/messages";
 import Analytics from "@/pages/analytics";
 import Admin from "@/pages/admin";
+import SkillTreePage from "@/pages/skill-tree";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -19,6 +20,7 @@ function Router() {
       <Route path="/messages" component={Messages} />
       <Route path="/analytics" component={Analytics} />
       <Route path="/admin" component={Admin} />
+      <Route path="/skill-tree" component={SkillTreePage} />
       <Route component={NotFound} />
     </Switch>
   );
