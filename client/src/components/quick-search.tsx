@@ -144,6 +144,12 @@ export default function QuickSearch({ onEmployeeSelect, onSkillSelect, placehold
         e.preventDefault();
         if (selectedIndex >= 0 && selectedIndex < results.length) {
           handleResultSelect(results[selectedIndex]);
+        } else if (results.length > 0) {
+          // If no item is selected but there are results, select the first one
+          handleResultSelect(results[0]);
+        } else if (query.trim() && onSkillSelect) {
+          // If no results but there's a query, treat it as a skill search
+          onSkillSelect(query.trim());
         }
         break;
       case 'Escape':
