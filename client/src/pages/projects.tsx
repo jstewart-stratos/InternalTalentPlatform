@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -20,7 +20,6 @@ import type { Project, InsertProject } from "@shared/schema";
 const createProjectSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().min(1, "Description is required"),
-  ownerId: z.number().default(1), // For demo, use current user ID
   status: z.enum(["planning", "active", "paused", "completed"]).default("planning"),
   priority: z.enum(["low", "medium", "high", "critical"]).default("medium"),
   deadline: z.string().optional(),
@@ -73,9 +72,9 @@ export default function Projects() {
     defaultValues: {
       title: "",
       description: "",
-      ownerId: 1,
       status: "planning",
       priority: "medium",
+      deadline: "",
       requiredSkills: [],
       estimatedDuration: "",
       budget: "",
@@ -300,6 +299,9 @@ export default function Projects() {
             <DialogContent className="max-w-2xl">
               <DialogHeader>
                 <DialogTitle>Create New Project</DialogTitle>
+                <DialogDescription>
+                  Create a new project to collaborate with team members and showcase your ideas.
+                </DialogDescription>
               </DialogHeader>
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
