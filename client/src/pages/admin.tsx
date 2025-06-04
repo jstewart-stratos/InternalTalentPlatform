@@ -50,11 +50,15 @@ export default function Admin() {
 
   // Mutations
   const createEmployeeMutation = useMutation({
-    mutationFn: (data: InsertEmployee) => apiRequest(`/api/employees`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    }),
+    mutationFn: async (data: InsertEmployee) => {
+      const response = await fetch(`/api/employees`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      if (!response.ok) throw new Error('Failed to create employee');
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/employees'] });
       queryClient.invalidateQueries({ queryKey: ['/api/analytics/stats'] });
@@ -68,12 +72,15 @@ export default function Admin() {
   });
 
   const updateEmployeeMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number, data: Partial<InsertEmployee> }) => 
-      apiRequest(`/api/employees/${id}`, {
+    mutationFn: async ({ id, data }: { id: number, data: Partial<InsertEmployee> }) => {
+      const response = await fetch(`/api/employees/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
-      }),
+      });
+      if (!response.ok) throw new Error('Failed to update employee');
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/employees'] });
       queryClient.invalidateQueries({ queryKey: ['/api/analytics/stats'] });
@@ -87,9 +94,13 @@ export default function Admin() {
   });
 
   const deleteEmployeeMutation = useMutation({
-    mutationFn: (id: number) => apiRequest(`/api/employees/${id}`, {
-      method: 'DELETE'
-    }),
+    mutationFn: async (id: number) => {
+      const response = await fetch(`/api/employees/${id}`, {
+        method: 'DELETE'
+      });
+      if (!response.ok) throw new Error('Failed to delete employee');
+      return response.ok;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/employees'] });
       queryClient.invalidateQueries({ queryKey: ['/api/analytics/stats'] });
@@ -132,6 +143,7 @@ export default function Admin() {
       title: formData.get('title') as string,
       department: formData.get('department') as string,
       experienceLevel: formData.get('experienceLevel') as string,
+      yearsExperience: parseInt(formData.get('yearsExperience') as string) || 0,
       skills,
       bio: formData.get('bio') as string || undefined
     };
@@ -302,6 +314,10 @@ export default function Admin() {
                           ))}
                         </SelectContent>
                       </Select>
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="yearsExperience" className="text-right">Years</Label>
+                      <Input id="yearsExperience" name="yearsExperience" type="number" min="0" className="col-span-3" required />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                       <Label htmlFor="skills" className="text-right">Skills</Label>
@@ -506,6 +522,18 @@ export default function Admin() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-yearsExperience" className="text-right">Years</Label>
+                <Input 
+                  id="edit-yearsExperience" 
+                  name="yearsExperience" 
+                  type="number" 
+                  min="0"
+                  defaultValue={selectedEmployee?.yearsExperience?.toString() || '0'} 
+                  className="col-span-3" 
+                  required 
+                />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="edit-skills" className="text-right">Skills</Label>
