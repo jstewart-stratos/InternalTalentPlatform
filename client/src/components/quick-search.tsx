@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Search, User, Hash } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -59,77 +59,74 @@ export default function QuickSearch({ onEmployeeSelect, onSkillSelect, placehold
     return queryIndex === queryLower.length ? score / textLower.length : 0;
   };
 
-  // Search function
-  const searchEmployeesAndSkills = (searchQuery: string): SearchResult[] => {
-    if (!searchQuery.trim()) return [];
-    
-    const results: SearchResult[] = [];
-    const allSkills = new Set<string>();
-    
-    // Search employees
-    employees.forEach(employee => {
-      // Search in name
-      const nameScore = fuzzyMatch(employee.name, searchQuery);
-      if (nameScore > 0.3) {
-        results.push({
-          type: 'employee',
-          employee,
-          score: nameScore + 0.5 // Boost employee matches
-        });
-      }
+  // Search function using useMemo to prevent recreating on every render
+  const searchResults = useMemo(() => {
+    const searchEmployeesAndSkills = (searchQuery: string): SearchResult[] => {
+      if (!searchQuery.trim()) return [];
       
-      // Search in title
-      const titleScore = fuzzyMatch(employee.title, searchQuery);
-      if (titleScore > 0.3) {
-        results.push({
-          type: 'employee',
-          employee,
-          score: titleScore + 0.3
-        });
-      }
+      const results: SearchResult[] = [];
+      const allSkills = new Set<string>();
       
-      // Collect all skills
-      employee.skills.forEach(skill => allSkills.add(skill));
-    });
-    
-    // Search skills
-    Array.from(allSkills).forEach(skill => {
-      const skillScore = fuzzyMatch(skill, searchQuery);
-      if (skillScore > 0.3) {
-        results.push({
-          type: 'skill',
-          skill,
-          score: skillScore
-        });
-      }
-    });
-    
-    // Remove duplicates and sort by score
-    const uniqueResults = results.filter((result, index, self) => {
-      if (result.type === 'employee') {
-        return index === self.findIndex(r => r.type === 'employee' && r.employee?.id === result.employee?.id);
-      } else {
-        return index === self.findIndex(r => r.type === 'skill' && r.skill === result.skill);
-      }
-    });
-    
-    return uniqueResults
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 8); // Limit to 8 results
-  };
+      // Search employees
+      employees.forEach(employee => {
+        // Search in name
+        const nameScore = fuzzyMatch(employee.name, searchQuery);
+        if (nameScore > 0.3) {
+          results.push({
+            type: 'employee',
+            employee,
+            score: nameScore + 0.5 // Boost employee matches
+          });
+        }
+        
+        // Search in title
+        const titleScore = fuzzyMatch(employee.title, searchQuery);
+        if (titleScore > 0.3) {
+          results.push({
+            type: 'employee',
+            employee,
+            score: titleScore + 0.3
+          });
+        }
+        
+        // Collect all skills
+        employee.skills.forEach(skill => allSkills.add(skill));
+      });
+      
+      // Search skills
+      Array.from(allSkills).forEach(skill => {
+        const skillScore = fuzzyMatch(skill, searchQuery);
+        if (skillScore > 0.3) {
+          results.push({
+            type: 'skill',
+            skill,
+            score: skillScore
+          });
+        }
+      });
+      
+      // Remove duplicates and sort by score
+      const uniqueResults = results.filter((result, index, self) => {
+        if (result.type === 'employee') {
+          return index === self.findIndex(r => r.type === 'employee' && r.employee?.id === result.employee?.id);
+        } else {
+          return index === self.findIndex(r => r.type === 'skill' && r.skill === result.skill);
+        }
+      });
+      
+      return uniqueResults
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 8); // Limit to 8 results
+    };
+
+    return searchEmployeesAndSkills(query);
+  }, [query, employees]);
 
   useEffect(() => {
-    if (query.trim()) {
-      const searchResults = searchEmployeesAndSkills(query);
-      setResults(searchResults);
-      setSelectedIndex(-1);
-      setIsOpen(searchResults.length > 0);
-    } else {
-      setResults([]);
-      setSelectedIndex(-1);
-      setIsOpen(false);
-    }
-  }, [query, employees]);
+    setResults(searchResults);
+    setSelectedIndex(-1);
+    setIsOpen(query.trim().length > 0 && searchResults.length > 0);
+  }, [searchResults, query]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (!isOpen) return;
