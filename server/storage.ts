@@ -1,4 +1,4 @@
-import { employees, skillEndorsements, type Employee, type InsertEmployee, type SkillEndorsement, type InsertSkillEndorsement } from "@shared/schema";
+import { employees, skillEndorsements, skillSearches, type Employee, type InsertEmployee, type SkillEndorsement, type InsertSkillEndorsement } from "@shared/schema";
 import { db } from "./db";
 import { eq, or, and, ilike, sql } from "drizzle-orm";
 
@@ -17,6 +17,10 @@ export interface IStorage {
   getSkillEndorsements(employeeId: number): Promise<SkillEndorsement[]>;
   getSkillEndorsementsBySkill(employeeId: number, skill: string): Promise<SkillEndorsement[]>;
   removeSkillEndorsement(employeeId: number, endorserId: number, skill: string): Promise<boolean>;
+
+  // Skill search tracking methods
+  trackSkillSearch(skill: string): Promise<void>;
+  getTrendingSkills(): Promise<Array<{ skill: string; searchCount: number; employeeCount: number; trending: boolean }>>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -146,6 +150,56 @@ export class DatabaseStorage implements IStorage {
       )
       .returning({ id: skillEndorsements.id });
     return result.length > 0;
+  }
+
+  async trackSkillSearch(skill: string): Promise<void> {
+    await db
+      .insert(skillSearches)
+      .values({
+        skill: skill.toLowerCase().trim(),
+        searchedAt: new Date().toISOString()
+      });
+  }
+
+  async getTrendingSkills(): Promise<Array<{ skill: string; searchCount: number; employeeCount: number; trending: boolean }>> {
+    const employees = await this.getAllEmployees();
+    
+    // Get search counts for the last 30 days
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    const searchData = await db
+      .select({
+        skill: skillSearches.skill,
+        searchCount: sql<number>`count(*)`.as('searchCount')
+      })
+      .from(skillSearches)
+      .where(sql`${skillSearches.searchedAt} >= ${thirtyDaysAgo.toISOString()}`)
+      .groupBy(skillSearches.skill)
+      .orderBy(sql`count(*) desc`)
+      .limit(20);
+
+    // Calculate employee counts and trending status
+    const skillStats = searchData.map(item => {
+      const employeeCount = employees.filter(emp => 
+        emp.skills.some(skill => skill.toLowerCase() === item.skill.toLowerCase())
+      ).length;
+
+      // Consider trending if searched more than 3 times in last 7 days
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      
+      const trending = item.searchCount >= 3;
+
+      return {
+        skill: item.skill,
+        searchCount: item.searchCount,
+        employeeCount,
+        trending
+      };
+    });
+
+    return skillStats;
   }
 }
 

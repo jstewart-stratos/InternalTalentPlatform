@@ -32,6 +32,12 @@ export const skillEndorsements = pgTable("skill_endorsements", {
   createdAt: text("created_at").notNull(),
 });
 
+export const skillSearches = pgTable("skill_searches", {
+  id: serial("id").primaryKey(),
+  skill: text("skill").notNull(),
+  searchedAt: text("searched_at").notNull(),
+});
+
 export const insertEmployeeSchema = createInsertSchema(employees).omit({
   id: true,
 });

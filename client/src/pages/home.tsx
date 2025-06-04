@@ -28,7 +28,21 @@ export default function Home() {
     queryKey: ["/api/employees", searchQuery, selectedDepartment, selectedExperience],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (searchQuery) params.append("q", searchQuery);
+      if (searchQuery) {
+        params.append("q", searchQuery);
+        // Track skill search when user searches
+        if (searchQuery.trim()) {
+          try {
+            await fetch("/api/track-search", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ skill: searchQuery.trim() })
+            });
+          } catch (error) {
+            // Ignore tracking errors, don't break search functionality
+          }
+        }
+      }
       if (selectedDepartment !== "All Departments") params.append("department", selectedDepartment);
       if (selectedExperience !== "Any Level") params.append("experienceLevel", selectedExperience);
       

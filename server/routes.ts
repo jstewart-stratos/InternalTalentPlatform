@@ -120,6 +120,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/trending-skills", async (req, res) => {
+    try {
+      const trendingSkills = await storage.getTrendingSkills();
+      res.json(trendingSkills);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch trending skills" });
+    }
+  });
+
   // Skill endorsement routes
   app.post("/api/skill-endorsements", async (req, res) => {
     try {
