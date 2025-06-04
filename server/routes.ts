@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertEmployeeSchema, insertSkillEndorsementSchema } from "@shared/schema";
+import { sendEmail } from "./sendgrid";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -194,6 +195,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ error: "Failed to remove endorsement" });
+    }
+  });
+
+  // Email route for Contact Me functionality
+  const emailSchema = z.object({
+    to: z.string().email("Invalid email address"),
+    from: z.string().email("Invalid sender email address"),
+    subject: z.string().min(1, "Subject is required"),
+    message: z.string().min(1, "Message is required"),
+    senderName: z.string().min(1, "Sender name is required")
+  });
+
+  app.post("/api/send-email", async (req, res) => {
+    try {
+      const validatedData = emailSchema.parse(req.body);
+      
+      // Create HTML email content
+      const htmlContent = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #1e40af;">Message from ${validatedData.senderName}</h2>
+          <p style="color: #374151; line-height: 1.6;">${validatedData.message.replace(/\n/g, '<br>')}</p>
+          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
+          <p style="color: #6b7280; font-size: 14px;">
+            This message was sent through the Stratos Skill Swap platform.<br>
+            Reply directly to this email to respond to ${validatedData.senderName}.
+          </p>
+        </div>
+      `;
+
+      const success = await sendEmail({
+        to: validatedData.to,
+        from: validatedData.from,
+        subject: `[Stratos Skill Swap] ${validatedData.subject}`,
+        text: `Message from ${validatedData.senderName}:\n\n${validatedData.message}\n\nThis message was sent through the Stratos Skill Swap platform.`,
+        html: htmlContent
+      });
+
+      if (success) {
+        res.json({ success: true, message: "Email sent successfully" });
+      } else {
+        res.status(500).json({ error: "Failed to send email" });
+      }
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: "Invalid request data", details: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to send email" });
+      }
     }
   });
 

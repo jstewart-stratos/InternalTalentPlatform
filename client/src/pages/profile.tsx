@@ -8,6 +8,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import ContactDialog from "@/components/contact-dialog";
 import type { Employee, SkillEndorsement } from "@shared/schema";
 
 export default function Profile() {
@@ -207,6 +208,7 @@ export default function Profile() {
                   </div>
                 </div>
                 <div className="flex flex-col space-y-2 mt-4 md:mt-0">
+                  <ContactDialog employee={employee} />
                   <Button variant="outline">
                     <Edit className="h-4 w-4 mr-2" />
                     Edit Profile
