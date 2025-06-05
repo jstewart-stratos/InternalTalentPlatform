@@ -326,7 +326,30 @@ export default function Admin() {
                 Manage user accounts, roles, and permissions
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-6">
+              {/* Sync Users from Employees */}
+              <div className="border rounded-lg p-4 space-y-4 bg-blue-50">
+                <h3 className="font-semibold text-blue-900">Sync User Accounts</h3>
+                <p className="text-sm text-blue-700">Create user accounts for all employees who don't have user accounts yet. This will populate the user management system with all current employees.</p>
+                <Button 
+                  onClick={() => {
+                    apiRequest('/api/seed-users', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' }
+                    }).then(() => {
+                      queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
+                      toast({ title: "Success", description: "User accounts synced successfully" });
+                    }).catch(() => {
+                      toast({ title: "Error", description: "Failed to sync user accounts", variant: "destructive" });
+                    });
+                  }}
+                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+                >
+                  <UserCheck className="h-4 w-4" />
+                  Sync Users from Employees
+                </Button>
+              </div>
+
               {usersLoading ? (
                 <div className="text-center py-8">Loading users...</div>
               ) : (
