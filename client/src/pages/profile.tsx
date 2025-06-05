@@ -15,10 +15,22 @@ import type { Employee, SkillEndorsement, Project } from "@shared/schema";
 export default function Profile() {
   const [, params] = useRoute("/profile/:id?");
   const [, setLocation] = useLocation();
-  const employeeId = params?.id ? parseInt(params.id) : 1;
   const { currentUser } = useUser();
   const { toast } = useToast();
-  const isOwnProfile = !params?.id; // If no ID specified, viewing own profile
+  
+  // Get current employee data to determine the actual employee ID
+  const { data: currentEmployee } = useQuery({
+    queryKey: ["/api/employees/current"],
+    queryFn: async () => {
+      const response = await fetch("/api/employees/current");
+      if (!response.ok) throw new Error("Failed to fetch current employee");
+      return response.json();
+    },
+  });
+  
+  // Use the actual employee ID from current user or fallback to params
+  const employeeId = params?.id ? parseInt(params.id) : (currentEmployee?.id || 1);
+  const isOwnProfile = !params?.id || (currentEmployee && parseInt(params.id) === currentEmployee.id);
 
   const { data: employee, isLoading } = useQuery({
     queryKey: ["/api/employees", employeeId],
