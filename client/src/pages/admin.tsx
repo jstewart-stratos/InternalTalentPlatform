@@ -14,7 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from "@/hooks/use-toast";
 import { Users, Activity, Settings, Shield, Lock, Unlock, UserCheck, Clock, AlertTriangle, Plus, Save, Trash2 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { User, SiteSetting, AuditLog } from "@shared/schema";
+import type { User, SiteSetting, AuditLog, Department } from "@shared/schema";
 
 export default function Admin() {
   const [newSettingKey, setNewSettingKey] = useState("");
@@ -23,6 +23,13 @@ export default function Admin() {
   const [selectedCategory, setSelectedCategory] = useState("general");
   const [editingSetting, setEditingSetting] = useState<SiteSetting | null>(null);
   const [editingValue, setEditingValue] = useState("");
+  
+  // Department management state
+  const [newDepartmentName, setNewDepartmentName] = useState("");
+  const [newDepartmentDescription, setNewDepartmentDescription] = useState("");
+  const [editingDepartment, setEditingDepartment] = useState<Department | null>(null);
+  const [editingDepartmentName, setEditingDepartmentName] = useState("");
+  const [editingDepartmentDescription, setEditingDepartmentDescription] = useState("");
 
   // Fetch admin data
   const { data: users = [], isLoading: usersLoading } = useQuery({
@@ -35,6 +42,10 @@ export default function Admin() {
 
   const { data: auditLogs = [], isLoading: logsLoading } = useQuery({
     queryKey: ['/api/admin/audit-logs']
+  });
+
+  const { data: departments = [], isLoading: departmentsLoading } = useQuery({
+    queryKey: ['/api/admin/departments']
   });
 
   // Admin mutations
@@ -124,6 +135,78 @@ export default function Admin() {
     }
   });
 
+  // Department management mutations
+  const createDepartmentMutation = useMutation({
+    mutationFn: async ({ name, description }: { name: string; description?: string }) => {
+      return await apiRequest('/api/admin/departments', {
+        method: 'POST',
+        body: JSON.stringify({ name, description }),
+        headers: { 'Content-Type': 'application/json' }
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/departments'] });
+      setNewDepartmentName('');
+      setNewDepartmentDescription('');
+      toast({ title: "Success", description: "Department created successfully" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to create department", variant: "destructive" });
+    }
+  });
+
+  const updateDepartmentMutation = useMutation({
+    mutationFn: async ({ id, name, description }: { id: number; name: string; description?: string }) => {
+      return await apiRequest(`/api/admin/departments/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ name, description }),
+        headers: { 'Content-Type': 'application/json' }
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/departments'] });
+      setEditingDepartment(null);
+      setEditingDepartmentName('');
+      setEditingDepartmentDescription('');
+      toast({ title: "Success", description: "Department updated successfully" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update department", variant: "destructive" });
+    }
+  });
+
+  const deleteDepartmentMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return await apiRequest(`/api/admin/departments/${id}`, {
+        method: 'DELETE'
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/departments'] });
+      toast({ title: "Success", description: "Department deleted successfully" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to delete department", variant: "destructive" });
+    }
+  });
+
+  const toggleDepartmentStatusMutation = useMutation({
+    mutationFn: async ({ id, isActive }: { id: number; isActive: boolean }) => {
+      return await apiRequest(`/api/admin/departments/${id}/toggle-status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ isActive }),
+        headers: { 'Content-Type': 'application/json' }
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/departments'] });
+      toast({ title: "Success", description: "Department status updated successfully" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update department status", variant: "destructive" });
+    }
+  });
+
   const handleRoleChange = (userId: string, newRole: string) => {
     updateUserRoleMutation.mutate({ userId, role: newRole });
   };
@@ -154,6 +237,41 @@ export default function Admin() {
     updateSettingMutation.mutate({ key: setting.key, value: editingValue });
   };
 
+  // Department management handlers
+  const handleCreateDepartment = () => {
+    if (!newDepartmentName) {
+      toast({ title: "Error", description: "Department name is required", variant: "destructive" });
+      return;
+    }
+    
+    createDepartmentMutation.mutate({
+      name: newDepartmentName,
+      description: newDepartmentDescription
+    });
+  };
+
+  const handleUpdateDepartment = (department: Department) => {
+    updateDepartmentMutation.mutate({
+      id: department.id,
+      name: editingDepartmentName,
+      description: editingDepartmentDescription
+    });
+  };
+
+  const handleDeleteDepartment = (id: number) => {
+    deleteDepartmentMutation.mutate(id);
+  };
+
+  const handleToggleDepartmentStatus = (id: number, isActive: boolean) => {
+    toggleDepartmentStatusMutation.mutate({ id, isActive: !isActive });
+  };
+
+  const startEditingDepartment = (department: Department) => {
+    setEditingDepartment(department);
+    setEditingDepartmentName(department.name);
+    setEditingDepartmentDescription(department.description || '');
+  };
+
   const getRoleBadgeVariant = (role: string) => {
     switch (role) {
       case 'admin': return 'destructive';
@@ -176,10 +294,14 @@ export default function Admin() {
       </div>
 
       <Tabs defaultValue="users" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="users" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
             User Management
+          </TabsTrigger>
+          <TabsTrigger value="departments" className="flex items-center gap-2">
+            <Settings className="h-4 w-4" />
+            Departments
           </TabsTrigger>
           <TabsTrigger value="settings" className="flex items-center gap-2">
             <Settings className="h-4 w-4" />
