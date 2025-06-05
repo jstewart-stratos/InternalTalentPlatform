@@ -53,8 +53,11 @@ const statusIcons = {
 
 export default function Projects() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [skillInput, setSkillInput] = useState("");
+  const [editSkillInput, setEditSkillInput] = useState("");
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
   const queryClient = useQueryClient();
   const { currentUser } = useUser();
 
@@ -68,6 +71,20 @@ export default function Projects() {
   });
 
   const form = useForm<CreateProjectForm>({
+    resolver: zodResolver(createProjectSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      status: "planning",
+      priority: "medium",
+      deadline: "",
+      requiredSkills: [],
+      estimatedDuration: "",
+      budget: "",
+    },
+  });
+
+  const editForm = useForm<CreateProjectForm>({
     resolver: zodResolver(createProjectSchema),
     defaultValues: {
       title: "",
@@ -97,8 +114,28 @@ export default function Projects() {
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
       setIsCreateDialogOpen(false);
       form.reset();
-      // Open the newly created project details
       setSelectedProject(newProject);
+    },
+  });
+
+  const updateProjectMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: any }) => {
+      const response = await fetch(`/api/projects/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) throw new Error("Failed to update project");
+      return response.json();
+    },
+    onSuccess: (updatedProject) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      setIsEditDialogOpen(false);
+      editForm.reset();
+      setSelectedProject(updatedProject);
+      setEditingProject(null);
     },
   });
 
@@ -115,13 +152,44 @@ export default function Projects() {
       budget: data.budget || null,
     };
     
-    // Convert deadline to ISO string for proper JSON serialization
     const submitData = {
       ...projectData,
       deadline: projectData.deadline ? projectData.deadline.toISOString() : null,
     };
     
     createProjectMutation.mutate(submitData as InsertProject);
+  };
+
+  const onEditSubmit = (data: CreateProjectForm) => {
+    if (!editingProject) return;
+    
+    const updateData = {
+      title: data.title,
+      description: data.description,
+      status: data.status || "planning",
+      priority: data.priority || "medium",
+      deadline: data.deadline ? data.deadline : null,
+      requiredSkills: data.requiredSkills || [],
+      estimatedDuration: data.estimatedDuration || null,
+      budget: data.budget || null,
+    };
+    
+    updateProjectMutation.mutate({ id: editingProject.id, data: updateData });
+  };
+
+  const openEditDialog = (project: Project) => {
+    setEditingProject(project);
+    editForm.reset({
+      title: project.title,
+      description: project.description,
+      status: project.status,
+      priority: project.priority,
+      deadline: project.deadline ? new Date(project.deadline).toISOString().split('T')[0] : "",
+      requiredSkills: project.requiredSkills || [],
+      estimatedDuration: project.estimatedDuration || "",
+      budget: project.budget || "",
+    });
+    setIsEditDialogOpen(true);
   };
 
   const addSkill = () => {
@@ -135,6 +203,23 @@ export default function Projects() {
   const removeSkill = (skillToRemove: string) => {
     const currentSkills = form.getValues("requiredSkills");
     form.setValue("requiredSkills", currentSkills.filter(skill => skill !== skillToRemove));
+  };
+
+  const addEditSkill = () => {
+    if (editSkillInput.trim() && !editForm.getValues("requiredSkills").includes(editSkillInput.trim())) {
+      const currentSkills = editForm.getValues("requiredSkills");
+      editForm.setValue("requiredSkills", [...currentSkills, editSkillInput.trim()]);
+      setEditSkillInput("");
+    }
+  };
+
+  const removeEditSkill = (skillToRemove: string) => {
+    const currentSkills = editForm.getValues("requiredSkills");
+    editForm.setValue("requiredSkills", currentSkills.filter(skill => skill !== skillToRemove));
+  };
+
+  const isProjectOwner = (project: Project) => {
+    return currentUser?.id === project.ownerId;
   };
 
   const formatDate = (date: string | Date | null) => {
