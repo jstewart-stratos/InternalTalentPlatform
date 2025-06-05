@@ -390,13 +390,24 @@ export default function Profile() {
                               </Badge>
                             )}
                           </div>
-                          <Button
-                            onClick={() => setLocation(`/projects?view=${project.id}`)}
-                            size="sm"
-                            className="w-full bg-orange-500 hover:bg-orange-600 text-white"
-                          >
-                            View Project
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              onClick={() => setLocation(`/projects?view=${project.id}`)}
+                              size="sm"
+                              className="flex-1 bg-orange-500 hover:bg-orange-600 text-white"
+                            >
+                              View Project
+                            </Button>
+                            <Button
+                              onClick={() => setLocation(`/projects?edit=${project.id}`)}
+                              size="sm"
+                              variant="outline"
+                              className="flex items-center"
+                            >
+                              <Edit className="h-4 w-4 mr-1" />
+                              Edit
+                            </Button>
+                          </div>
                         </CardContent>
                       </Card>
                     ))}

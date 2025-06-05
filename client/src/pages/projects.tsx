@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Calendar, Clock, DollarSign, Users, AlertCircle, CheckCircle, Pause, Play, ArrowLeft, Mail, User } from "lucide-react";
 import { useUser } from "@/contexts/user-context";
@@ -58,6 +58,37 @@ export default function Projects() {
   const [editSkillInput, setEditSkillInput] = useState("");
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
+  
+  // Handle URL parameters for direct project access
+  useEffect(() => {
+    if (projects.length === 0) return; // Wait for projects to load
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const viewProjectId = urlParams.get('view');
+    const editProjectId = urlParams.get('edit');
+    
+    if (viewProjectId) {
+      const projectId = parseInt(viewProjectId);
+      const project = projects.find(p => p.id === projectId);
+      if (project) {
+        setSelectedProject(project);
+        // Clear URL parameter after handling
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, '', newUrl);
+      }
+    }
+    
+    if (editProjectId) {
+      const projectId = parseInt(editProjectId);
+      const project = projects.find(p => p.id === projectId);
+      if (project) {
+        openEditDialog(project);
+        // Clear URL parameter after handling
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, '', newUrl);
+      }
+    }
+  }, [projects]);
   const queryClient = useQueryClient();
   const { currentUser } = useUser();
 
