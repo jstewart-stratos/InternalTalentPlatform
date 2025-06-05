@@ -1,4 +1,4 @@
-import { employees, skillEndorsements, skillSearches, projects, projectApplications, users, siteSettings, adminAuditLog, userPermissions, type Employee, type InsertEmployee, type SkillEndorsement, type InsertSkillEndorsement, type Project, type InsertProject, type ProjectApplication, type InsertProjectApplication, type User, type UpsertUser, type SiteSetting, type InsertSiteSetting, type AuditLog, type InsertAuditLog, type UserPermission, type InsertUserPermission } from "@shared/schema";
+import { employees, skillEndorsements, skillSearches, projects, projectApplications, users, siteSettings, adminAuditLog, userPermissions, departments, type Employee, type InsertEmployee, type SkillEndorsement, type InsertSkillEndorsement, type Project, type InsertProject, type ProjectApplication, type InsertProjectApplication, type User, type UpsertUser, type SiteSetting, type InsertSiteSetting, type AuditLog, type InsertAuditLog, type UserPermission, type InsertUserPermission, type Department, type InsertDepartment } from "@shared/schema";
 import { db } from "./db";
 import { eq, or, and, ilike, sql } from "drizzle-orm";
 
@@ -65,6 +65,15 @@ export interface IStorage {
   grantUserPermission(permission: InsertUserPermission): Promise<UserPermission>;
   revokeUserPermission(userId: string, permission: string): Promise<boolean>;
   hasPermission(userId: string, permission: string): Promise<boolean>;
+
+  // Department management methods
+  getAllDepartments(): Promise<Department[]>;
+  getDepartment(id: number): Promise<Department | undefined>;
+  createDepartment(department: InsertDepartment): Promise<Department>;
+  updateDepartment(id: number, department: Partial<InsertDepartment>): Promise<Department | undefined>;
+  deleteDepartment(id: number): Promise<boolean>;
+  deactivateDepartment(id: number): Promise<boolean>;
+  activateDepartment(id: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -548,6 +557,62 @@ export class DatabaseStorage implements IStorage {
         )
       );
     return !!result;
+  }
+
+  // Department management methods
+  async getAllDepartments(): Promise<Department[]> {
+    return await db.select().from(departments);
+  }
+
+  async getDepartment(id: number): Promise<Department | undefined> {
+    const [department] = await db
+      .select()
+      .from(departments)
+      .where(eq(departments.id, id));
+    return department || undefined;
+  }
+
+  async createDepartment(insertDepartment: InsertDepartment): Promise<Department> {
+    const [department] = await db
+      .insert(departments)
+      .values(insertDepartment)
+      .returning();
+    return department;
+  }
+
+  async updateDepartment(id: number, insertDepartment: Partial<InsertDepartment>): Promise<Department | undefined> {
+    const [department] = await db
+      .update(departments)
+      .set({ ...insertDepartment, updatedAt: new Date() })
+      .where(eq(departments.id, id))
+      .returning();
+    return department || undefined;
+  }
+
+  async deleteDepartment(id: number): Promise<boolean> {
+    const result = await db
+      .delete(departments)
+      .where(eq(departments.id, id))
+      .returning({ id: departments.id });
+    return result.length > 0;
+  }
+
+  async deactivateDepartment(id: number): Promise<boolean> {
+    const result = await db
+      .update(departments)
+      .set({ isActive: false, updatedAt: new Date() })
+      .where(eq(departments.id, id))
+      .returning({ id: departments.id });
+    return result.length > 0;
+  }
+
+  async activateDepartment(id: number): Promise<boolean> {
+    const result = await db
+      .update(departments)
+      .set({ isActive: true, updatedAt: new Date() })
+      .where(eq(departments.id, id))
+      .returning({ id: departments.id });
+    return result.length > 0;
   }
 }
 

@@ -121,6 +121,17 @@ export const userPermissions = pgTable("user_permissions", {
   grantedAt: timestamp("granted_at").defaultNow(),
 });
 
+// Departments table for admin management
+export const departments = pgTable("departments", {
+  id: serial("id").primaryKey(),
+  name: varchar("name").notNull().unique(),
+  description: text("description"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const insertEmployeeSchema = createInsertSchema(employees).omit({
   id: true,
 });
@@ -156,6 +167,12 @@ export const insertUserPermissionSchema = createInsertSchema(userPermissions).om
   grantedAt: true,
 });
 
+export const insertDepartmentSchema = createInsertSchema(departments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // User authentication schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   createdAt: true,
@@ -178,3 +195,5 @@ export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
 export type AuditLog = typeof adminAuditLog.$inferSelect;
 export type InsertUserPermission = z.infer<typeof insertUserPermissionSchema>;
 export type UserPermission = typeof userPermissions.$inferSelect;
+export type InsertDepartment = z.infer<typeof insertDepartmentSchema>;
+export type Department = typeof departments.$inferSelect;
