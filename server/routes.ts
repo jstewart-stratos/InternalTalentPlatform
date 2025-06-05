@@ -315,6 +315,152 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Skills API for tagging system
+  app.get("/api/skills/all", async (req, res) => {
+    try {
+      const employees = await storage.getAllEmployees();
+      const allSkills = new Set<string>();
+      
+      employees.forEach(employee => {
+        employee.skills.forEach(skill => allSkills.add(skill));
+      });
+      
+      const projects = await storage.getAllProjects();
+      projects.forEach(project => {
+        project.requiredSkills.forEach(skill => allSkills.add(skill));
+      });
+      
+      res.json(Array.from(allSkills).sort());
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch skills" });
+    }
+  });
+
+  app.get("/api/skills/popular", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 10;
+      const employees = await storage.getAllEmployees();
+      const skillCounts = new Map<string, number>();
+      
+      employees.forEach(employee => {
+        employee.skills.forEach(skill => {
+          skillCounts.set(skill, (skillCounts.get(skill) || 0) + 1);
+        });
+      });
+      
+      const popularSkills = Array.from(skillCounts.entries())
+        .map(([skill, count]) => ({ skill, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, limit);
+      
+      res.json(popularSkills);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch popular skills" });
+    }
+  });
+
+  app.post("/api/skills/ai-suggestions", async (req, res) => {
+    try {
+      const { currentSkills, context, limit = 8 } = req.body;
+      
+      if (!currentSkills || !Array.isArray(currentSkills)) {
+        return res.status(400).json({ error: "currentSkills array is required" });
+      }
+
+      // Get all skills from the platform for fallback suggestions
+      const employees = await storage.getAllEmployees();
+      const projects = await storage.getAllProjects();
+      const allSkills = new Set<string>();
+      
+      employees.forEach(employee => {
+        employee.skills.forEach(skill => allSkills.add(skill));
+      });
+      
+      projects.forEach(project => {
+        project.requiredSkills.forEach(skill => allSkills.add(skill));
+      });
+
+      // Create skill-based suggestions using pattern matching
+      const suggestions = [];
+      const skillArray = Array.from(allSkills);
+      
+      // Rule-based skill suggestions based on current skills
+      const skillRelations = {
+        'JavaScript': ['TypeScript', 'React', 'Node.js', 'Vue.js', 'Angular'],
+        'TypeScript': ['JavaScript', 'React', 'Node.js', 'Angular'],
+        'React': ['JavaScript', 'TypeScript', 'Redux', 'Next.js', 'GraphQL'],
+        'Python': ['Django', 'Flask', 'FastAPI', 'Machine Learning', 'Data Science'],
+        'Java': ['Spring', 'Maven', 'Hibernate', 'Microservices'],
+        'CSS': ['HTML', 'Sass', 'Tailwind CSS', 'Bootstrap'],
+        'HTML': ['CSS', 'JavaScript', 'React'],
+        'SQL': ['PostgreSQL', 'MySQL', 'Database Design', 'Data Analysis'],
+        'Machine Learning': ['Python', 'TensorFlow', 'PyTorch', 'Data Science'],
+        'AWS': ['Cloud Computing', 'DevOps', 'Docker', 'Kubernetes'],
+        'Docker': ['Kubernetes', 'DevOps', 'AWS', 'CI/CD'],
+        'Git': ['GitHub', 'GitLab', 'CI/CD', 'Version Control']
+      };
+
+      for (const currentSkill of currentSkills) {
+        const relatedSkills = skillRelations[currentSkill] || [];
+        for (const relatedSkill of relatedSkills) {
+          if (allSkills.has(relatedSkill) && !currentSkills.includes(relatedSkill)) {
+            suggestions.push({
+              skill: relatedSkill,
+              relevance: 0.9,
+              category: 'Related',
+              relatedTo: [currentSkill]
+            });
+          }
+        }
+      }
+
+      // Add complementary skills based on context
+      if (context === 'project') {
+        const projectSkills = ['Project Management', 'Agile', 'Scrum', 'Leadership'];
+        for (const skill of projectSkills) {
+          if (allSkills.has(skill) && !currentSkills.includes(skill)) {
+            suggestions.push({
+              skill,
+              relevance: 0.7,
+              category: 'Project',
+              relatedTo: []
+            });
+          }
+        }
+      }
+
+      // Pattern matching for similar skills
+      for (const skill of skillArray) {
+        if (!currentSkills.includes(skill)) {
+          for (const currentSkill of currentSkills) {
+            if (skill.toLowerCase().includes(currentSkill.toLowerCase()) || 
+                currentSkill.toLowerCase().includes(skill.toLowerCase())) {
+              suggestions.push({
+                skill,
+                relevance: 0.6,
+                category: 'Similar',
+                relatedTo: [currentSkill]
+              });
+            }
+          }
+        }
+      }
+
+      // Remove duplicates and sort by relevance
+      const uniqueSuggestions = suggestions
+        .filter((suggestion, index, self) => 
+          self.findIndex(s => s.skill === suggestion.skill) === index
+        )
+        .sort((a, b) => b.relevance - a.relevance)
+        .slice(0, limit);
+
+      res.json(uniqueSuggestions);
+    } catch (error) {
+      console.error('Error generating skill suggestions:', error);
+      res.status(500).json({ error: "Failed to generate skill suggestions" });
+    }
+  });
+
   // Project routes
   app.get("/api/projects", async (req, res) => {
     try {

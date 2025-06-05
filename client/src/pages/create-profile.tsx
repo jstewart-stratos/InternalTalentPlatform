@@ -14,6 +14,7 @@ import { X, Plus, User, Mail, Building, MapPin, Briefcase, Award, Target } from 
 import { insertEmployeeSchema, type InsertEmployee } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
+import SkillTaggingSystem from "@/components/skill-tagging-system";
 
 const createProfileSchema = insertEmployeeSchema.extend({
   skills: z.array(z.string()).min(1, "At least one skill is required"),
@@ -23,7 +24,6 @@ const createProfileSchema = insertEmployeeSchema.extend({
 type CreateProfileForm = z.infer<typeof createProfileSchema>;
 
 export default function CreateProfile() {
-  const [newSkill, setNewSkill] = useState("");
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
@@ -86,19 +86,7 @@ export default function CreateProfile() {
     },
   });
 
-  const addSkill = () => {
-    const skill = newSkill.trim();
-    if (skill && !form.getValues("skills").includes(skill)) {
-      const currentSkills = form.getValues("skills");
-      form.setValue("skills", [...currentSkills, skill]);
-      setNewSkill("");
-    }
-  };
 
-  const removeSkill = (skillToRemove: string) => {
-    const currentSkills = form.getValues("skills");
-    form.setValue("skills", currentSkills.filter(skill => skill !== skillToRemove));
-  };
 
   const onSubmit = (data: CreateProfileForm) => {
     createEmployee.mutate(data);
@@ -276,43 +264,29 @@ export default function CreateProfile() {
                   )}
                 />
 
-                <div className="space-y-4">
-                  <FormLabel className="flex items-center">
-                    <Award className="h-4 w-4 mr-2" />
-                    Skills & Expertise
-                  </FormLabel>
-                  
-                  <div className="flex gap-2">
-                    <Input
-                      value={newSkill}
-                      onChange={(e) => setNewSkill(e.target.value)}
-                      placeholder="Add a skill (e.g., React, Project Management)"
-                      onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), addSkill())}
-                    />
-                    <Button type="button" onClick={addSkill} variant="outline">
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    {form.watch("skills").map((skill) => (
-                      <Badge key={skill} variant="secondary" className="text-sm">
-                        {skill}
-                        <button
-                          type="button"
-                          onClick={() => removeSkill(skill)}
-                          className="ml-2 hover:text-red-600"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </Badge>
-                    ))}
-                  </div>
-                  
-                  {form.formState.errors.skills && (
-                    <p className="text-sm text-red-600">{form.formState.errors.skills.message}</p>
+                <FormField
+                  control={form.control}
+                  name="skills"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center">
+                        <Award className="h-4 w-4 mr-2" />
+                        Skills & Expertise
+                      </FormLabel>
+                      <FormControl>
+                        <SkillTaggingSystem
+                          selectedSkills={field.value}
+                          onSkillsChange={field.onChange}
+                          placeholder="Add skills with AI suggestions..."
+                          maxSkills={20}
+                          showAISuggestions={true}
+                          context="profile"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
                   )}
-                </div>
+                />
 
                 <div className="flex justify-end space-x-4 pt-6">
                   <Button
