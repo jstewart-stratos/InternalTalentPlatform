@@ -51,26 +51,21 @@ export default function Admin() {
   // Admin mutations
   const updateUserRoleMutation = useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
-      return await apiRequest(`/api/admin/users/${userId}/role`, {
-        method: "PUT",
-        body: JSON.stringify({ role }),
-        headers: { "Content-Type": "application/json" }
-      });
+      return await apiRequest('PUT', `/api/admin/users/${userId}/role`, { role });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
       toast({ title: "Success", description: "User role updated successfully" });
     },
-    onError: () => {
+    onError: (error) => {
+      console.error("Role update error:", error);
       toast({ title: "Error", description: "Failed to update user role", variant: "destructive" });
     }
   });
 
   const deactivateUserMutation = useMutation({
     mutationFn: async (userId: string) => {
-      return await apiRequest(`/api/admin/users/${userId}/deactivate`, {
-        method: "PUT"
-      });
+      return await apiRequest(`/api/admin/users/${userId}/deactivate`, 'PUT');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
@@ -83,9 +78,7 @@ export default function Admin() {
 
   const activateUserMutation = useMutation({
     mutationFn: async (userId: string) => {
-      return await apiRequest(`/api/admin/users/${userId}/activate`, {
-        method: "PUT"
-      });
+      return await apiRequest(`/api/admin/users/${userId}/activate`, 'PUT');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
