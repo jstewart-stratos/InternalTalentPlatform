@@ -655,10 +655,26 @@ export default function Projects() {
                       </div>
                     )}
 
-                    <Button variant="outline" className="w-full">
-                      <Users className="h-4 w-4 mr-2" />
-                      Apply to Join
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        className="flex-1"
+                        onClick={() => setSelectedProject(project)}
+                      >
+                        <Users className="h-4 w-4 mr-2" />
+                        View Details
+                      </Button>
+                      {isProjectOwner(project) && (
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => openEditDialog(project)}
+                          className="px-3"
+                        >
+                          Edit
+                        </Button>
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
               );
@@ -682,6 +698,199 @@ export default function Projects() {
             </div>
           </div>
         )}
+
+        {/* Edit Project Dialog */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Edit Project</DialogTitle>
+              <DialogDescription>
+                Update your project details and required skills to attract the right talent.
+              </DialogDescription>
+            </DialogHeader>
+            <Form {...editForm}>
+              <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={editForm.control}
+                    name="title"
+                    render={({ field }) => (
+                      <FormItem className="md:col-span-2">
+                        <FormLabel>Project Title</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter project title" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={editForm.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem className="md:col-span-2">
+                        <FormLabel>Description</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            placeholder="Describe the project goals, requirements, and expectations"
+                            className="min-h-[100px]"
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={editForm.control}
+                    name="status"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Status</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select status" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="planning">Planning</SelectItem>
+                            <SelectItem value="active">Active</SelectItem>
+                            <SelectItem value="paused">Paused</SelectItem>
+                            <SelectItem value="completed">Completed</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={editForm.control}
+                    name="priority"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Priority</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select priority" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="low">Low</SelectItem>
+                            <SelectItem value="medium">Medium</SelectItem>
+                            <SelectItem value="high">High</SelectItem>
+                            <SelectItem value="critical">Critical</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={editForm.control}
+                    name="deadline"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Deadline (Optional)</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={editForm.control}
+                    name="estimatedDuration"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Estimated Duration (Optional)</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g., 3 months, 6 weeks" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={editForm.control}
+                    name="budget"
+                    render={({ field }) => (
+                      <FormItem className="md:col-span-2">
+                        <FormLabel>Budget (Optional)</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g., $50,000, 100 hours" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Edit Required Skills */}
+                <div className="space-y-4">
+                  <div>
+                    <FormLabel>Required Skills</FormLabel>
+                    <div className="flex space-x-2 mt-2">
+                      <Input
+                        placeholder="Add a skill"
+                        value={editSkillInput}
+                        onChange={(e) => setEditSkillInput(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addEditSkill())}
+                      />
+                      <Button type="button" variant="outline" onClick={addEditSkill}>
+                        Add
+                      </Button>
+                    </div>
+                  </div>
+
+                  {editForm.watch("requiredSkills").length > 0 && (
+                    <div>
+                      <p className="text-sm font-medium text-gray-700 mb-2">Current Skills:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {editForm.watch("requiredSkills").map((skill) => (
+                          <Badge
+                            key={skill}
+                            variant="secondary"
+                            className="cursor-pointer hover:bg-red-100 hover:text-red-700"
+                            onClick={() => removeEditSkill(skill)}
+                          >
+                            {skill} ×
+                          </Badge>
+                        ))}
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">Click on a skill to remove it</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex justify-end space-x-3">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => setIsEditDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    disabled={updateProjectMutation.isPending}
+                    className="bg-accent hover:bg-accent/90"
+                  >
+                    {updateProjectMutation.isPending ? "Updating..." : "Update Project"}
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
