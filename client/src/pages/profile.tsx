@@ -251,7 +251,7 @@ export default function Profile() {
                 {employee.skills.map((skill) => {
                   const endorsementCount = getEndorsementCount(skill);
                   const userHasEndorsed = hasUserEndorsed(skill);
-                  const isOwnProfile = employeeId === currentUserId;
+                  const isViewingOwnProfile = employeeId === (currentUser?.id || 1);
                   
                   return (
                     <div key={skill} className="flex items-center justify-between bg-gray-50 rounded-lg p-3">
@@ -267,7 +267,7 @@ export default function Profile() {
                           <span>{endorsementCount} endorsement{endorsementCount !== 1 ? 's' : ''}</span>
                         </div>
                       </div>
-                      {!isOwnProfile && (
+                      {!isViewingOwnProfile && (
                         <Button
                           size="sm"
                           variant={userHasEndorsed ? "default" : "outline"}
@@ -299,6 +299,100 @@ export default function Profile() {
               </div>
             </div>
           </div>
+
+          {/* My Projects Section - only show for own profile */}
+          {isOwnProfile && (
+            <>
+              <Separator className="my-8" />
+              <div>
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+                    <FolderOpen className="h-5 w-5 mr-2 text-orange-500" />
+                    My Projects
+                  </h2>
+                  <Button
+                    onClick={() => setLocation("/projects")}
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Project
+                  </Button>
+                </div>
+
+                {projectsLoading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin h-8 w-8 border-4 border-orange-500 border-t-transparent rounded-full mx-auto"></div>
+                    <p className="text-gray-500 mt-2">Loading your projects...</p>
+                  </div>
+                ) : ownedProjects.length === 0 ? (
+                  <div className="text-center py-12 bg-gray-50 rounded-lg">
+                    <FolderOpen className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No projects yet</h3>
+                    <p className="text-gray-500 mb-4">Start your first project to collaborate with colleagues</p>
+                    <Button
+                      onClick={() => setLocation("/projects")}
+                      className="bg-orange-500 hover:bg-orange-600 text-white"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Your First Project
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {ownedProjects.map((project) => (
+                      <Card key={project.id} className="hover:shadow-md transition-shadow">
+                        <CardHeader className="pb-3">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <CardTitle className="text-lg font-semibold text-gray-900 mb-1">
+                                {project.title}
+                              </CardTitle>
+                              <div className="flex items-center text-sm text-gray-500">
+                                <Clock className="h-4 w-4 mr-1" />
+                                Created {new Date(project.createdAt).toLocaleDateString()}
+                              </div>
+                            </div>
+                            <Badge
+                              variant={project.status === 'active' ? 'default' : 'secondary'}
+                              className={project.status === 'active' ? 'bg-green-100 text-green-800' : ''}
+                            >
+                              {project.status}
+                            </Badge>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-gray-600 text-sm mb-3 line-clamp-2">
+                            {project.description}
+                          </p>
+                          <div className="flex flex-wrap gap-1 mb-3">
+                            {project.requiredSkills.slice(0, 3).map((skill) => (
+                              <Badge key={skill} variant="outline" className="text-xs">
+                                {skill}
+                              </Badge>
+                            ))}
+                            {project.requiredSkills.length > 3 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{project.requiredSkills.length - 3} more
+                              </Badge>
+                            )}
+                          </div>
+                          <Button
+                            onClick={() => setLocation(`/projects?view=${project.id}`)}
+                            size="sm"
+                            className="w-full bg-orange-500 hover:bg-orange-600 text-white"
+                          >
+                            View Project
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
 
           {employee.bio && (
             <>
