@@ -59,6 +59,18 @@ export default function Projects() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   
+  const queryClient = useQueryClient();
+  const { currentUser } = useUser();
+
+  const { data: projects = [], isLoading } = useQuery({
+    queryKey: ["/api/projects"],
+    queryFn: async () => {
+      const response = await fetch("/api/projects");
+      if (!response.ok) throw new Error("Failed to fetch projects");
+      return response.json() as Promise<Project[]>;
+    },
+  });
+
   // Handle URL parameters for direct project access
   useEffect(() => {
     if (projects.length === 0) return; // Wait for projects to load
@@ -89,17 +101,6 @@ export default function Projects() {
       }
     }
   }, [projects]);
-  const queryClient = useQueryClient();
-  const { currentUser } = useUser();
-
-  const { data: projects = [], isLoading } = useQuery({
-    queryKey: ["/api/projects"],
-    queryFn: async () => {
-      const response = await fetch("/api/projects");
-      if (!response.ok) throw new Error("Failed to fetch projects");
-      return response.json() as Promise<Project[]>;
-    },
-  });
 
   const form = useForm<CreateProjectForm>({
     resolver: zodResolver(createProjectSchema),
