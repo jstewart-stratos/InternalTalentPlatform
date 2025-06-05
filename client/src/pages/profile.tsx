@@ -1,6 +1,6 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useRoute } from "wouter";
-import { Mail, MapPin, Calendar, Award, Edit, ThumbsUp, Users } from "lucide-react";
+import { useRoute, useLocation } from "wouter";
+import { Mail, MapPin, Calendar, Award, Edit, ThumbsUp, Users, FolderOpen, Plus, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,14 +8,17 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useUser } from "@/contexts/user-context";
 import ContactDialog from "@/components/contact-dialog";
-import type { Employee, SkillEndorsement } from "@shared/schema";
+import type { Employee, SkillEndorsement, Project } from "@shared/schema";
 
 export default function Profile() {
   const [, params] = useRoute("/profile/:id?");
-  const employeeId = params?.id ? parseInt(params.id) : 1; // Default to first employee
-  const currentUserId = 1; // In a real app, this would come from auth context
+  const [, setLocation] = useLocation();
+  const employeeId = params?.id ? parseInt(params.id) : 1;
+  const { currentUser } = useUser();
   const { toast } = useToast();
+  const isOwnProfile = !params?.id; // If no ID specified, viewing own profile
 
   const { data: employee, isLoading } = useQuery({
     queryKey: ["/api/employees", employeeId],
@@ -35,6 +38,18 @@ export default function Profile() {
     },
   });
 
+  // Fetch user's owned projects if viewing own profile
+  const { data: ownedProjects = [], isLoading: projectsLoading } = useQuery({
+    queryKey: ["/api/projects/my-projects"],
+    queryFn: async () => {
+      if (!isOwnProfile || !currentUser?.id) return [];
+      const response = await fetch(`/api/projects/owner/${currentUser.id}`);
+      if (!response.ok) throw new Error("Failed to fetch projects");
+      return response.json() as Promise<Project[]>;
+    },
+    enabled: isOwnProfile && !!currentUser?.id,
+  });
+
   const endorseMutation = useMutation({
     mutationFn: async ({ skill }: { skill: string }) => {
       const response = await fetch("/api/skill-endorsements", {
@@ -44,7 +59,7 @@ export default function Profile() {
         },
         body: JSON.stringify({
           employeeId,
-          endorserId: currentUserId,
+          endorserId: currentUser?.id || 1,
           skill,
         }),
       });
@@ -69,7 +84,7 @@ export default function Profile() {
 
   const removeEndorsementMutation = useMutation({
     mutationFn: async ({ skill }: { skill: string }) => {
-      const response = await fetch(`/api/skill-endorsements/${employeeId}/${currentUserId}/${encodeURIComponent(skill)}`, {
+      const response = await fetch(`/api/skill-endorsements/${employeeId}/${currentUser?.id || 1}/${encodeURIComponent(skill)}`, {
         method: "DELETE",
       });
       if (!response.ok) throw new Error("Failed to remove endorsement");
@@ -169,7 +184,7 @@ export default function Profile() {
   };
 
   const hasUserEndorsed = (skill: string) => {
-    return endorsements.some(e => e.skill === skill && e.endorserId === currentUserId);
+    return endorsements.some(e => e.skill === skill && e.endorserId === (currentUser?.id || 1));
   };
 
   const handleEndorseSkill = (skill: string) => {
