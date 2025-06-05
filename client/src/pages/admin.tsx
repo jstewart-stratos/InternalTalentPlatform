@@ -65,7 +65,7 @@ export default function Admin() {
 
   const deactivateUserMutation = useMutation({
     mutationFn: async (userId: string) => {
-      return await apiRequest(`/api/admin/users/${userId}/deactivate`, 'PUT');
+      return await apiRequest('PUT', `/api/admin/users/${userId}/deactivate`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
@@ -78,7 +78,7 @@ export default function Admin() {
 
   const activateUserMutation = useMutation({
     mutationFn: async (userId: string) => {
-      return await apiRequest(`/api/admin/users/${userId}/activate`, 'PUT');
+      return await apiRequest('PUT', `/api/admin/users/${userId}/activate`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
