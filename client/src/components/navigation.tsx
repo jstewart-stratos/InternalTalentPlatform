@@ -43,21 +43,21 @@ export default function Navigation() {
   };
 
   const getUserDisplayName = () => {
-    if (user?.firstName && user?.lastName) {
-      return `${user.firstName} ${user.lastName}`;
+    if ((user as any)?.firstName && (user as any)?.lastName) {
+      return `${(user as any).firstName} ${(user as any).lastName}`;
     }
-    if (user?.email) {
-      return user.email;
+    if ((user as any)?.email) {
+      return (user as any).email;
     }
     return 'User';
   };
 
   const getUserInitials = () => {
-    if (user?.firstName && user?.lastName) {
-      return `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();
+    if ((user as any)?.firstName && (user as any)?.lastName) {
+      return `${(user as any).firstName[0]}${(user as any).lastName[0]}`.toUpperCase();
     }
-    if (user?.email) {
-      return user.email[0].toUpperCase();
+    if ((user as any)?.email) {
+      return (user as any).email[0].toUpperCase();
     }
     return 'U';
   };
@@ -97,7 +97,7 @@ export default function Navigation() {
               <DropdownMenu>
                 <DropdownMenuTrigger className="flex items-center space-x-3 hover:bg-gray-50 rounded-lg px-2 py-1">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={user?.profileImageUrl || undefined} />
+                    <AvatarImage src={(user as any)?.profileImageUrl || undefined} />
                     <AvatarFallback>{getUserInitials()}</AvatarFallback>
                   </Avatar>
                   <span className="text-sm font-medium text-gray-900">{getUserDisplayName()}</span>
@@ -105,7 +105,7 @@ export default function Navigation() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
                   <DropdownMenuItem asChild>
-                    <Link href={currentEmployee ? `/profile/${currentEmployee.id}` : "/profile/create"} className="flex items-center">
+                    <Link href={currentEmployee ? `/profile/${(currentEmployee as any).id}` : "/profile/create"} className="flex items-center">
                       <UserCircle className="h-4 w-4 mr-2" />
                       My Profile
                     </Link>
