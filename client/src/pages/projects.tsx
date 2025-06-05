@@ -16,6 +16,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { apiRequest } from "@/lib/queryClient";
 import type { Project, InsertProject } from "@shared/schema";
+import SkillTaggingSystem from "@/components/skill-tagging-system";
 
 const createProjectSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -563,37 +564,26 @@ export default function Projects() {
                     )}
                   />
 
-                  <div>
-                    <FormLabel>Required Skills</FormLabel>
-                    <div className="flex gap-2 mt-2">
-                      <Input
-                        placeholder="Add a skill"
-                        value={skillInput}
-                        onChange={(e) => setSkillInput(e.target.value)}
-                        onKeyPress={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            addSkill();
-                          }
-                        }}
-                      />
-                      <Button type="button" onClick={addSkill} variant="outline">
-                        Add
-                      </Button>
-                    </div>
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {form.watch("requiredSkills").map((skill) => (
-                        <Badge
-                          key={skill}
-                          variant="secondary"
-                          className="cursor-pointer"
-                          onClick={() => removeSkill(skill)}
-                        >
-                          {skill} ×
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
+                  <FormField
+                    control={form.control}
+                    name="requiredSkills"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Required Skills</FormLabel>
+                        <FormControl>
+                          <SkillTaggingSystem
+                            selectedSkills={field.value}
+                            onSkillsChange={field.onChange}
+                            placeholder="Add project skills with AI suggestions..."
+                            maxSkills={15}
+                            showAISuggestions={true}
+                            context="project"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
                   <div className="flex justify-end gap-3">
                     <Button
@@ -866,42 +856,26 @@ export default function Projects() {
                   />
                 </div>
 
-                {/* Edit Required Skills */}
-                <div className="space-y-4">
-                  <div>
-                    <FormLabel>Required Skills</FormLabel>
-                    <div className="flex space-x-2 mt-2">
-                      <Input
-                        placeholder="Add a skill"
-                        value={editSkillInput}
-                        onChange={(e) => setEditSkillInput(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addEditSkill())}
-                      />
-                      <Button type="button" variant="outline" onClick={addEditSkill}>
-                        Add
-                      </Button>
-                    </div>
-                  </div>
-
-                  {editForm.watch("requiredSkills").length > 0 && (
-                    <div>
-                      <p className="text-sm font-medium text-gray-700 mb-2">Current Skills:</p>
-                      <div className="flex flex-wrap gap-2">
-                        {editForm.watch("requiredSkills").map((skill) => (
-                          <Badge
-                            key={skill}
-                            variant="secondary"
-                            className="cursor-pointer hover:bg-red-100 hover:text-red-700"
-                            onClick={() => removeEditSkill(skill)}
-                          >
-                            {skill} ×
-                          </Badge>
-                        ))}
-                      </div>
-                      <p className="text-xs text-gray-500 mt-1">Click on a skill to remove it</p>
-                    </div>
+                <FormField
+                  control={editForm.control}
+                  name="requiredSkills"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Required Skills</FormLabel>
+                      <FormControl>
+                        <SkillTaggingSystem
+                          selectedSkills={field.value}
+                          onSkillsChange={field.onChange}
+                          placeholder="Update project skills with AI suggestions..."
+                          maxSkills={15}
+                          showAISuggestions={true}
+                          context="project"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
                   )}
-                </div>
+                />
 
                 <div className="flex justify-end space-x-3">
                   <Button 
