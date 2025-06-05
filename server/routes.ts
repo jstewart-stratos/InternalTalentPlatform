@@ -959,8 +959,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User seeding endpoint (development only)
   app.post('/api/seed-users', async (req, res) => {
     try {
+      console.log("Starting user seeding process...");
+      
       // Get all employees
       const employees = await storage.getAllEmployees();
+      console.log(`Found ${employees.length} employees`);
       
       if (employees.length === 0) {
         return res.json({ message: "No employees found to create users for", count: 0 });
@@ -968,19 +971,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get existing users
       const existingUsers = await storage.getAllUsers();
+      console.log(`Found ${existingUsers.length} existing users`);
       const existingEmails = new Set(existingUsers.map(user => user.email));
 
       let createdCount = 0;
       let skippedCount = 0;
       const createdUsers = [];
+      const errors = [];
 
       for (const employee of employees) {
+        console.log(`Processing employee: ${employee.name} (${employee.email})`);
+        
         if (!employee.email) {
+          console.log(`Skipping ${employee.name} - no email`);
           skippedCount++;
           continue;
         }
 
         if (existingEmails.has(employee.email)) {
+          console.log(`Skipping ${employee.email} - user already exists`);
           skippedCount++;
           continue;
         }
@@ -1002,7 +1011,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Create user account for employee
         try {
-          const newUser = await storage.upsertUser({
+          const userData = {
             id: `emp_${employee.id}`,
             email: employee.email,
             firstName: employee.name.split(' ')[0],
@@ -1010,25 +1019,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
             profileImageUrl: employee.profileImage || null,
             role: role,
             isActive: true
-          });
+          };
+          
+          console.log(`Creating user with data:`, userData);
+          const newUser = await storage.upsertUser(userData);
+          console.log(`Successfully created user for ${employee.name}`);
 
           createdUsers.push(newUser);
           createdCount++;
         } catch (error) {
           console.error(`Failed to create user for ${employee.name}:`, error);
+          errors.push({ employee: employee.name, error: error.message });
           skippedCount++;
         }
       }
 
+      console.log(`User seeding completed: ${createdCount} created, ${skippedCount} skipped`);
+      
       res.json({ 
         message: `User seeding completed: ${createdCount} created, ${skippedCount} skipped`,
         created: createdCount,
         skipped: skippedCount,
-        users: createdUsers
+        users: createdUsers,
+        errors: errors
       });
     } catch (error) {
       console.error("Error seeding users:", error);
-      res.status(500).json({ error: "Failed to seed users" });
+      res.status(500).json({ 
+        error: "Failed to seed users", 
+        details: error.message,
+        stack: error.stack 
+      });
     }
   });
 

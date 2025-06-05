@@ -23,8 +23,8 @@ export const users = pgTable("users", {
   role: varchar("role").notNull().default("user"), // admin, manager, user
   isActive: boolean("is_active").notNull().default(true),
   lastLoginAt: timestamp("last_login_at"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 export const employees = pgTable("employees", {
