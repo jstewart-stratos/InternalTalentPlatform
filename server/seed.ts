@@ -1,8 +1,12 @@
 import { db } from "./db";
 import { employees, skillEndorsements, type InsertEmployee, type InsertSkillEndorsement } from "@shared/schema";
+import { seedDepartments } from "./seed-departments";
 
 async function seed() {
   console.log("Seeding database...");
+
+  // Seed departments first
+  await seedDepartments();
 
   // Check if employees already exist
   const existingEmployees = await db.select().from(employees);

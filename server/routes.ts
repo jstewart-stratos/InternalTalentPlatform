@@ -882,6 +882,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Seeding endpoint for departments (development only)
+  app.post('/api/seed-departments', async (req, res) => {
+    try {
+      const existingDepartments = [
+        "Engineering",
+        "Analytics", 
+        "Design",
+        "Marketing",
+        "Sales",
+        "HR",
+        "Finance",
+        "Operations",
+        "Product",
+        "Legal",
+        "Wealth Management",
+        "Tax Services",
+        "Investment Management",
+        "Financial Planning",
+        "Retirement Services",
+        "Administration",
+        "Client Services",
+        "Human Resources"
+      ];
+
+      const departmentData = [
+        { name: "Engineering", description: "Software development, DevOps, and technical infrastructure" },
+        { name: "Analytics", description: "Data analysis, business intelligence, and reporting" },
+        { name: "Design", description: "UI/UX design, graphic design, and creative services" },
+        { name: "Marketing", description: "Digital marketing, content creation, and brand management" },
+        { name: "Sales", description: "Business development, client relations, and revenue generation" },
+        { name: "HR", description: "Human resources, talent acquisition, and employee relations" },
+        { name: "Finance", description: "Financial planning, accounting, and budget management" },
+        { name: "Operations", description: "Business operations, process improvement, and logistics" },
+        { name: "Product", description: "Product management, strategy, and roadmap planning" },
+        { name: "Legal", description: "Legal counsel, compliance, and contract management" },
+        { name: "Wealth Management", description: "Financial advisory and wealth planning services" },
+        { name: "Tax Services", description: "Tax planning and preparation services" },
+        { name: "Investment Management", description: "Portfolio management and investment advisory" },
+        { name: "Financial Planning", description: "Comprehensive financial planning services" },
+        { name: "Retirement Services", description: "Retirement planning and benefit services" },
+        { name: "Administration", description: "Administrative support and office management" },
+        { name: "Client Services", description: "Customer service and client relationship management" },
+        { name: "Human Resources", description: "HR administration and employee services" }
+      ];
+
+      // Check if departments already exist
+      const currentDepartments = await storage.getAllDepartments();
+      
+      if (currentDepartments.length > 0) {
+        return res.json({ message: `${currentDepartments.length} departments already exist`, departments: currentDepartments });
+      }
+
+      // Create departments
+      const createdDepartments = [];
+      for (const dept of departmentData) {
+        const department = await storage.createDepartment({
+          name: dept.name,
+          description: dept.description,
+          createdBy: "system"
+        });
+        createdDepartments.push(department);
+      }
+
+      res.json({ 
+        message: "Departments seeded successfully", 
+        count: createdDepartments.length,
+        departments: createdDepartments 
+      });
+    } catch (error) {
+      console.error("Error seeding departments:", error);
+      res.status(500).json({ error: "Failed to seed departments" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
