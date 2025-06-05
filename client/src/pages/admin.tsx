@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
-import { Users, Activity, Settings, Shield, Lock, Unlock, UserCheck, Clock, AlertTriangle, Plus, Save, Trash2 } from "lucide-react";
+import { Users, Activity, Settings, Shield, Lock, Unlock, UserCheck, Clock, AlertTriangle, Plus, Save, Trash2, Building } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { User, SiteSetting, AuditLog, Department } from "@shared/schema";
 
@@ -280,33 +280,38 @@ export default function Admin() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Admin Panel</h1>
-        <p className="text-gray-600 mt-2">Manage users, site settings, and monitor system activity</p>
+    <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8">
+      <div className="mb-4 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Admin Panel</h1>
+        <p className="text-sm sm:text-base text-gray-600 mt-2">Manage users, site settings, and monitor system activity</p>
       </div>
 
       <Tabs defaultValue="users" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="users" className="flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            User Management
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 h-auto gap-1 p-1">
+          <TabsTrigger value="users" className="flex items-center gap-1 sm:gap-2 px-2 py-3 text-xs sm:text-sm">
+            <Users className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">User Management</span>
+            <span className="sm:hidden">Users</span>
           </TabsTrigger>
-          <TabsTrigger value="departments" className="flex items-center gap-2">
-            <Settings className="h-4 w-4" />
-            Departments
+          <TabsTrigger value="departments" className="flex items-center gap-1 sm:gap-2 px-2 py-3 text-xs sm:text-sm">
+            <Building className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Departments</span>
+            <span className="sm:hidden">Depts</span>
           </TabsTrigger>
-          <TabsTrigger value="settings" className="flex items-center gap-2">
-            <Settings className="h-4 w-4" />
-            Site Settings
+          <TabsTrigger value="settings" className="flex items-center gap-1 sm:gap-2 px-2 py-3 text-xs sm:text-sm">
+            <Settings className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Site Settings</span>
+            <span className="sm:hidden">Settings</span>
           </TabsTrigger>
-          <TabsTrigger value="audit" className="flex items-center gap-2">
-            <Shield className="h-4 w-4" />
-            Audit Logs
+          <TabsTrigger value="audit" className="flex items-center gap-1 sm:gap-2 px-2 py-3 text-xs sm:text-sm">
+            <Shield className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Audit Logs</span>
+            <span className="sm:hidden">Audit</span>
           </TabsTrigger>
-          <TabsTrigger value="overview" className="flex items-center gap-2">
-            <Activity className="h-4 w-4" />
-            Overview
+          <TabsTrigger value="overview" className="flex items-center gap-1 sm:gap-2 px-2 py-3 text-xs sm:text-sm">
+            <Activity className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Overview</span>
+            <span className="sm:hidden">Stats</span>
           </TabsTrigger>
         </TabsList>
 
@@ -321,96 +326,101 @@ export default function Admin() {
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Sync Users from Employees */}
-              <div className="border rounded-lg p-4 space-y-4 bg-blue-50">
-                <h3 className="font-semibold text-blue-900">Sync User Accounts</h3>
-                <p className="text-sm text-blue-700">Create user accounts for all employees who don't have user accounts yet. This will populate the user management system with all current employees.</p>
+              <div className="border rounded-lg p-3 sm:p-4 space-y-3 sm:space-y-4 bg-blue-50">
+                <h3 className="font-semibold text-blue-900 text-sm sm:text-base">Sync User Accounts</h3>
+                <p className="text-xs sm:text-sm text-blue-700">Create user accounts for all employees who don't have user accounts yet. This will populate the user management system with all current employees.</p>
                 <Button 
                   onClick={() => {
-                    apiRequest('/api/seed-users', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' }
-                    }).then(() => {
+                    apiRequest('POST', '/api/seed-users').then(() => {
                       queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
                       toast({ title: "Success", description: "User accounts synced successfully" });
                     }).catch(() => {
                       toast({ title: "Error", description: "Failed to sync user accounts", variant: "destructive" });
                     });
                   }}
-                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-xs sm:text-sm px-3 py-2"
+                  size="sm"
                 >
-                  <UserCheck className="h-4 w-4" />
-                  Sync Users from Employees
+                  <UserCheck className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Sync Users from Employees</span>
+                  <span className="sm:hidden">Sync Users</span>
                 </Button>
               </div>
 
               {usersLoading ? (
                 <div className="text-center py-8">Loading users...</div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>User</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Role</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Last Login</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {users.map((user: User) => (
-                      <TableRow key={user.id}>
-                        <TableCell>
-                          <div className="flex items-center space-x-2">
-                            <UserCheck className="h-4 w-4 text-gray-400" />
-                            <span>{user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : 'Unknown User'}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>{user.email || 'No email'}</TableCell>
-                        <TableCell>
-                          <Select
-                            value={user.role}
-                            onValueChange={(newRole) => handleRoleChange(user.id, newRole)}
-                          >
-                            <SelectTrigger className="w-32">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="user">User</SelectItem>
-                              <SelectItem value="manager">Manager</SelectItem>
-                              <SelectItem value="admin">Admin</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={user.isActive ? "default" : "destructive"}>
-                            {user.isActive ? "Active" : "Inactive"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center space-x-1 text-sm text-gray-500">
-                            <Clock className="h-3 w-3" />
-                            <span>
-                              {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString() : 'Never'}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex space-x-2">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="min-w-[200px]">User</TableHead>
+                        <TableHead className="min-w-[200px]">Email</TableHead>
+                        <TableHead className="min-w-[120px]">Role</TableHead>
+                        <TableHead className="min-w-[100px]">Status</TableHead>
+                        <TableHead className="min-w-[120px]">Last Login</TableHead>
+                        <TableHead className="min-w-[140px]">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {users.map((user: User) => (
+                        <TableRow key={user.id}>
+                          <TableCell className="min-w-[200px]">
+                            <div className="flex items-center space-x-2">
+                              <UserCheck className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                              <div className="min-w-0">
+                                <div className="font-medium truncate">{user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : 'Unknown User'}</div>
+                                <div className="text-xs text-gray-500 truncate">{user.id}</div>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="min-w-[200px]">
+                            <span className="truncate block">{user.email || 'No email'}</span>
+                          </TableCell>
+                          <TableCell className="min-w-[120px]">
+                            <Select
+                              value={user.role}
+                              onValueChange={(newRole) => handleRoleChange(user.id, newRole)}
+                            >
+                              <SelectTrigger className="w-full min-w-[100px]">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="user">User</SelectItem>
+                                <SelectItem value="manager">Manager</SelectItem>
+                                <SelectItem value="admin">Admin</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                          <TableCell className="min-w-[100px]">
+                            <Badge variant={user.isActive ? "default" : "destructive"} className="whitespace-nowrap">
+                              {user.isActive ? "Active" : "Inactive"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="min-w-[120px]">
+                            <div className="flex items-center space-x-1 text-sm text-gray-500">
+                              <Clock className="h-3 w-3 flex-shrink-0" />
+                              <span className="whitespace-nowrap">
+                                {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString() : 'Never'}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="min-w-[140px]">
                             <Button
                               size="sm"
                               variant={user.isActive ? "destructive" : "default"}
                               onClick={() => handleUserToggle(user.id, user.isActive)}
+                              className="whitespace-nowrap"
                             >
                               {user.isActive ? <Lock className="h-3 w-3" /> : <Unlock className="h-3 w-3" />}
-                              {user.isActive ? "Deactivate" : "Activate"}
+                              <span className="ml-1">{user.isActive ? "Deactivate" : "Activate"}</span>
                             </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               )}
             </CardContent>
           </Card>
