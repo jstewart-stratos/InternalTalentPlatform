@@ -40,14 +40,14 @@ export default function Profile() {
 
   // Fetch user's owned projects if viewing own profile
   const { data: ownedProjects = [], isLoading: projectsLoading } = useQuery({
-    queryKey: ["/api/projects/my-projects"],
+    queryKey: ["/api/projects/my-projects", employeeId],
     queryFn: async () => {
-      if (!isOwnProfile || !currentUser?.id) return [];
-      const response = await fetch(`/api/projects/owner/${currentUser.id}`);
+      if (!isOwnProfile) return [];
+      const response = await fetch(`/api/projects/owner/${employeeId}`);
       if (!response.ok) throw new Error("Failed to fetch projects");
       return response.json() as Promise<Project[]>;
     },
-    enabled: isOwnProfile && !!currentUser?.id,
+    enabled: isOwnProfile,
   });
 
   const endorseMutation = useMutation({

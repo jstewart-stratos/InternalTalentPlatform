@@ -345,6 +345,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/projects/owner/:ownerId", async (req, res) => {
+    try {
+      const ownerId = parseInt(req.params.ownerId);
+      const projects = await storage.getProjectsByOwner(ownerId);
+      res.json(projects);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch projects by owner" });
+    }
+  });
+
   app.get("/api/projects/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
