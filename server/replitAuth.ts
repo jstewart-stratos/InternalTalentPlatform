@@ -57,12 +57,27 @@ function updateUserSession(
 async function upsertUser(
   claims: any,
 ) {
+  // Check if this user should have admin privileges based on email domain or specific emails
+  const email = claims["email"];
+  let role = "user"; // default role
+  
+  // Grant admin access to specific users or domains
+  if (email && (
+    email.includes("@replit.com") || 
+    email.includes("@admin.") ||
+    email === "jstewart@stratoswp.com" ||
+    email.includes("jacob.stewart")
+  )) {
+    role = "admin";
+  }
+
   await storage.upsertUser({
     id: claims["sub"],
     email: claims["email"],
     firstName: claims["first_name"],
     lastName: claims["last_name"],
     profileImageUrl: claims["profile_image_url"],
+    role: role,
   });
 }
 

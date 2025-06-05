@@ -18,6 +18,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       
+      // Update last login
+      if (user) {
+        await storage.updateUserLastLogin(userId);
+      }
+      
       // Check if user has an employee profile
       const employeeProfile = await storage.getEmployeeByEmail(user?.email || '');
       
