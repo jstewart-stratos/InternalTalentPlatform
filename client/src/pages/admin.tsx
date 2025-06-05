@@ -400,6 +400,176 @@ export default function Admin() {
           </Card>
         </TabsContent>
 
+        {/* Department Management Tab */}
+        <TabsContent value="departments" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Department Management</CardTitle>
+              <CardDescription>
+                Create and manage organizational departments
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Add New Department */}
+              <div className="border rounded-lg p-4 space-y-4">
+                <h3 className="font-semibold">Add New Department</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="departmentName">Department Name</Label>
+                    <Input
+                      id="departmentName"
+                      placeholder="Enter department name"
+                      value={newDepartmentName}
+                      onChange={(e) => setNewDepartmentName(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="departmentDescription">Description</Label>
+                    <Textarea
+                      id="departmentDescription"
+                      placeholder="Enter department description"
+                      value={newDepartmentDescription}
+                      onChange={(e) => setNewDepartmentDescription(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <Button 
+                  onClick={handleCreateDepartment}
+                  disabled={createDepartmentMutation.isPending}
+                  className="flex items-center gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  {createDepartmentMutation.isPending ? "Creating..." : "Create Department"}
+                </Button>
+              </div>
+
+              {/* Departments List */}
+              {departmentsLoading ? (
+                <div className="text-center py-8">Loading departments...</div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Created</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(departments as Department[]).map((department) => (
+                      <TableRow key={department.id}>
+                        <TableCell className="font-medium">
+                          {editingDepartment?.id === department.id ? (
+                            <Input
+                              value={editingDepartmentName}
+                              onChange={(e) => setEditingDepartmentName(e.target.value)}
+                              className="w-full"
+                            />
+                          ) : (
+                            department.name
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {editingDepartment?.id === department.id ? (
+                            <Textarea
+                              value={editingDepartmentDescription}
+                              onChange={(e) => setEditingDepartmentDescription(e.target.value)}
+                              className="w-full"
+                            />
+                          ) : (
+                            department.description || '-'
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={department.isActive ? "default" : "destructive"}>
+                            {department.isActive ? "Active" : "Inactive"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-1 text-sm text-gray-500">
+                            <Clock className="h-3 w-3" />
+                            <span>
+                              {new Date(department.createdAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex space-x-2">
+                            {editingDepartment?.id === department.id ? (
+                              <>
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleUpdateDepartment(department)}
+                                  disabled={updateDepartmentMutation.isPending}
+                                >
+                                  <Save className="h-3 w-3" />
+                                  Save
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => setEditingDepartment(null)}
+                                >
+                                  Cancel
+                                </Button>
+                              </>
+                            ) : (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => startEditingDepartment(department)}
+                                >
+                                  Edit
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant={department.isActive ? "destructive" : "default"}
+                                  onClick={() => handleToggleDepartmentStatus(department.id, department.isActive)}
+                                >
+                                  {department.isActive ? <Lock className="h-3 w-3" /> : <Unlock className="h-3 w-3" />}
+                                  {department.isActive ? "Deactivate" : "Activate"}
+                                </Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button size="sm" variant="destructive">
+                                      <Trash2 className="h-3 w-3" />
+                                      Delete
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Delete Department</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Are you sure you want to delete "{department.name}"? This action cannot be undone.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction
+                                        onClick={() => handleDeleteDepartment(department.id)}
+                                        className="bg-red-600 hover:bg-red-700"
+                                      >
+                                        Delete
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         {/* Site Settings Tab */}
         <TabsContent value="settings" className="space-y-6">
           <Card>
