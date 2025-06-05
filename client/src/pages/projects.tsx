@@ -412,13 +412,13 @@ export default function Projects() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 py-4 sm:py-8 overflow-x-hidden">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
         {/* Header */}
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 sm:mb-8 gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Project Hub</h1>
-            <p className="text-lg text-gray-600 mt-2">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Project Hub</h1>
+            <p className="text-base sm:text-lg text-gray-600 mt-1 sm:mt-2">
               Discover projects and share your expertise with colleagues
             </p>
           </div>
