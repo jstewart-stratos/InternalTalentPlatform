@@ -1,6 +1,6 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute, useLocation } from "wouter";
-import { Mail, MapPin, Calendar, Award, Edit, ThumbsUp, Users } from "lucide-react";
+import { Mail, MapPin, Calendar, Award, Edit, ThumbsUp, Users, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -226,10 +226,21 @@ export default function Profile() {
                 </div>
                 <div className="flex flex-col space-y-2 mt-4 md:mt-0">
                   <ContactDialog employee={employee} />
-                  <Button variant="outline">
-                    <Edit className="h-4 w-4 mr-2" />
-                    Edit Profile
-                  </Button>
+                  {isOwnProfile && (
+                    <>
+                      <Button 
+                        onClick={() => setLocation("/projects")}
+                        className="bg-orange-500 hover:bg-orange-600 text-white"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Create Project
+                      </Button>
+                      <Button variant="outline">
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit Profile
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
               <div className="flex items-center space-x-2 mb-4">
