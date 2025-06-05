@@ -48,6 +48,94 @@ export default function Skills() {
     setSelectedSkills([]);
   };
 
+  // Helper functions for skill analysis
+  const getComplementarySkills = (skill: string): string[] => {
+    const skillCombinations: Record<string, string[]> = {
+      'React': ['TypeScript', 'Node.js', 'Next.js', 'CSS', 'JavaScript'],
+      'Vue.js': ['TypeScript', 'Node.js', 'Nuxt.js', 'CSS', 'JavaScript'],
+      'Angular': ['TypeScript', 'RxJS', 'Node.js', 'CSS', 'JavaScript'],
+      'Node.js': ['Express', 'MongoDB', 'PostgreSQL', 'TypeScript', 'AWS'],
+      'Python': ['Django', 'Flask', 'FastAPI', 'PostgreSQL', 'AWS', 'Machine Learning'],
+      'JavaScript': ['React', 'Node.js', 'TypeScript', 'CSS', 'HTML'],
+      'TypeScript': ['React', 'Node.js', 'Angular', 'Vue.js', 'Express'],
+      'CSS': ['HTML', 'JavaScript', 'React', 'Vue.js', 'Sass'],
+      'HTML': ['CSS', 'JavaScript', 'React', 'Vue.js'],
+      'PostgreSQL': ['Node.js', 'Python', 'SQL', 'Django', 'Express'],
+      'MongoDB': ['Node.js', 'Express', 'Mongoose', 'JavaScript'],
+      'AWS': ['Docker', 'Kubernetes', 'Python', 'Node.js', 'DevOps'],
+      'Docker': ['Kubernetes', 'AWS', 'DevOps', 'CI/CD'],
+      'Kubernetes': ['Docker', 'AWS', 'DevOps', 'CI/CD'],
+      'Machine Learning': ['Python', 'TensorFlow', 'PyTorch', 'Data Science'],
+      'Data Science': ['Python', 'R', 'SQL', 'Machine Learning', 'Statistics'],
+    };
+    
+    return skillCombinations[skill]?.filter(s => !selectedSkills.includes(s) && allSkills.includes(s)) || [];
+  };
+
+  const getSkillCategories = (skills: string[]): string[] => {
+    const categories = new Set<string>();
+    
+    skills.forEach(skill => {
+      if (['React', 'Vue.js', 'Angular', 'CSS', 'HTML', 'JavaScript', 'TypeScript'].includes(skill)) {
+        categories.add('Frontend');
+      }
+      if (['Node.js', 'Python', 'Express', 'Django', 'Flask', 'FastAPI'].includes(skill)) {
+        categories.add('Backend');
+      }
+      if (['PostgreSQL', 'MongoDB', 'SQL', 'Redis'].includes(skill)) {
+        categories.add('Database');
+      }
+      if (['AWS', 'Docker', 'Kubernetes', 'CI/CD', 'DevOps'].includes(skill)) {
+        categories.add('DevOps');
+      }
+      if (['Machine Learning', 'Data Science', 'TensorFlow', 'PyTorch'].includes(skill)) {
+        categories.add('AI/ML');
+      }
+      if (['UI/UX Design', 'Figma', 'Sketch', 'Adobe Creative Suite'].includes(skill)) {
+        categories.add('Design');
+      }
+    });
+    
+    return Array.from(categories);
+  };
+
+  const hasFullStackCoverage = (skills: string[]): boolean => {
+    const categories = getSkillCategories(skills);
+    return categories.includes('Frontend') && categories.includes('Backend');
+  };
+
+  const hasFrontendCoverage = (skills: string[]): boolean => {
+    return skills.some(skill => ['React', 'Vue.js', 'Angular', 'JavaScript', 'TypeScript'].includes(skill));
+  };
+
+  const hasBackendCoverage = (skills: string[]): boolean => {
+    return skills.some(skill => ['Node.js', 'Python', 'Express', 'Django', 'Flask'].includes(skill));
+  };
+
+  const hasDevOpsCoverage = (skills: string[]): boolean => {
+    return skills.some(skill => ['AWS', 'Docker', 'Kubernetes', 'CI/CD', 'DevOps'].includes(skill));
+  };
+
+  const getEmployeesWithAnySkill = (skills: string[]): Employee[] => {
+    return allEmployees.filter(emp => 
+      skills.some(skill => emp.skills?.includes(skill))
+    );
+  };
+
+  const getRarityLevel = (skills: string[], employees: Employee[]): string => {
+    const matchCount = employees.filter(emp => 
+      skills.every(skill => emp.skills?.includes(skill))
+    ).length;
+    
+    const totalEmployees = employees.length;
+    const percentage = (matchCount / totalEmployees) * 100;
+    
+    if (percentage >= 50) return 'Common';
+    if (percentage >= 20) return 'Moderate';
+    if (percentage >= 5) return 'Rare';
+    return 'Very Rare';
+  };
+
   // Get all unique skills from employees
   const allSkills = Array.from(new Set(
     allEmployees.flatMap(emp => emp.skills || [])
@@ -180,29 +268,101 @@ export default function Skills() {
             <h3 className="text-lg font-semibold text-gray-900 mb-3">
               Available Skills ({filteredSkills.length})
             </h3>
-            <div className="max-h-64 overflow-y-auto">
+            <div className="max-h-64 overflow-y-auto border rounded-lg p-4 bg-gray-50">
               <div className="flex flex-wrap gap-2">
-                {filteredSkills.map((skill) => (
-                  <Badge
-                    key={skill}
-                    variant={selectedSkills.includes(skill) ? "default" : "secondary"}
-                    className={`px-3 py-1 text-sm cursor-pointer transition-colors ${
-                      selectedSkills.includes(skill)
-                        ? "bg-primary text-white"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                    }`}
-                    onClick={() => handleSkillSelect(skill)}
-                  >
-                    {skill}
-                    {selectedSkills.includes(skill) && <X className="ml-2 h-3 w-3" />}
-                  </Badge>
-                ))}
+                {filteredSkills.map((skill) => {
+                  const employeesWithSkill = allEmployees.filter(emp => emp.skills?.includes(skill)).length;
+                  const isSelected = selectedSkills.includes(skill);
+                  
+                  return (
+                    <div key={skill} className="relative group">
+                      <Badge
+                        variant={isSelected ? "default" : "secondary"}
+                        className={`px-3 py-2 text-sm cursor-pointer transition-all duration-200 ${
+                          isSelected
+                            ? "bg-primary text-white shadow-md"
+                            : "bg-white text-gray-700 hover:bg-gray-100 border"
+                        }`}
+                        onClick={() => handleSkillSelect(skill)}
+                      >
+                        {skill}
+                        <span className="ml-2 text-xs opacity-75">({employeesWithSkill})</span>
+                        {isSelected && <X className="ml-2 h-3 w-3" />}
+                      </Badge>
+                    </div>
+                  );
+                })}
               </div>
+              {filteredSkills.length === 0 && (
+                <div className="text-center text-gray-500 py-8">
+                  No skills found matching "{skillSearchQuery}"
+                </div>
+              )}
             </div>
           </div>
+          {/* Skill Compatibility Analysis */}
+          {selectedSkills.length > 0 && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+              <h3 className="text-lg font-semibold text-blue-900 mb-4">
+                Skill Compatibility Analysis
+              </h3>
+              
+              {selectedSkills.length === 1 ? (
+                <div>
+                  <p className="text-blue-800 mb-3">
+                    <strong>{selectedSkills[0]}</strong> is often combined with:
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {getComplementarySkills(selectedSkills[0]).map((skill) => (
+                      <Badge
+                        key={skill}
+                        variant="outline"
+                        className="cursor-pointer hover:bg-blue-100 border-blue-300 text-blue-700"
+                        onClick={() => handleSkillSelect(skill)}
+                      >
+                        {skill}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-blue-800 mb-3">
+                    Your selected combination covers <strong>{getSkillCategories(selectedSkills).length}</strong> skill categories:
+                  </p>
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {getSkillCategories(selectedSkills).map((category) => (
+                      <Badge key={category} className="bg-blue-100 text-blue-800">
+                        {category}
+                      </Badge>
+                    ))}
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <h4 className="font-medium text-blue-900 mb-2">Coverage Analysis</h4>
+                      <div className="text-sm text-blue-700">
+                        <div>• Full-stack capability: {hasFullStackCoverage(selectedSkills) ? '✓ Yes' : '✗ Partial'}</div>
+                        <div>• Frontend coverage: {hasFrontendCoverage(selectedSkills) ? '✓ Yes' : '✗ No'}</div>
+                        <div>• Backend coverage: {hasBackendCoverage(selectedSkills) ? '✓ Yes' : '✗ No'}</div>
+                        <div>• DevOps capability: {hasDevOpsCoverage(selectedSkills) ? '✓ Yes' : '✗ No'}</div>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <h4 className="font-medium text-blue-900 mb-2">Talent Pool</h4>
+                      <div className="text-sm text-blue-700">
+                        <div>• Professionals with all skills: <strong>{filteredEmployees.length}</strong></div>
+                        <div>• Professionals with any skill: <strong>{getEmployeesWithAnySkill(selectedSkills).length}</strong></div>
+                        <div>• Skill combination rarity: <strong>{getRarityLevel(selectedSkills, allEmployees)}</strong></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
-
-
       </div>
 
       {/* Cross-Referenced Talent Results */}
