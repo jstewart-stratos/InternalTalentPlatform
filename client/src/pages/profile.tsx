@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useUser } from "@/contexts/user-context";
 import ContactDialog from "@/components/contact-dialog";
-import type { Employee, SkillEndorsement, Project } from "@shared/schema";
+import type { Employee, SkillEndorsement } from "@shared/schema";
 
 export default function Profile() {
   const [, params] = useRoute("/profile/:id?");
@@ -50,17 +50,7 @@ export default function Profile() {
     },
   });
 
-  // Fetch user's owned projects if viewing own profile
-  const { data: ownedProjects = [], isLoading: projectsLoading } = useQuery({
-    queryKey: ["/api/projects/my-projects", employeeId],
-    queryFn: async () => {
-      if (!isOwnProfile) return [];
-      const response = await fetch(`/api/projects/owner/${employeeId}`);
-      if (!response.ok) throw new Error("Failed to fetch projects");
-      return response.json() as Promise<Project[]>;
-    },
-    enabled: isOwnProfile,
-  });
+
 
   const endorseMutation = useMutation({
     mutationFn: async ({ skill }: { skill: string }) => {
