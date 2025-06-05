@@ -389,6 +389,166 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return application || undefined;
   }
+
+  // Admin management methods
+  async getAllUsers(): Promise<User[]> {
+    return await db.select().from(users);
+  }
+
+  async updateUserRole(userId: string, role: string): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({ role, updatedAt: new Date() })
+      .where(eq(users.id, userId))
+      .returning();
+    return user || undefined;
+  }
+
+  async deactivateUser(userId: string): Promise<boolean> {
+    const result = await db
+      .update(users)
+      .set({ isActive: false, updatedAt: new Date() })
+      .where(eq(users.id, userId))
+      .returning({ id: users.id });
+    return result.length > 0;
+  }
+
+  async activateUser(userId: string): Promise<boolean> {
+    const result = await db
+      .update(users)
+      .set({ isActive: true, updatedAt: new Date() })
+      .where(eq(users.id, userId))
+      .returning({ id: users.id });
+    return result.length > 0;
+  }
+
+  async updateUserLastLogin(userId: string): Promise<void> {
+    await db
+      .update(users)
+      .set({ lastLoginAt: new Date() })
+      .where(eq(users.id, userId));
+  }
+
+  // Site settings methods
+  async getSiteSettings(category?: string): Promise<SiteSetting[]> {
+    if (category) {
+      return await db
+        .select()
+        .from(siteSettings)
+        .where(eq(siteSettings.category, category));
+    }
+    return await db.select().from(siteSettings);
+  }
+
+  async getSiteSetting(key: string): Promise<SiteSetting | undefined> {
+    const [setting] = await db
+      .select()
+      .from(siteSettings)
+      .where(eq(siteSettings.key, key));
+    return setting || undefined;
+  }
+
+  async updateSiteSetting(key: string, value: string, updatedBy: string): Promise<SiteSetting> {
+    const [setting] = await db
+      .update(siteSettings)
+      .set({ value, updatedBy, updatedAt: new Date() })
+      .where(eq(siteSettings.key, key))
+      .returning();
+    
+    if (!setting) {
+      // Create new setting if it doesn't exist
+      const [newSetting] = await db
+        .insert(siteSettings)
+        .values({ key, value, updatedBy })
+        .returning();
+      return newSetting;
+    }
+    
+    return setting;
+  }
+
+  async createSiteSetting(setting: InsertSiteSetting): Promise<SiteSetting> {
+    const [newSetting] = await db
+      .insert(siteSettings)
+      .values(setting)
+      .returning();
+    return newSetting;
+  }
+
+  async deleteSiteSetting(key: string): Promise<boolean> {
+    const result = await db
+      .delete(siteSettings)
+      .where(eq(siteSettings.key, key))
+      .returning({ id: siteSettings.id });
+    return result.length > 0;
+  }
+
+  // Audit logging methods
+  async logAdminAction(log: InsertAuditLog): Promise<AuditLog> {
+    const [auditLog] = await db
+      .insert(adminAuditLog)
+      .values(log)
+      .returning();
+    return auditLog;
+  }
+
+  async getAuditLogs(limit: number = 100): Promise<AuditLog[]> {
+    return await db
+      .select()
+      .from(adminAuditLog)
+      .orderBy(sql`${adminAuditLog.createdAt} DESC`)
+      .limit(limit);
+  }
+
+  async getAuditLogsByUser(userId: string): Promise<AuditLog[]> {
+    return await db
+      .select()
+      .from(adminAuditLog)
+      .where(eq(adminAuditLog.userId, userId))
+      .orderBy(sql`${adminAuditLog.createdAt} DESC`);
+  }
+
+  // User permissions methods
+  async getUserPermissions(userId: string): Promise<UserPermission[]> {
+    return await db
+      .select()
+      .from(userPermissions)
+      .where(eq(userPermissions.userId, userId));
+  }
+
+  async grantUserPermission(permission: InsertUserPermission): Promise<UserPermission> {
+    const [newPermission] = await db
+      .insert(userPermissions)
+      .values(permission)
+      .returning();
+    return newPermission;
+  }
+
+  async revokeUserPermission(userId: string, permission: string): Promise<boolean> {
+    const result = await db
+      .delete(userPermissions)
+      .where(
+        and(
+          eq(userPermissions.userId, userId),
+          eq(userPermissions.permission, permission)
+        )
+      )
+      .returning({ id: userPermissions.id });
+    return result.length > 0;
+  }
+
+  async hasPermission(userId: string, permission: string): Promise<boolean> {
+    const [result] = await db
+      .select()
+      .from(userPermissions)
+      .where(
+        and(
+          eq(userPermissions.userId, userId),
+          eq(userPermissions.permission, permission)
+        )
+      );
+    return !!result;
+  }
 }
 
 export const storage = new DatabaseStorage();

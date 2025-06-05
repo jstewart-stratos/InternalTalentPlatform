@@ -12,16 +12,30 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
-import { Users, Activity, TrendingUp, UserPlus, Settings, Trash2, Edit, Eye, Shield } from "lucide-react";
+import { Users, Activity, TrendingUp, UserPlus, Settings, Trash2, Edit, Eye, Shield, Lock, Unlock, UserCheck, Clock, AlertTriangle } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { Employee, InsertEmployee } from "@shared/schema";
+import type { Employee, InsertEmployee, User, SiteSetting, AuditLog, UserPermission } from "@shared/schema";
 
 export default function Admin() {
-  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [newSettingKey, setNewSettingKey] = useState("");
+  const [newSettingValue, setNewSettingValue] = useState("");
+  const [newSettingDescription, setNewSettingDescription] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("general");
 
-  // Fetch data
+  // Fetch admin data
+  const { data: users = [] } = useQuery({
+    queryKey: ['/api/admin/users']
+  });
+
+  const { data: siteSettings = [] } = useQuery({
+    queryKey: ['/api/admin/settings']
+  });
+
+  const { data: auditLogs = [] } = useQuery({
+    queryKey: ['/api/admin/audit-logs']
+  });
+
   const { data: employees = [] } = useQuery({
     queryKey: ['/api/employees']
   });
@@ -30,25 +44,92 @@ export default function Admin() {
     queryKey: ['/api/analytics/stats']
   });
 
-  const { data: departments = [] } = useQuery({
-    queryKey: ['/api/departments']
+  // Admin mutations
+  const updateUserRoleMutation = useMutation({
+    mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
+      return await apiRequest(`/api/admin/users/${userId}/role`, {
+        method: "PUT",
+        body: JSON.stringify({ role }),
+        headers: { "Content-Type": "application/json" }
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
+      toast({ title: "Success", description: "User role updated successfully" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update user role", variant: "destructive" });
+    }
   });
 
-  // Calculate additional analytics
-  const departmentStats = departments.map(dept => ({
-    name: dept,
-    count: employees.filter(emp => emp.department === dept).length,
-    percentage: employees.length > 0 ? Math.round((employees.filter(emp => emp.department === dept).length / employees.length) * 100) : 0
-  }));
+  const deactivateUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      return await apiRequest(`/api/admin/users/${userId}/deactivate`, {
+        method: "PUT"
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
+      toast({ title: "Success", description: "User deactivated successfully" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to deactivate user", variant: "destructive" });
+    }
+  });
 
-  const experienceLevels = ['Junior', 'Mid-level', 'Senior', 'Lead', 'Director'];
-  const experienceStats = experienceLevels.map(level => ({
-    name: level,
-    count: employees.filter(emp => emp.experienceLevel === level).length,
-    percentage: employees.length > 0 ? Math.round((employees.filter(emp => emp.experienceLevel === level).length / employees.length) * 100) : 0
-  }));
+  const activateUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      return await apiRequest(`/api/admin/users/${userId}/activate`, {
+        method: "PUT"
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
+      toast({ title: "Success", description: "User activated successfully" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to activate user", variant: "destructive" });
+    }
+  });
 
-  // Mutations
+  const createSettingMutation = useMutation({
+    mutationFn: async (data: { key: string; value: string; description?: string; category: string }) => {
+      return await apiRequest("/api/admin/settings", {
+        method: "POST",
+        body: JSON.stringify(data),
+        headers: { "Content-Type": "application/json" }
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/settings'] });
+      setNewSettingKey("");
+      setNewSettingValue("");
+      setNewSettingDescription("");
+      toast({ title: "Success", description: "Setting created successfully" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to create setting", variant: "destructive" });
+    }
+  });
+
+  const updateSettingMutation = useMutation({
+    mutationFn: async ({ key, value }: { key: string; value: string }) => {
+      return await apiRequest(`/api/admin/settings/${key}`, {
+        method: "PUT",
+        body: JSON.stringify({ value }),
+        headers: { "Content-Type": "application/json" }
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/settings'] });
+      toast({ title: "Success", description: "Setting updated successfully" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update setting", variant: "destructive" });
+    }
+  });
+
+  // Old employee mutation for compatibility
   const createEmployeeMutation = useMutation({
     mutationFn: async (data: InsertEmployee) => {
       const response = await fetch(`/api/employees`, {

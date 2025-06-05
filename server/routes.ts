@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertEmployeeSchema, insertSkillEndorsementSchema, insertProjectSchema } from "@shared/schema";
+import { insertEmployeeSchema, insertSkillEndorsementSchema, insertProjectSchema, insertSiteSettingSchema, insertAuditLogSchema, insertUserPermissionSchema } from "@shared/schema";
 import { sendEmail } from "./sendgrid";
 import { getProjectRecommendationsForEmployee, getEmployeeRecommendationsForProject, getSkillGapAnalysis } from "./ai-recommendations";
 import { getProjectRecommendationsForEmployee as getSkillBasedProjectRecs, getEmployeeRecommendationsForProject as getSkillBasedEmployeeRecs } from "./skill-matching";
@@ -477,6 +477,276 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error generating skill gap analysis:", error);
       res.status(500).json({ error: "Failed to generate skill gap analysis" });
+    }
+  });
+
+  // Admin middleware to check user role
+  const requireAdminRole = async (req: any, res: any, next: any) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || (user.role !== 'admin' && user.role !== 'manager')) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      
+      next();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to verify admin access" });
+    }
+  };
+
+  // Admin user management routes
+  app.get("/api/admin/users", isAuthenticated, requireAdminRole, async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ error: "Failed to fetch users" });
+    }
+  });
+
+  app.put("/api/admin/users/:userId/role", isAuthenticated, requireAdminRole, async (req: any, res) => {
+    try {
+      const { userId } = req.params;
+      const { role } = req.body;
+      
+      if (!['admin', 'manager', 'user'].includes(role)) {
+        return res.status(400).json({ error: "Invalid role" });
+      }
+      
+      const updatedUser = await storage.updateUserRole(userId, role);
+      if (!updatedUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Log admin action
+      await storage.logAdminAction({
+        userId: req.user.claims.sub,
+        action: "user_role_updated",
+        targetType: "user",
+        targetId: userId,
+        changes: { role },
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent')
+      });
+
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating user role:", error);
+      res.status(500).json({ error: "Failed to update user role" });
+    }
+  });
+
+  app.put("/api/admin/users/:userId/deactivate", isAuthenticated, requireAdminRole, async (req: any, res) => {
+    try {
+      const { userId } = req.params;
+      const success = await storage.deactivateUser(userId);
+      
+      if (!success) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Log admin action
+      await storage.logAdminAction({
+        userId: req.user.claims.sub,
+        action: "user_deactivated",
+        targetType: "user",
+        targetId: userId,
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent')
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deactivating user:", error);
+      res.status(500).json({ error: "Failed to deactivate user" });
+    }
+  });
+
+  app.put("/api/admin/users/:userId/activate", isAuthenticated, requireAdminRole, async (req: any, res) => {
+    try {
+      const { userId } = req.params;
+      const success = await storage.activateUser(userId);
+      
+      if (!success) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Log admin action
+      await storage.logAdminAction({
+        userId: req.user.claims.sub,
+        action: "user_activated",
+        targetType: "user",
+        targetId: userId,
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent')
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error activating user:", error);
+      res.status(500).json({ error: "Failed to activate user" });
+    }
+  });
+
+  // Site settings routes
+  app.get("/api/admin/settings", isAuthenticated, requireAdminRole, async (req, res) => {
+    try {
+      const { category } = req.query;
+      const settings = await storage.getSiteSettings(category as string);
+      res.json(settings);
+    } catch (error) {
+      console.error("Error fetching site settings:", error);
+      res.status(500).json({ error: "Failed to fetch site settings" });
+    }
+  });
+
+  app.put("/api/admin/settings/:key", isAuthenticated, requireAdminRole, async (req: any, res) => {
+    try {
+      const { key } = req.params;
+      const { value } = req.body;
+      
+      const setting = await storage.updateSiteSetting(key, value, req.user.claims.sub);
+
+      // Log admin action
+      await storage.logAdminAction({
+        userId: req.user.claims.sub,
+        action: "setting_updated",
+        targetType: "setting",
+        targetId: key,
+        changes: { value },
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent')
+      });
+
+      res.json(setting);
+    } catch (error) {
+      console.error("Error updating site setting:", error);
+      res.status(500).json({ error: "Failed to update site setting" });
+    }
+  });
+
+  app.post("/api/admin/settings", isAuthenticated, requireAdminRole, async (req: any, res) => {
+    try {
+      const settingData = insertSiteSettingSchema.parse({
+        ...req.body,
+        updatedBy: req.user.claims.sub
+      });
+      
+      const setting = await storage.createSiteSetting(settingData);
+
+      // Log admin action
+      await storage.logAdminAction({
+        userId: req.user.claims.sub,
+        action: "setting_created",
+        targetType: "setting",
+        targetId: setting.key,
+        changes: settingData,
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent')
+      });
+
+      res.status(201).json(setting);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: "Invalid setting data", details: error.errors });
+      } else {
+        console.error("Error creating site setting:", error);
+        res.status(500).json({ error: "Failed to create site setting" });
+      }
+    }
+  });
+
+  // Audit log routes
+  app.get("/api/admin/audit-logs", isAuthenticated, requireAdminRole, async (req, res) => {
+    try {
+      const { limit } = req.query;
+      const logs = await storage.getAuditLogs(limit ? parseInt(limit as string) : 100);
+      res.json(logs);
+    } catch (error) {
+      console.error("Error fetching audit logs:", error);
+      res.status(500).json({ error: "Failed to fetch audit logs" });
+    }
+  });
+
+  app.get("/api/admin/audit-logs/:userId", isAuthenticated, requireAdminRole, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const logs = await storage.getAuditLogsByUser(userId);
+      res.json(logs);
+    } catch (error) {
+      console.error("Error fetching user audit logs:", error);
+      res.status(500).json({ error: "Failed to fetch user audit logs" });
+    }
+  });
+
+  // User permissions routes
+  app.get("/api/admin/users/:userId/permissions", isAuthenticated, requireAdminRole, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const permissions = await storage.getUserPermissions(userId);
+      res.json(permissions);
+    } catch (error) {
+      console.error("Error fetching user permissions:", error);
+      res.status(500).json({ error: "Failed to fetch user permissions" });
+    }
+  });
+
+  app.post("/api/admin/users/:userId/permissions", isAuthenticated, requireAdminRole, async (req: any, res) => {
+    try {
+      const { userId } = req.params;
+      const { permission } = req.body;
+      
+      const newPermission = await storage.grantUserPermission({
+        userId,
+        permission,
+        grantedBy: req.user.claims.sub
+      });
+
+      // Log admin action
+      await storage.logAdminAction({
+        userId: req.user.claims.sub,
+        action: "permission_granted",
+        targetType: "user",
+        targetId: userId,
+        changes: { permission },
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent')
+      });
+
+      res.status(201).json(newPermission);
+    } catch (error) {
+      console.error("Error granting user permission:", error);
+      res.status(500).json({ error: "Failed to grant user permission" });
+    }
+  });
+
+  app.delete("/api/admin/users/:userId/permissions/:permission", isAuthenticated, requireAdminRole, async (req: any, res) => {
+    try {
+      const { userId, permission } = req.params;
+      
+      const success = await storage.revokeUserPermission(userId, permission);
+      if (!success) {
+        return res.status(404).json({ error: "Permission not found" });
+      }
+
+      // Log admin action
+      await storage.logAdminAction({
+        userId: req.user.claims.sub,
+        action: "permission_revoked",
+        targetType: "user",
+        targetId: userId,
+        changes: { permission },
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent')
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error revoking user permission:", error);
+      res.status(500).json({ error: "Failed to revoke user permission" });
     }
   });
 
