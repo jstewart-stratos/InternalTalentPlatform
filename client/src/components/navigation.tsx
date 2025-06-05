@@ -90,6 +90,9 @@ export default function Navigation() {
           <div className="flex items-center space-x-4">
             {/* Desktop user menu */}
             <div className="hidden md:flex items-center space-x-4">
+              <Link href="/my-projects" className="text-orange-600 hover:text-orange-700 font-medium">
+                My Projects
+              </Link>
               <button className="text-secondary hover:text-gray-900">
                 <Bell className="h-5 w-5" />
                 <span className="sr-only">Notifications</span>
@@ -161,22 +164,30 @@ export default function Navigation() {
               <div className="pt-4 pb-3 border-t border-gray-200">
                 <div className="flex items-center px-3">
                   <Avatar className="h-10 w-10">
-                    <AvatarImage src={user?.profileImageUrl || undefined} />
+                    <AvatarImage src={(user as any)?.profileImageUrl || undefined} />
                     <AvatarFallback>{getUserInitials()}</AvatarFallback>
                   </Avatar>
                   <div className="ml-3">
                     <div className="text-base font-medium text-gray-800">{getUserDisplayName()}</div>
-                    <div className="text-sm text-gray-500">{user?.email}</div>
+                    <div className="text-sm text-gray-500">{(user as any)?.email}</div>
                   </div>
                 </div>
                 <div className="mt-3 space-y-1 px-2">
                   <Link
-                    href={currentEmployee ? `/profile/${currentEmployee.id}` : "/profile/create"}
+                    href={currentEmployee ? `/profile/${(currentEmployee as any).id}` : "/profile/create"}
                     onClick={closeMobileMenu}
                     className="flex items-center px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                   >
                     <UserCircle className="h-5 w-5 mr-3" />
                     My Profile
+                  </Link>
+                  <Link
+                    href="/my-projects"
+                    onClick={closeMobileMenu}
+                    className="flex items-center px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                  >
+                    <FolderOpen className="h-5 w-5 mr-3" />
+                    My Projects
                   </Link>
                   <button
                     onClick={() => {
