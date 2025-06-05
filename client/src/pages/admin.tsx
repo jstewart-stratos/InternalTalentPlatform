@@ -437,34 +437,38 @@ export default function Admin() {
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Add New Department */}
-              <div className="border rounded-lg p-4 space-y-4">
-                <h3 className="font-semibold">Add New Department</h3>
-                <div className="grid grid-cols-2 gap-4">
+              <div className="border rounded-lg p-3 sm:p-4 space-y-3 sm:space-y-4">
+                <h3 className="font-semibold text-sm sm:text-base">Add New Department</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
-                    <Label htmlFor="departmentName">Department Name</Label>
+                    <Label htmlFor="departmentName" className="text-xs sm:text-sm">Department Name</Label>
                     <Input
                       id="departmentName"
                       placeholder="Enter department name"
                       value={newDepartmentName}
                       onChange={(e) => setNewDepartmentName(e.target.value)}
+                      className="text-sm h-9"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="departmentDescription">Description</Label>
+                    <Label htmlFor="departmentDescription" className="text-xs sm:text-sm">Description</Label>
                     <Textarea
                       id="departmentDescription"
                       placeholder="Enter department description"
                       value={newDepartmentDescription}
                       onChange={(e) => setNewDepartmentDescription(e.target.value)}
+                      className="text-sm h-9 resize-none"
+                      rows={1}
                     />
                   </div>
                 </div>
                 <Button 
                   onClick={handleCreateDepartment}
                   disabled={createDepartmentMutation.isPending}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 text-xs sm:text-sm h-8 sm:h-9"
+                  size="sm"
                 >
-                  <Plus className="h-4 w-4" />
+                  <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
                   {createDepartmentMutation.isPending ? "Creating..." : "Create Department"}
                 </Button>
               </div>
