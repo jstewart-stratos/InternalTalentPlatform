@@ -20,6 +20,9 @@ export const users = pgTable("users", {
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
+  role: varchar("role").notNull().default("user"), // admin, manager, user
+  isActive: boolean("is_active").notNull().default(true),
+  lastLoginAt: timestamp("last_login_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -84,6 +87,40 @@ export const projectApplications = pgTable("project_applications", {
   appliedAt: timestamp("applied_at").defaultNow().notNull(),
 });
 
+// Site settings table for admin panel
+export const siteSettings = pgTable("site_settings", {
+  id: serial("id").primaryKey(),
+  key: varchar("key").notNull().unique(),
+  value: text("value").notNull(),
+  description: text("description"),
+  category: varchar("category").notNull().default("general"), // general, security, features, notifications
+  isPublic: boolean("is_public").notNull().default(false),
+  updatedBy: varchar("updated_by").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Admin audit log table
+export const adminAuditLog = pgTable("admin_audit_log", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
+  action: varchar("action").notNull(), // user_created, user_updated, user_deactivated, setting_changed, etc.
+  targetType: varchar("target_type").notNull(), // user, employee, project, setting
+  targetId: varchar("target_id"),
+  changes: jsonb("changes"), // JSON of what changed
+  ipAddress: varchar("ip_address"),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// User permissions table
+export const userPermissions = pgTable("user_permissions", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
+  permission: varchar("permission").notNull(), // manage_users, manage_settings, view_analytics, etc.
+  grantedBy: varchar("granted_by").notNull(),
+  grantedAt: timestamp("granted_at").defaultNow(),
+});
+
 export const insertEmployeeSchema = createInsertSchema(employees).omit({
   id: true,
 });
@@ -104,6 +141,21 @@ export const insertProjectApplicationSchema = createInsertSchema(projectApplicat
   appliedAt: true,
 });
 
+export const insertSiteSettingSchema = createInsertSchema(siteSettings).omit({
+  id: true,
+  updatedAt: true,
+});
+
+export const insertAuditLogSchema = createInsertSchema(adminAuditLog).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertUserPermissionSchema = createInsertSchema(userPermissions).omit({
+  id: true,
+  grantedAt: true,
+});
+
 // User authentication schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   createdAt: true,
@@ -120,3 +172,9 @@ export type InsertProject = z.infer<typeof insertProjectSchema>;
 export type Project = typeof projects.$inferSelect;
 export type InsertProjectApplication = z.infer<typeof insertProjectApplicationSchema>;
 export type ProjectApplication = typeof projectApplications.$inferSelect;
+export type InsertSiteSetting = z.infer<typeof insertSiteSettingSchema>;
+export type SiteSetting = typeof siteSettings.$inferSelect;
+export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
+export type AuditLog = typeof adminAuditLog.$inferSelect;
+export type InsertUserPermission = z.infer<typeof insertUserPermissionSchema>;
+export type UserPermission = typeof userPermissions.$inferSelect;

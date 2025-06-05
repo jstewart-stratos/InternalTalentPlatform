@@ -1,4 +1,4 @@
-import { employees, skillEndorsements, skillSearches, projects, projectApplications, users, type Employee, type InsertEmployee, type SkillEndorsement, type InsertSkillEndorsement, type Project, type InsertProject, type ProjectApplication, type InsertProjectApplication, type User, type UpsertUser } from "@shared/schema";
+import { employees, skillEndorsements, skillSearches, projects, projectApplications, users, siteSettings, adminAuditLog, userPermissions, type Employee, type InsertEmployee, type SkillEndorsement, type InsertSkillEndorsement, type Project, type InsertProject, type ProjectApplication, type InsertProjectApplication, type User, type UpsertUser, type SiteSetting, type InsertSiteSetting, type AuditLog, type InsertAuditLog, type UserPermission, type InsertUserPermission } from "@shared/schema";
 import { db } from "./db";
 import { eq, or, and, ilike, sql } from "drizzle-orm";
 
@@ -40,6 +40,31 @@ export interface IStorage {
   getProjectApplications(projectId: number): Promise<ProjectApplication[]>;
   getUserApplications(applicantId: number): Promise<ProjectApplication[]>;
   updateApplicationStatus(id: number, status: 'accepted' | 'rejected'): Promise<ProjectApplication | undefined>;
+
+  // Admin management methods
+  getAllUsers(): Promise<User[]>;
+  updateUserRole(userId: string, role: string): Promise<User | undefined>;
+  deactivateUser(userId: string): Promise<boolean>;
+  activateUser(userId: string): Promise<boolean>;
+  updateUserLastLogin(userId: string): Promise<void>;
+
+  // Site settings methods
+  getSiteSettings(category?: string): Promise<SiteSetting[]>;
+  getSiteSetting(key: string): Promise<SiteSetting | undefined>;
+  updateSiteSetting(key: string, value: string, updatedBy: string): Promise<SiteSetting>;
+  createSiteSetting(setting: InsertSiteSetting): Promise<SiteSetting>;
+  deleteSiteSetting(key: string): Promise<boolean>;
+
+  // Audit logging methods
+  logAdminAction(log: InsertAuditLog): Promise<AuditLog>;
+  getAuditLogs(limit?: number): Promise<AuditLog[]>;
+  getAuditLogsByUser(userId: string): Promise<AuditLog[]>;
+
+  // User permissions methods
+  getUserPermissions(userId: string): Promise<UserPermission[]>;
+  grantUserPermission(permission: InsertUserPermission): Promise<UserPermission>;
+  revokeUserPermission(userId: string, permission: string): Promise<boolean>;
+  hasPermission(userId: string, permission: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
