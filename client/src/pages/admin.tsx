@@ -580,6 +580,29 @@ export default function Admin() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              {/* Sync Users from Employees */}
+              <div className="border rounded-lg p-4 space-y-4 mb-6">
+                <h3 className="font-semibold">Sync User Accounts</h3>
+                <p className="text-sm text-gray-600">Create user accounts for all employees who don't have accounts yet.</p>
+                <Button 
+                  onClick={() => {
+                    apiRequest('/api/seed-users', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' }
+                    }).then(() => {
+                      queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
+                      toast({ title: "Success", description: "User accounts synced successfully" });
+                    }).catch(() => {
+                      toast({ title: "Error", description: "Failed to sync user accounts", variant: "destructive" });
+                    });
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  <UserCheck className="h-4 w-4" />
+                  Sync Users from Employees
+                </Button>
+              </div>
+
               {/* Add New Setting */}
               <div className="border rounded-lg p-4 space-y-4">
                 <h3 className="font-semibold">Add New Setting</h3>

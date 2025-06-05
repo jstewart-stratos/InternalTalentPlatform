@@ -956,6 +956,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // User seeding endpoint (development only)
+  app.post('/api/seed-users', async (req, res) => {
+    try {
+      // Get all employees
+      const employees = await storage.getAllEmployees();
+      
+      if (employees.length === 0) {
+        return res.json({ message: "No employees found to create users for", count: 0 });
+      }
+
+      // Get existing users
+      const existingUsers = await storage.getAllUsers();
+      const existingEmails = new Set(existingUsers.map(user => user.email));
+
+      let createdCount = 0;
+      let skippedCount = 0;
+      const createdUsers = [];
+
+      for (const employee of employees) {
+        if (!employee.email) {
+          skippedCount++;
+          continue;
+        }
+
+        if (existingEmails.has(employee.email)) {
+          skippedCount++;
+          continue;
+        }
+
+        // Determine user role based on employee position
+        const title = employee.title.toLowerCase();
+        let role = 'user';
+        
+        if (title.includes('director') || 
+            title.includes('manager') || 
+            title.includes('lead') ||
+            (title.includes('senior') && (title.includes('advisor') || title.includes('planner')))) {
+          role = 'admin';
+        } else if (title.includes('specialist') || 
+                   title.includes('coordinator') || 
+                   employee.experienceLevel === 'Senior') {
+          role = 'manager';
+        }
+
+        // Create user account for employee
+        try {
+          const newUser = await storage.upsertUser({
+            id: `emp_${employee.id}`,
+            email: employee.email,
+            firstName: employee.name.split(' ')[0],
+            lastName: employee.name.split(' ').slice(1).join(' ') || '',
+            profileImageUrl: employee.profileImage || null,
+            role: role,
+            isActive: true
+          });
+
+          createdUsers.push(newUser);
+          createdCount++;
+        } catch (error) {
+          console.error(`Failed to create user for ${employee.name}:`, error);
+          skippedCount++;
+        }
+      }
+
+      res.json({ 
+        message: `User seeding completed: ${createdCount} created, ${skippedCount} skipped`,
+        created: createdCount,
+        skipped: skippedCount,
+        users: createdUsers
+      });
+    } catch (error) {
+      console.error("Error seeding users:", error);
+      res.status(500).json({ error: "Failed to seed users" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
