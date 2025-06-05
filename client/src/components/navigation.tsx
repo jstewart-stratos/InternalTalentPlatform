@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Bell, Users, ChevronDown, LogOut, UserCircle, Menu, X } from "lucide-react";
+import { Bell, Users, ChevronDown, LogOut, UserCircle, Menu, X, FolderOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -108,6 +108,12 @@ export default function Navigation() {
                     <Link href={currentEmployee ? `/profile/${currentEmployee.id}` : "/profile/create"} className="flex items-center">
                       <UserCircle className="h-4 w-4 mr-2" />
                       My Profile
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/my-projects" className="flex items-center">
+                      <FolderOpen className="h-4 w-4 mr-2" />
+                      My Projects
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleLogout} className="flex items-center text-red-600">
