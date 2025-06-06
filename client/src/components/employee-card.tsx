@@ -52,7 +52,7 @@ export default function EmployeeCard({ employee }: EmployeeCardProps) {
             <h4 className="text-lg font-semibold text-gray-900">{employee.name}</h4>
             <p className="text-secondary text-sm">{employee.title}</p>
             <p className="text-secondary text-xs">
-              {employee.department} • {employee.yearsExperience} years exp
+              {employee.yearsExperience} years exp
             </p>
           </div>
         </div>

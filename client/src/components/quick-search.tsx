@@ -214,7 +214,7 @@ export default function QuickSearch({ onEmployeeSelect, onSkillSelect, placehold
                         {result.employee.name}
                       </p>
                       <p className="text-sm text-muted-foreground truncate">
-                        {result.employee.title} • {result.employee.department}
+                        {result.employee.title}
                       </p>
                     </div>
                   </div>
