@@ -150,9 +150,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const employees = await storage.getAllEmployees();
       
+      const allSkills = employees.flatMap(e => e.skills);
+      const uniqueSkills = Array.from(new Set(allSkills));
+      
       const stats = {
         activeUsers: employees.length,
-        skillsRegistered: [...new Set(employees.flatMap(e => e.skills))].length,
+        skillsRegistered: uniqueSkills.length,
         successfulMatches: Math.floor(employees.length * 0.7), // Simulated
         projectsCompleted: Math.floor(employees.length * 0.2) // Simulated
       };

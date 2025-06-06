@@ -181,7 +181,7 @@ export default function CreateProfile() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {departments.map((dept) => (
+                            {departments.filter(dept => dept && dept.trim()).map((dept) => (
                               <SelectItem key={dept} value={dept}>
                                 {dept}
                               </SelectItem>

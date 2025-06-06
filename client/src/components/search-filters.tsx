@@ -50,7 +50,7 @@ export default function SearchFilters({ onSearch, departments, isLoading }: Sear
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="All Departments">All Departments</SelectItem>
-              {departments.map((dept) => (
+              {departments.filter(dept => dept && dept.trim()).map((dept) => (
                 <SelectItem key={dept} value={dept}>{dept}</SelectItem>
               ))}
             </SelectContent>
