@@ -94,13 +94,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/employees", async (req, res) => {
+  app.post("/api/employees", isAuthenticated, async (req: any, res) => {
     try {
       console.log("Employee creation request body:", req.body);
       const validatedData = insertEmployeeSchema.parse(req.body);
       console.log("Validated employee data:", validatedData);
-      const employee = await storage.createEmployee(validatedData);
-      res.status(201).json(employee);
+      
+      // Add userId from authenticated user
+      const employeeData = {
+        ...validatedData,
+        userId: req.user.claims.sub
+      };
+      
+      // Check if employee already exists for this user
+      const existingEmployee = await storage.getEmployeeByUserId(req.user.claims.sub);
+      
+      if (existingEmployee) {
+        // Update existing employee
+        const updatedEmployee = await storage.updateEmployee(existingEmployee.id, employeeData);
+        res.json(updatedEmployee);
+      } else {
+        // Create new employee
+        const employee = await storage.createEmployee(employeeData);
+        res.status(201).json(employee);
+      }
     } catch (error) {
       console.error("Employee creation error:", error);
       if (error instanceof z.ZodError) {
