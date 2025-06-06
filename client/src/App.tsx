@@ -15,6 +15,7 @@ import Admin from "@/pages/admin";
 import Skills from "@/pages/skills";
 import Projects from "@/pages/projects";
 import MyProjects from "@/pages/my-projects";
+import ExpertDirectory from "@/pages/expert-directory";
 import NotFound from "@/pages/not-found";
 
 function Router() {

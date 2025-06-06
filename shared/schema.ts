@@ -39,6 +39,11 @@ export const employees = pgTable("employees", {
   yearsExperience: integer("years_experience").notNull(),
   experienceLevel: text("experience_level").notNull().default("Mid-level"),
   skills: text("skills").array().notNull(),
+  expertiseAreas: text("expertise_areas").array().default([]),
+  availabilityStatus: text("availability_status").default("available"), // available, busy, unavailable
+  preferredContactMethod: text("preferred_contact_method").default("email"), // email, slack, teams, phone
+  maxMentees: integer("max_mentees").default(0),
+  isExpertDirectoryVisible: boolean("is_expert_directory_visible").default(true),
 });
 
 export const employeesRelations = pgTable("employees_relations", {
@@ -131,10 +136,53 @@ export const departments = pgTable("departments", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export const expertiseRequests = pgTable("expertise_requests", {
+  id: serial("id").primaryKey(),
+  requesterId: integer("requester_id").notNull().references(() => employees.id),
+  expertId: integer("expert_id").notNull().references(() => employees.id),
+  skill: text("skill").notNull(),
+  message: text("message"),
+  status: text("status").default("pending"), // pending, accepted, declined, completed
+  urgency: text("urgency").default("medium"), // low, medium, high
+  estimatedDuration: text("estimated_duration"), // "30 minutes", "1 hour", "half day", etc.
+  scheduledDate: timestamp("scheduled_date"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const skillExpertise = pgTable("skill_expertise", {
+  id: serial("id").primaryKey(),
+  employeeId: integer("employee_id").notNull().references(() => employees.id),
+  skill: text("skill").notNull(),
+  expertiseLevel: text("expertise_level").notNull(), // beginner, intermediate, advanced, expert
+  yearsOfExperience: integer("years_of_experience").default(0),
+  certifications: text("certifications").array().default([]),
+  isWillingToMentor: boolean("is_willing_to_mentor").default(false),
+  lastUpdated: timestamp("last_updated").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const insertEmployeeSchema = createInsertSchema(employees).omit({
   id: true,
 }).extend({
   address: z.string().optional(),
+  expertiseAreas: z.array(z.string()).optional(),
+  availabilityStatus: z.enum(["available", "busy", "unavailable"]).optional(),
+  preferredContactMethod: z.enum(["email", "slack", "teams", "phone"]).optional(),
+  maxMentees: z.number().min(0).optional(),
+  isExpertDirectoryVisible: z.boolean().optional(),
+});
+
+export const insertExpertiseRequestSchema = createInsertSchema(expertiseRequests).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertSkillExpertiseSchema = createInsertSchema(skillExpertise).omit({
+  id: true,
+  createdAt: true,
+  lastUpdated: true,
 });
 
 export const insertSkillEndorsementSchema = createInsertSchema(skillEndorsements).omit({
@@ -198,3 +246,7 @@ export type InsertUserPermission = z.infer<typeof insertUserPermissionSchema>;
 export type UserPermission = typeof userPermissions.$inferSelect;
 export type InsertDepartment = z.infer<typeof insertDepartmentSchema>;
 export type Department = typeof departments.$inferSelect;
+export type InsertExpertiseRequest = z.infer<typeof insertExpertiseRequestSchema>;
+export type ExpertiseRequest = typeof expertiseRequests.$inferSelect;
+export type InsertSkillExpertise = z.infer<typeof insertSkillExpertiseSchema>;
+export type SkillExpertise = typeof skillExpertise.$inferSelect;
