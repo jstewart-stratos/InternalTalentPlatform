@@ -653,8 +653,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           employee: match.employee,
           compatibilityScore: match.compatibilityScore,
           matchingSkills: match.matchingSkills,
-          additionalValue: [match.employee.department, match.employee.experienceLevel],
-          reasoning: `Skill-based match: ${match.matchingSkills.length} of ${match.totalRequiredSkills} required skills. ${match.employee.experienceLevel} level expertise in ${match.employee.department}.`,
+          additionalValue: [match.employee.experienceLevel, match.employee.address || "No location"],
+          reasoning: `Skill-based match: ${match.matchingSkills.length} of ${match.totalRequiredSkills} required skills. ${match.employee.experienceLevel} level expertise.`,
           recommendationLevel: match.recommendationLevel
         }));
         res.json(formattedRecommendations);

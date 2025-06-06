@@ -370,7 +370,7 @@ export default function Profile() {
                 </div>
                 <div className="flex items-center">
                   <MapPin className="h-4 w-4 mr-2 text-gray-400" />
-                  <span className="text-gray-600">{employee.department} Department</span>
+                  <span className="text-gray-600">{employee.address || "No address provided"}</span>
                 </div>
               </div>
             </div>
