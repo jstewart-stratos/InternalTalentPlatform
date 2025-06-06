@@ -169,7 +169,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/departments", async (req, res) => {
     try {
       const employees = await storage.getAllEmployees();
-      const departments = [...new Set(employees.map(e => e.department))];
+      const departments = Array.from(new Set(employees.map(e => e.department)));
       res.json(departments);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch departments" });
