@@ -238,12 +238,11 @@ export default function Profile() {
       <Card className="mb-8">
         <CardContent className="pt-8">
           <div className="flex flex-col md:flex-row items-start md:items-center space-y-6 md:space-y-0 md:space-x-6 mb-8">
-            <Avatar className="w-24 h-24">
-              <AvatarImage src={employee.profileImage || ""} alt={employee.name} />
-              <AvatarFallback className="text-xl">
-                {employee.name.split(" ").map(n => n[0]).join("")}
-              </AvatarFallback>
-            </Avatar>
+            <ProfileAvatar
+              src={employee.profileImage}
+              name={employee.name}
+              size="xl"
+            />
             <div className="flex-1">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
                 <div>

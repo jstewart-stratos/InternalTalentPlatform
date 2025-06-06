@@ -16,6 +16,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import SkillTaggingSystem from "@/components/skill-tagging-system";
 import LinkedInSkillsImport from "@/components/linkedin-skills-import";
+import ImageUpload from "@/components/image-upload";
 
 const createProfileSchema = insertEmployeeSchema.extend({
   skills: z.array(z.string()).min(1, "At least one skill is required"),
@@ -113,6 +114,25 @@ export default function CreateProfile() {
           <CardContent>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                {/* Profile Picture Section */}
+                <FormField
+                  control={form.control}
+                  name="profileImage"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Profile Picture</FormLabel>
+                      <FormControl>
+                        <ImageUpload
+                          value={field.value}
+                          onChange={field.onChange}
+                          name={form.getValues("name") || "User"}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <FormField
                     control={form.control}
