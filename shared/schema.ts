@@ -29,6 +29,7 @@ export const users = pgTable("users", {
 
 export const employees = pgTable("employees", {
   id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
   title: text("title").notNull(),
