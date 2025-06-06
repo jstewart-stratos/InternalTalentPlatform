@@ -48,7 +48,6 @@ export default function CreateProfile() {
       bio: "",
       skills: [],
       experienceLevel: "Mid-Level",
-      availability: "Available",
       yearsExperience: 0,
     },
     mode: "onChange",

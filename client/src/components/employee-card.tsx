@@ -32,16 +32,7 @@ const getSkillColor = (skill: string) => {
   return colors[skill as keyof typeof colors] || "bg-gray-100 text-gray-600";
 };
 
-const getAvailabilityColor = (availability: string) => {
-  switch (availability) {
-    case "available":
-      return "bg-green-400";
-    case "busy":
-      return "bg-yellow-400";
-    default:
-      return "bg-red-400";
-  }
-};
+
 
 export default function EmployeeCard({ employee }: EmployeeCardProps) {
   const displayedSkills = employee.skills.slice(0, 3);
@@ -84,11 +75,7 @@ export default function EmployeeCard({ employee }: EmployeeCardProps) {
           </div>
           <p className="text-sm text-gray-600 line-clamp-3">{employee.bio}</p>
         </div>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <div className={`w-2 h-2 rounded-full mr-2 ${getAvailabilityColor(employee.availability)}`}></div>
-            <span className="text-xs text-gray-500">{employee.availabilityMessage}</span>
-          </div>
+        <div className="flex items-center justify-end">
           <Link
             href={`/profile/${employee.id}`}
             className="text-primary hover:text-blue-700 text-sm font-medium flex items-center"

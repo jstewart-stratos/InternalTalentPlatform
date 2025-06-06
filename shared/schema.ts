@@ -39,8 +39,6 @@ export const employees = pgTable("employees", {
   yearsExperience: integer("years_experience").notNull(),
   experienceLevel: text("experience_level").notNull().default("Mid-level"),
   skills: text("skills").array().notNull(),
-  availability: text("availability").notNull().default("available"), // available, busy, unavailable
-  availabilityMessage: text("availability_message"),
 });
 
 export const employeesRelations = pgTable("employees_relations", {

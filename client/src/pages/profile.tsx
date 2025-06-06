@@ -270,7 +270,10 @@ export default function Profile() {
                         <Plus className="h-4 w-4 mr-2" />
                         Create Project
                       </Button>
-                      <Button variant="outline">
+                      <Button 
+                        variant="outline"
+                        onClick={() => setLocation("/create-profile")}
+                      >
                         <Edit className="h-4 w-4 mr-2" />
                         Edit Profile
                       </Button>
@@ -278,12 +281,7 @@ export default function Profile() {
                   )}
                 </div>
               </div>
-              <div className="flex items-center space-x-2 mb-4">
-                <span className="text-sm font-medium text-gray-700">Availability:</span>
-                <span className={`text-sm font-medium ${getAvailabilityColor(employee.availability)}`}>
-                  {employee.availabilityMessage}
-                </span>
-              </div>
+
             </div>
           </div>
 
