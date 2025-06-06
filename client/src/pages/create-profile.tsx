@@ -229,20 +229,9 @@ export default function CreateProfile() {
                           <Building className="h-4 w-4 mr-2" />
                           Department
                         </FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select your department" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {departments.filter(dept => dept && dept.trim()).map((dept) => (
-                              <SelectItem key={dept} value={dept}>
-                                {dept}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <FormControl>
+                          <Input placeholder="e.g., DBA, Engineering, Marketing" {...field} />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
