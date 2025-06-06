@@ -25,6 +25,7 @@ export interface IStorage {
   // Skill search tracking methods
   trackSkillSearch(skill: string): Promise<void>;
   getTrendingSkills(): Promise<Array<{ skill: string; searchCount: number; employeeCount: number; trending: boolean }>>;
+  getAllSkills(): Promise<string[]>;
 
   // Project methods
   createProject(project: InsertProject): Promise<Project>;
@@ -293,6 +294,19 @@ export class DatabaseStorage implements IStorage {
       .slice(0, 12);
 
     return trendingSkills;
+  }
+
+  async getAllSkills(): Promise<string[]> {
+    const employees = await this.getAllEmployees();
+    const allSkills = new Set<string>();
+    
+    employees.forEach(employee => {
+      employee.skills.forEach(skill => {
+        allSkills.add(skill.trim());
+      });
+    });
+    
+    return Array.from(allSkills).sort();
   }
 
   // Project methods
