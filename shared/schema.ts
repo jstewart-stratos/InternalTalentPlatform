@@ -33,7 +33,6 @@ export const employees = pgTable("employees", {
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
   title: text("title").notNull(),
-  department: text("department").notNull(),
   bio: text("bio"),
   profileImage: text("profile_image"),
   yearsExperience: integer("years_experience").notNull(),

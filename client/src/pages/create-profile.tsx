@@ -59,7 +59,6 @@ export default function CreateProfile() {
       name: "",
       email: "",
       title: "",
-      department: "",
       bio: "",
       skills: [],
       experienceLevel: "Mid-Level",
@@ -75,7 +74,7 @@ export default function CreateProfile() {
       form.setValue("name", currentEmployee.name || "");
       form.setValue("email", currentEmployee.email || "");
       form.setValue("title", currentEmployee.title || "");
-      form.setValue("department", currentEmployee.department || "");
+
       form.setValue("bio", currentEmployee.bio || "");
       form.setValue("skills", currentEmployee.skills || []);
       form.setValue("experienceLevel", currentEmployee.experienceLevel || "Mid-Level");
@@ -220,22 +219,7 @@ export default function CreateProfile() {
                     )}
                   />
 
-                  <FormField
-                    control={form.control}
-                    name="department"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center">
-                          <Building className="h-4 w-4 mr-2" />
-                          Department
-                        </FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g., DBA, Engineering, Marketing" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+
 
                   <FormField
                     control={form.control}
