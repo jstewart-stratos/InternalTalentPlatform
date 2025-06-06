@@ -149,6 +149,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put("/api/employees/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const validatedData = insertEmployeeSchema.parse(req.body);
+      
+      // Add userId from authenticated user
+      const employeeData = {
+        ...validatedData,
+        userId: req.user.claims.sub
+      };
+      
+      const employee = await storage.updateEmployee(id, employeeData);
+      
+      if (!employee) {
+        return res.status(404).json({ error: "Employee not found" });
+      }
+      
+      res.json(employee);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: "Invalid employee data", details: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to update employee" });
+      }
+    }
+  });
+
   app.delete("/api/employees/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
