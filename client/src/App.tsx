@@ -52,6 +52,7 @@ function Router() {
       <Route path="/skills" component={Skills} />
       <Route path="/projects" component={Projects} />
       <Route path="/my-projects" component={MyProjects} />
+      <Route path="/experts" component={ExpertDirectory} />
       <Route component={NotFound} />
     </Switch>
   );

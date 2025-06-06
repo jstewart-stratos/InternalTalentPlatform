@@ -1543,6 +1543,115 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return 'Other';
   }
 
+  // Expert Directory Routes
+  app.get("/api/experts", async (req, res) => {
+    try {
+      const { search, skill, availability, experience } = req.query;
+      
+      let employees = await storage.getAllEmployees();
+      
+      // Filter visible experts only
+      employees = employees.filter(emp => emp.isExpertDirectoryVisible !== false);
+      
+      // Apply search filter
+      if (search && typeof search === 'string') {
+        const searchLower = search.toLowerCase();
+        employees = employees.filter(emp => 
+          emp.name.toLowerCase().includes(searchLower) ||
+          emp.title.toLowerCase().includes(searchLower) ||
+          emp.skills.some(s => s.toLowerCase().includes(searchLower)) ||
+          (emp.bio && emp.bio.toLowerCase().includes(searchLower))
+        );
+      }
+      
+      // Apply skill filter
+      if (skill && typeof skill === 'string') {
+        employees = employees.filter(emp => 
+          emp.skills.some(s => s.toLowerCase().includes(skill.toLowerCase()))
+        );
+      }
+      
+      // Apply availability filter
+      if (availability && typeof availability === 'string') {
+        employees = employees.filter(emp => emp.availabilityStatus === availability);
+      }
+      
+      // Apply experience filter
+      if (experience && typeof experience === 'string') {
+        employees = employees.filter(emp => emp.experienceLevel === experience);
+      }
+      
+      // Add expert metadata
+      const expertsWithMetadata = await Promise.all(employees.map(async (employee) => {
+        const endorsements = await storage.getSkillEndorsements(employee.id);
+        
+        return {
+          ...employee,
+          totalEndorsements: endorsements.length,
+          menteeCount: Math.floor(Math.random() * 5), // Placeholder for now
+          responseTime: getRandomResponseTime(),
+        };
+      }));
+      
+      // Sort by total endorsements and experience
+      expertsWithMetadata.sort((a, b) => {
+        const experienceOrder = { Executive: 4, Senior: 3, "Mid-Level": 2, Junior: 1 };
+        const aScore = (a.totalEndorsements || 0) * 10 + (experienceOrder[a.experienceLevel as keyof typeof experienceOrder] || 0);
+        const bScore = (b.totalEndorsements || 0) * 10 + (experienceOrder[b.experienceLevel as keyof typeof experienceOrder] || 0);
+        return bScore - aScore;
+      });
+      
+      res.json(expertsWithMetadata);
+    } catch (error) {
+      console.error("Error fetching experts:", error);
+      res.status(500).json({ error: "Failed to fetch experts" });
+    }
+  });
+
+  app.post("/api/experts/request", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const requester = await storage.getEmployeeByUserId(userId);
+      
+      if (!requester) {
+        return res.status(404).json({ error: "Requester profile not found" });
+      }
+
+      const validatedData = insertExpertiseRequestSchema.parse({
+        ...req.body,
+        requesterId: requester.id,
+      });
+      
+      const request = await storage.createExpertiseRequest(validatedData);
+      res.status(201).json(request);
+    } catch (error) {
+      console.error("Error creating expertise request:", error);
+      res.status(500).json({ error: "Failed to create expertise request" });
+    }
+  });
+
+  app.get("/api/experts/requests", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const employee = await storage.getEmployeeByUserId(userId);
+      
+      if (!employee) {
+        return res.status(404).json({ error: "Employee profile not found" });
+      }
+
+      const requests = await storage.getExpertiseRequestsForExpert(employee.id);
+      res.json(requests);
+    } catch (error) {
+      console.error("Error fetching expertise requests:", error);
+      res.status(500).json({ error: "Failed to fetch expertise requests" });
+    }
+  });
+
+  function getRandomResponseTime(): string {
+    const times = ["1 hour", "2-4 hours", "same day", "1-2 days"];
+    return times[Math.floor(Math.random() * times.length)];
+  }
+
   const httpServer = createServer(app);
   return httpServer;
 }

@@ -76,6 +76,15 @@ export interface IStorage {
   deleteDepartment(id: number): Promise<boolean>;
   deactivateDepartment(id: number): Promise<boolean>;
   activateDepartment(id: number): Promise<boolean>;
+
+  // Expert directory methods
+  createExpertiseRequest(request: InsertExpertiseRequest): Promise<ExpertiseRequest>;
+  getExpertiseRequestsForExpert(expertId: number): Promise<ExpertiseRequest[]>;
+  getExpertiseRequestsForRequester(requesterId: number): Promise<ExpertiseRequest[]>;
+  updateExpertiseRequestStatus(id: number, status: string): Promise<ExpertiseRequest | undefined>;
+  createSkillExpertise(expertise: InsertSkillExpertise): Promise<SkillExpertise>;
+  getSkillExpertiseByEmployee(employeeId: number): Promise<SkillExpertise[]>;
+  updateSkillExpertise(id: number, expertise: Partial<InsertSkillExpertise>): Promise<SkillExpertise | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -633,6 +642,65 @@ export class DatabaseStorage implements IStorage {
       .where(eq(departments.id, id))
       .returning({ id: departments.id });
     return result.length > 0;
+  }
+
+  // Expert directory methods
+  async createExpertiseRequest(insertRequest: InsertExpertiseRequest): Promise<ExpertiseRequest> {
+    const [request] = await db
+      .insert(expertiseRequests)
+      .values(insertRequest)
+      .returning();
+    return request;
+  }
+
+  async getExpertiseRequestsForExpert(expertId: number): Promise<ExpertiseRequest[]> {
+    return await db
+      .select()
+      .from(expertiseRequests)
+      .where(eq(expertiseRequests.expertId, expertId))
+      .orderBy(desc(expertiseRequests.createdAt));
+  }
+
+  async getExpertiseRequestsForRequester(requesterId: number): Promise<ExpertiseRequest[]> {
+    return await db
+      .select()
+      .from(expertiseRequests)
+      .where(eq(expertiseRequests.requesterId, requesterId))
+      .orderBy(desc(expertiseRequests.createdAt));
+  }
+
+  async updateExpertiseRequestStatus(id: number, status: string): Promise<ExpertiseRequest | undefined> {
+    const [request] = await db
+      .update(expertiseRequests)
+      .set({ status, updatedAt: new Date() })
+      .where(eq(expertiseRequests.id, id))
+      .returning();
+    return request;
+  }
+
+  async createSkillExpertise(insertExpertise: InsertSkillExpertise): Promise<SkillExpertise> {
+    const [expertise] = await db
+      .insert(skillExpertise)
+      .values(insertExpertise)
+      .returning();
+    return expertise;
+  }
+
+  async getSkillExpertiseByEmployee(employeeId: number): Promise<SkillExpertise[]> {
+    return await db
+      .select()
+      .from(skillExpertise)
+      .where(eq(skillExpertise.employeeId, employeeId))
+      .orderBy(desc(skillExpertise.lastUpdated));
+  }
+
+  async updateSkillExpertise(id: number, insertExpertise: Partial<InsertSkillExpertise>): Promise<SkillExpertise | undefined> {
+    const [expertise] = await db
+      .update(skillExpertise)
+      .set({ ...insertExpertise, lastUpdated: new Date() })
+      .where(eq(skillExpertise.id, id))
+      .returning();
+    return expertise;
   }
 }
 
