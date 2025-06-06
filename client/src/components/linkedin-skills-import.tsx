@@ -80,8 +80,8 @@ export default function LinkedInSkillsImport({
       setSelectedSkills(new Set(newSkills));
 
       toast({
-        title: "LinkedIn Skills Imported",
-        description: `Found ${skills.length} professional skills from your LinkedIn profile`,
+        title: "Professional Skills Imported",
+        description: `Found ${skills.length} skills tailored to your role and department`,
       });
     } catch (error) {
       toast({
