@@ -38,11 +38,26 @@ export default function CreateProfile() {
     },
   });
 
+  // Check if current user has an existing employee profile
+  const { data: currentEmployee } = useQuery({
+    queryKey: ["/api/employees/current"],
+    queryFn: async () => {
+      const response = await fetch("/api/employees/current");
+      if (!response.ok) {
+        if (response.status === 404) return null; // No existing profile
+        throw new Error("Failed to fetch current employee");
+      }
+      return response.json();
+    },
+  });
+
+  const isEditing = !!currentEmployee;
+
   const form = useForm<CreateProfileForm>({
     resolver: zodResolver(createProfileSchema),
     defaultValues: {
-      name: user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : "",
-      email: user?.email || "",
+      name: "",
+      email: "",
       title: "",
       department: "",
       bio: "",
@@ -53,9 +68,21 @@ export default function CreateProfile() {
     mode: "onChange",
   });
 
-  // Update form values when user data loads
+  // Update form values when user data or existing employee data loads
   useEffect(() => {
-    if (user) {
+    if (currentEmployee) {
+      // Load existing employee data for editing
+      form.setValue("name", currentEmployee.name || "");
+      form.setValue("email", currentEmployee.email || "");
+      form.setValue("title", currentEmployee.title || "");
+      form.setValue("department", currentEmployee.department || "");
+      form.setValue("bio", currentEmployee.bio || "");
+      form.setValue("skills", currentEmployee.skills || []);
+      form.setValue("experienceLevel", currentEmployee.experienceLevel || "Mid-Level");
+      form.setValue("yearsExperience", currentEmployee.yearsExperience || 0);
+      form.setValue("profileImage", currentEmployee.profileImage || "");
+    } else if (user) {
+      // Load user auth data for new profile
       if (user.firstName && user.lastName) {
         form.setValue("name", `${user.firstName} ${user.lastName}`);
       }
@@ -63,27 +90,31 @@ export default function CreateProfile() {
         form.setValue("email", user.email);
       }
     }
-  }, [user, form]);
+  }, [user, currentEmployee, form]);
 
   const createEmployee = useMutation({
     mutationFn: async (data: InsertEmployee) => {
-      const response = await fetch("/api/employees", {
-        method: "POST",
+      const url = isEditing ? `/api/employees/${currentEmployee.id}` : "/api/employees";
+      const method = isEditing ? "PUT" : "POST";
+      
+      const response = await fetch(url, {
+        method,
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
       });
       if (!response.ok) {
-        throw new Error("Failed to create employee");
+        throw new Error(isEditing ? "Failed to update profile" : "Failed to create profile");
       }
       return response.json();
     },
-    onSuccess: (newEmployee) => {
+    onSuccess: (employee) => {
       queryClient.invalidateQueries({ queryKey: ["/api/employees"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/employees/current"] });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      // Redirect to main platform
-      window.location.href = `/`;
+      // Redirect to profile page
+      window.location.href = `/profile`;
     },
   });
 
@@ -97,9 +128,14 @@ export default function CreateProfile() {
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Create Your Professional Profile</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            {isEditing ? "Edit Your Professional Profile" : "Create Your Professional Profile"}
+          </h1>
           <p className="text-lg text-gray-600">
-            Join Stratos Skill Swap and showcase your expertise to colleagues
+            {isEditing 
+              ? "Update your expertise and professional information" 
+              : "Join Stratos Skill Swap and showcase your expertise to colleagues"
+            }
           </p>
         </div>
 
@@ -332,7 +368,10 @@ export default function CreateProfile() {
                     disabled={createEmployee.isPending}
                     className="min-w-[120px]"
                   >
-                    {createEmployee.isPending ? "Creating..." : "Create Profile"}
+                    {createEmployee.isPending 
+                      ? (isEditing ? "Updating..." : "Creating...") 
+                      : (isEditing ? "Update Profile" : "Create Profile")
+                    }
                   </Button>
                 </div>
               </form>
