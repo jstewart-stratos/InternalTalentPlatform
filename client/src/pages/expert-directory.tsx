@@ -26,9 +26,9 @@ export default function ExpertDirectory() {
     queryFn: async () => {
       const params = new URLSearchParams();
       if (searchTerm) params.append("search", searchTerm);
-      if (selectedSkill) params.append("skill", selectedSkill);
-      if (availabilityFilter) params.append("availability", availabilityFilter);
-      if (experienceFilter) params.append("experience", experienceFilter);
+      if (selectedSkill && selectedSkill !== "all") params.append("skill", selectedSkill);
+      if (availabilityFilter && availabilityFilter !== "all") params.append("availability", availabilityFilter);
+      if (experienceFilter && experienceFilter !== "all") params.append("experience", experienceFilter);
       
       const response = await fetch(`/api/experts?${params}`);
       if (!response.ok) throw new Error("Failed to fetch experts");
@@ -102,7 +102,7 @@ export default function ExpertDirectory() {
               <SelectValue placeholder="Filter by skill" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All skills</SelectItem>
+              <SelectItem value="all">All skills</SelectItem>
               {skills.map((skill) => (
                 <SelectItem key={skill} value={skill}>{skill}</SelectItem>
               ))}
@@ -114,7 +114,7 @@ export default function ExpertDirectory() {
               <SelectValue placeholder="Availability" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All statuses</SelectItem>
+              <SelectItem value="all">All statuses</SelectItem>
               <SelectItem value="available">Available</SelectItem>
               <SelectItem value="busy">Busy</SelectItem>
               <SelectItem value="unavailable">Unavailable</SelectItem>
@@ -126,7 +126,7 @@ export default function ExpertDirectory() {
               <SelectValue placeholder="Experience level" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All levels</SelectItem>
+              <SelectItem value="all">All levels</SelectItem>
               <SelectItem value="Junior">Junior</SelectItem>
               <SelectItem value="Mid-Level">Mid-Level</SelectItem>
               <SelectItem value="Senior">Senior</SelectItem>
