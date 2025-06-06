@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute, useLocation } from "wouter";
-import { Mail, MapPin, Calendar, Award, Edit, ThumbsUp, Users, Plus } from "lucide-react";
+import { Mail, MapPin, Calendar, Award, Edit, ThumbsUp, Users, Plus, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +11,8 @@ import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useUser } from "@/contexts/user-context";
 import ContactDialog from "@/components/contact-dialog";
+import LinkedInSkillsImport from "@/components/linkedin-skills-import";
+import SkillTaggingSystem from "@/components/skill-tagging-system";
 import type { Employee, SkillEndorsement } from "@shared/schema";
 
 export default function Profile() {
@@ -17,6 +20,7 @@ export default function Profile() {
   const [, setLocation] = useLocation();
   const { currentUser } = useUser();
   const { toast } = useToast();
+  const [isEditingSkills, setIsEditingSkills] = useState(false);
   
   // Get current employee data to determine the actual employee ID
   const { data: currentEmployee } = useQuery({
@@ -107,6 +111,38 @@ export default function Profile() {
       });
     },
   });
+
+  const updateSkillsMutation = useMutation({
+    mutationFn: async (skills: string[]) => {
+      await apiRequest(`/api/employees/${employeeId}`, "PATCH", { skills });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/employees", employeeId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/skill-endorsements", employeeId] });
+      toast({
+        title: "Skills updated",
+        description: "Your skills have been updated successfully.",
+      });
+      setIsEditingSkills(false);
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update skills. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSkillsUpdate = (newSkills: string[]) => {
+    updateSkillsMutation.mutate(newSkills);
+  };
+
+  const handleLinkedInSkillsSelected = (selectedSkills: string[]) => {
+    const currentSkills = employee?.skills || [];
+    const updatedSkills = [...currentSkills, ...selectedSkills];
+    updateSkillsMutation.mutate(updatedSkills);
+  };
 
   if (isLoading) {
     return (
@@ -256,10 +292,53 @@ export default function Profile() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-                <Award className="h-5 w-5 mr-2" />
-                Skills & Expertise
-              </h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+                  <Award className="h-5 w-5 mr-2" />
+                  Skills & Expertise
+                </h2>
+                <div className="flex items-center space-x-2">
+                  {isOwnProfile && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setIsEditingSkills(!isEditingSkills)}
+                      className="flex items-center space-x-1"
+                    >
+                      <Settings className="h-3 w-3" />
+                      <span>{isEditingSkills ? "Cancel" : "Manage Skills"}</span>
+                    </Button>
+                  )}
+                  <Badge variant="secondary" className="bg-green-100 text-green-800">
+                    {employee.skills.length} skills
+                  </Badge>
+                </div>
+              </div>
+
+              {isEditingSkills && isOwnProfile && (
+                <div className="space-y-6 mb-6">
+                  {/* LinkedIn Skills Import */}
+                  <LinkedInSkillsImport
+                    onSkillsSelected={handleLinkedInSkillsSelected}
+                    currentSkills={employee.skills}
+                    className="mb-4"
+                  />
+
+                  {/* Manual Skills Editor */}
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-900 mb-2">Edit Skills Manually</h3>
+                    <SkillTaggingSystem
+                      selectedSkills={employee.skills}
+                      onSkillsChange={handleSkillsUpdate}
+                      placeholder="Add or remove skills..."
+                      maxSkills={30}
+                      showAISuggestions={true}
+                      context="profile"
+                    />
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-3">
                 {employee.skills.map((skill) => {
                   const endorsementCount = getEndorsementCount(skill);
