@@ -1282,68 +1282,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // LinkedIn Skills Import with Real API
-  app.post('/api/linkedin/import-skills', isAuthenticated, async (req, res) => {
+  // LinkedIn OAuth Authentication
+  app.get('/api/linkedin/auth', isAuthenticated, async (req, res) => {
     try {
-      if (!process.env.LINKEDIN_CLIENT_ID || !process.env.LINKEDIN_CLIENT_SECRET) {
-        return res.status(400).json({ 
-          message: 'LinkedIn API credentials not configured. Please provide LINKEDIN_CLIENT_ID and LINKEDIN_CLIENT_SECRET.' 
-        });
-      }
-
-      // For now, initiate OAuth flow and return skills based on user profile
-      const userId = (req.user as any)?.claims?.sub;
-      const user = await storage.getUser(userId);
+      const { LinkedInAuthService } = await import('./linkedin-auth');
+      const linkedinAuth = new LinkedInAuthService();
       
-      if (!user) {
-        return res.status(404).json({ message: 'User not found' });
-      }
-
-      // Use LinkedIn API to get authentic skills data
-      const linkedinSkills = await getLinkedInSkillsForUser(user);
+      const state = Math.random().toString(36).substring(7);
+      (req.session as any).linkedinState = state;
       
-      res.json(linkedinSkills);
+      const authUrl = linkedinAuth.getAuthUrl(state);
+      res.json({ authUrl });
     } catch (error) {
-      console.error('Error importing LinkedIn skills:', error);
-      res.status(500).json({ message: 'Failed to import LinkedIn skills' });
+      console.error('LinkedIn auth error:', error);
+      res.status(500).json({ message: 'Failed to initiate LinkedIn authentication' });
     }
   });
 
-  // Helper function to get LinkedIn skills for a user using authentic API
-  async function getLinkedInSkillsForUser(user: any) {
+  // LinkedIn OAuth Callback
+  app.get('/api/linkedin/callback', async (req, res) => {
     try {
-      // Professional skills from LinkedIn API integration
-      const professionalSkills = [
-        { name: 'JavaScript', endorsements: 15, category: 'Programming Languages' },
-        { name: 'React', endorsements: 12, category: 'Frontend Development' },
-        { name: 'Node.js', endorsements: 10, category: 'Backend Development' },
-        { name: 'TypeScript', endorsements: 14, category: 'Programming Languages' },
-        { name: 'Python', endorsements: 8, category: 'Programming Languages' },
-        { name: 'SQL', endorsements: 16, category: 'Database Management' },
-        { name: 'Project Management', endorsements: 18, category: 'Leadership' },
-        { name: 'Team Leadership', endorsements: 12, category: 'Leadership' },
-        { name: 'Communication', endorsements: 20, category: 'Soft Skills' },
-        { name: 'Problem Solving', endorsements: 17, category: 'Soft Skills' },
-        { name: 'Critical Thinking', endorsements: 13, category: 'Soft Skills' },
-        { name: 'Agile Methodologies', endorsements: 9, category: 'Project Management' },
-        { name: 'Git', endorsements: 11, category: 'Development Tools' },
-        { name: 'AWS', endorsements: 7, category: 'Cloud Computing' },
-        { name: 'Docker', endorsements: 6, category: 'DevOps' },
-        { name: 'REST APIs', endorsements: 13, category: 'Web Development' },
-        { name: 'Data Analysis', endorsements: 15, category: 'Analytics' },
-        { name: 'Strategic Planning', endorsements: 10, category: 'Business Strategy' }
-      ];
+      const { code, state } = req.query;
+      const sessionState = (req.session as any).linkedinState;
+      
+      if (!code || !state || state !== sessionState) {
+        return res.redirect('/?linkedin=error');
+      }
 
-      // Randomize and select skills to simulate authentic LinkedIn profile
-      const shuffled = professionalSkills.sort(() => 0.5 - Math.random());
-      const selectedSkills = shuffled.slice(0, Math.floor(Math.random() * 7) + 12);
-
-      return selectedSkills;
+      const { LinkedInAuthService } = await import('./linkedin-auth');
+      const linkedinAuth = new LinkedInAuthService();
+      
+      const accessToken = await linkedinAuth.exchangeCodeForToken(code as string, state as string);
+      const profile = await linkedinAuth.getProfile(accessToken);
+      
+      (req.session as any).linkedinAccessToken = accessToken;
+      (req.session as any).linkedinProfile = profile;
+      
+      res.redirect('/?linkedin=success');
     } catch (error) {
-      console.error('Error fetching LinkedIn skills:', error);
-      throw error;
+      console.error('LinkedIn callback error:', error);
+      res.redirect('/?linkedin=error');
     }
-  }
+  });
+
+  // LinkedIn Skills Import with Authentic API
+  app.post('/api/linkedin/import-skills', isAuthenticated, async (req, res) => {
+    try {
+      const accessToken = (req.session as any).linkedinAccessToken;
+      
+      if (!accessToken) {
+        // Need LinkedIn authentication first
+        const { LinkedInAuthService } = await import('./linkedin-auth');
+        const linkedinAuth = new LinkedInAuthService();
+        
+        const state = Math.random().toString(36).substring(7);
+        (req.session as any).linkedinState = state;
+        
+        const authUrl = linkedinAuth.getAuthUrl(state);
+        return res.status(401).json({ authRequired: true, authUrl });
+      }
+
+      const { LinkedInAuthService } = await import('./linkedin-auth');
+      const linkedinAuth = new LinkedInAuthService();
+      
+      const skills = await linkedinAuth.getSkills(accessToken);
+      res.json(skills);
+    } catch (error) {
+      console.error('Error importing LinkedIn skills:', error);
+      res.status(500).json({ message: 'Failed to import LinkedIn skills from API' });
+    }
+  });
+
+
 
   // Helper function to categorize skills
   function categorizeSkill(skill: string): string {
