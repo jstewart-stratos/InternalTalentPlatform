@@ -1,6 +1,6 @@
-import { employees, skillEndorsements, skillSearches, projects, projectApplications, users, siteSettings, adminAuditLog, userPermissions, departments, type Employee, type InsertEmployee, type SkillEndorsement, type InsertSkillEndorsement, type Project, type InsertProject, type ProjectApplication, type InsertProjectApplication, type User, type UpsertUser, type SiteSetting, type InsertSiteSetting, type AuditLog, type InsertAuditLog, type UserPermission, type InsertUserPermission, type Department, type InsertDepartment } from "@shared/schema";
+import { employees, skillEndorsements, skillSearches, projects, projectApplications, users, siteSettings, adminAuditLog, userPermissions, departments, expertiseRequests, skillExpertise, type Employee, type InsertEmployee, type SkillEndorsement, type InsertSkillEndorsement, type Project, type InsertProject, type ProjectApplication, type InsertProjectApplication, type User, type UpsertUser, type SiteSetting, type InsertSiteSetting, type AuditLog, type InsertAuditLog, type UserPermission, type InsertUserPermission, type Department, type InsertDepartment, type ExpertiseRequest, type InsertExpertiseRequest, type SkillExpertise, type InsertSkillExpertise } from "@shared/schema";
 import { db } from "./db";
-import { eq, or, and, ilike, sql } from "drizzle-orm";
+import { eq, or, and, ilike, sql, desc } from "drizzle-orm";
 
 export interface IStorage {
   // User authentication methods (required for Replit Auth)
