@@ -38,7 +38,7 @@ export default function LinkedInSkillsImport({
   const handleImportSkills = async () => {
     setIsLoading(true);
     try {
-      // Import skills directly using authenticated session
+      // Import skills using LinkedIn API with authentication
       const response = await fetch('/api/linkedin/import-skills', {
         method: 'POST',
         headers: {
@@ -47,8 +47,25 @@ export default function LinkedInSkillsImport({
       });
 
       if (!response.ok) {
-        if (response.status === 404) {
-          throw new Error('Profile not found. Please ensure you have an employee profile.');
+        if (response.status === 401) {
+          // Need LinkedIn authentication
+          const authResponse = await response.json();
+          if (authResponse.authRequired && authResponse.authUrl) {
+            // Open LinkedIn OAuth in new window
+            const authWindow = window.open(authResponse.authUrl, 'linkedin-auth', 'width=600,height=600');
+            
+            // Listen for OAuth completion
+            const checkClosed = setInterval(() => {
+              if (authWindow?.closed) {
+                clearInterval(checkClosed);
+                // Retry skill import after authentication
+                setTimeout(() => handleImportSkills(), 1000);
+              }
+            }, 1000);
+            
+            return;
+          }
+          throw new Error('LinkedIn authentication required');
         }
         throw new Error('Failed to import LinkedIn skills');
       }
@@ -63,8 +80,8 @@ export default function LinkedInSkillsImport({
       setSelectedSkills(new Set(newSkills));
 
       toast({
-        title: "Skills Imported Successfully",
-        description: `Found ${skills.length} professional skills for your role`,
+        title: "LinkedIn Skills Imported",
+        description: `Found ${skills.length} professional skills from your LinkedIn profile`,
       });
     } catch (error) {
       toast({
