@@ -1,7 +1,7 @@
 import { ArrowRight } from "lucide-react";
 import { Link } from "wouter";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import ProfileAvatar from "@/components/profile-avatar";
 import type { Employee } from "@shared/schema";
 
 interface EmployeeCardProps {
@@ -51,12 +51,12 @@ export default function EmployeeCard({ employee }: EmployeeCardProps) {
     <div className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden">
       <div className="p-6">
         <div className="flex items-center mb-4">
-          <Avatar className="w-16 h-16 mr-4">
-            <AvatarImage src={employee.profileImage || ""} alt={employee.name} />
-            <AvatarFallback>
-              {employee.name.split(" ").map(n => n[0]).join("")}
-            </AvatarFallback>
-          </Avatar>
+          <ProfileAvatar
+            src={employee.profileImage}
+            name={employee.name}
+            size="lg"
+            className="mr-4"
+          />
           <div>
             <h4 className="text-lg font-semibold text-gray-900">{employee.name}</h4>
             <p className="text-secondary text-sm">{employee.title}</p>
