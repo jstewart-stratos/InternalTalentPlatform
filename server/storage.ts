@@ -110,6 +110,11 @@ export class DatabaseStorage implements IStorage {
     return employee || undefined;
   }
 
+  async getEmployeeByUserId(userId: string): Promise<Employee | undefined> {
+    const [employee] = await db.select().from(employees).where(eq(employees.userId, userId));
+    return employee || undefined;
+  }
+
   async createEmployee(insertEmployee: InsertEmployee): Promise<Employee> {
     const [employee] = await db
       .insert(employees)
