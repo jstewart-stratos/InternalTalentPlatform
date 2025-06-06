@@ -241,10 +241,6 @@ export default function Profile() {
                   <p className="text-xl text-gray-600 mb-2">{employee.title}</p>
                   <div className="flex items-center space-x-4 text-sm text-gray-500">
                     <span className="flex items-center">
-                      <Building className="h-4 w-4 mr-1" />
-                      DBA
-                    </span>
-                    <span className="flex items-center">
                       <Calendar className="h-4 w-4 mr-1" />
                       {employee.yearsExperience} years experience
                     </span>
