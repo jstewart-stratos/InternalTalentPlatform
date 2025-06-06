@@ -15,6 +15,7 @@ import { insertEmployeeSchema, type InsertEmployee } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import SkillTaggingSystem from "@/components/skill-tagging-system";
+import LinkedInSkillsImport from "@/components/linkedin-skills-import";
 
 const createProfileSchema = insertEmployeeSchema.extend({
   skills: z.array(z.string()).min(1, "At least one skill is required"),
@@ -262,6 +263,17 @@ export default function CreateProfile() {
                       <FormMessage />
                     </FormItem>
                   )}
+                />
+
+                {/* LinkedIn Skills Import */}
+                <LinkedInSkillsImport
+                  onSkillsSelected={(selectedSkills) => {
+                    const currentSkills = form.getValues("skills") || [];
+                    const newSkills = [...currentSkills, ...selectedSkills];
+                    form.setValue("skills", newSkills);
+                  }}
+                  currentSkills={form.watch("skills") || []}
+                  className="mb-6"
                 />
 
                 <FormField

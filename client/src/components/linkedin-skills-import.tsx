@@ -36,26 +36,51 @@ export default function LinkedInSkillsImport({
   const { toast } = useToast();
 
   const handleImportSkills = async () => {
-    if (!linkedInProfile.trim()) {
+    setIsLoading(true);
+    try {
+      // Start LinkedIn OAuth authentication
+      const authResponse = await fetch('/api/linkedin/auth');
+      if (!authResponse.ok) {
+        throw new Error('Failed to initiate LinkedIn authentication');
+      }
+
+      const { authUrl } = await authResponse.json();
+      
+      // Open LinkedIn OAuth in new window
+      const authWindow = window.open(authUrl, 'linkedin-auth', 'width=600,height=600');
+      
+      // Listen for OAuth completion
+      const checkClosed = setInterval(() => {
+        if (authWindow?.closed) {
+          clearInterval(checkClosed);
+          // Check if authentication was successful and import skills
+          importSkillsAfterAuth();
+        }
+      }, 1000);
+      
+    } catch (error) {
       toast({
-        title: "LinkedIn Profile Required",
-        description: "Please enter your LinkedIn profile URL or username",
+        title: "Authentication Failed",
+        description: "Unable to connect to LinkedIn. Please try again.",
         variant: "destructive",
       });
-      return;
+      setIsLoading(false);
     }
+  };
 
-    setIsLoading(true);
+  const importSkillsAfterAuth = async () => {
     try {
       const response = await fetch('/api/linkedin/import-skills', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ profileUrl: linkedInProfile }),
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('LinkedIn authentication required');
+        }
         throw new Error('Failed to import LinkedIn skills');
       }
 
@@ -75,7 +100,7 @@ export default function LinkedInSkillsImport({
     } catch (error) {
       toast({
         title: "Import Failed",
-        description: "Unable to import skills from LinkedIn. Please check your profile URL and try again.",
+        description: "Unable to import skills from LinkedIn. Please check your authentication and try again.",
         variant: "destructive",
       });
     } finally {
@@ -138,38 +163,36 @@ export default function LinkedInSkillsImport({
       <CardContent className="space-y-4">
         {linkedInSkills.length === 0 ? (
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="linkedin-profile">LinkedIn Profile URL or Username</Label>
-              <div className="flex space-x-2">
-                <Input
-                  id="linkedin-profile"
-                  placeholder="https://linkedin.com/in/your-profile or username"
-                  value={linkedInProfile}
-                  onChange={(e) => setLinkedInProfile(e.target.value)}
-                  disabled={isLoading}
-                />
-                <Button 
-                  onClick={handleImportSkills} 
-                  disabled={isLoading || !linkedInProfile.trim()}
-                >
-                  {isLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Download className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
+            <div className="text-center">
+              <Button 
+                onClick={handleImportSkills} 
+                disabled={isLoading}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Connecting to LinkedIn...
+                  </>
+                ) : (
+                  <>
+                    <SiLinkedin className="h-4 w-4 mr-2" />
+                    Connect & Import Skills from LinkedIn
+                  </>
+                )}
+              </Button>
             </div>
             
             <div className="bg-blue-50 p-4 rounded-lg">
               <div className="flex items-start space-x-2">
                 <ExternalLink className="h-4 w-4 text-blue-600 mt-0.5" />
                 <div className="text-sm text-blue-800">
-                  <p className="font-medium">How to find your LinkedIn profile URL:</p>
+                  <p className="font-medium">How LinkedIn Import Works:</p>
                   <ol className="list-decimal list-inside mt-1 space-y-1">
-                    <li>Go to your LinkedIn profile page</li>
-                    <li>Copy the URL from your browser (e.g., linkedin.com/in/yourname)</li>
-                    <li>Or just enter your LinkedIn username</li>
+                    <li>Click the button above to securely connect to LinkedIn</li>
+                    <li>Authorize our app to access your profile information</li>
+                    <li>We'll automatically extract skills from your profile</li>
+                    <li>Select which skills to add to your internal profile</li>
                   </ol>
                 </div>
               </div>
