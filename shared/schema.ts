@@ -33,6 +33,7 @@ export const employees = pgTable("employees", {
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
   title: text("title").notNull(),
+  address: text("address"),
   bio: text("bio"),
   profileImage: text("profile_image"),
   yearsExperience: integer("years_experience").notNull(),
@@ -132,6 +133,8 @@ export const departments = pgTable("departments", {
 
 export const insertEmployeeSchema = createInsertSchema(employees).omit({
   id: true,
+}).extend({
+  address: z.string().optional(),
 });
 
 export const insertSkillEndorsementSchema = createInsertSchema(skillEndorsements).omit({
