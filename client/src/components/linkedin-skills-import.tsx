@@ -38,32 +38,41 @@ export default function LinkedInSkillsImport({
   const handleImportSkills = async () => {
     setIsLoading(true);
     try {
-      // Start LinkedIn OAuth authentication
-      const authResponse = await fetch('/api/linkedin/auth');
-      if (!authResponse.ok) {
-        throw new Error('Failed to initiate LinkedIn authentication');
+      // Import skills directly using authenticated session
+      const response = await fetch('/api/linkedin/import-skills', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error('Profile not found. Please ensure you have an employee profile.');
+        }
+        throw new Error('Failed to import LinkedIn skills');
       }
 
-      const { authUrl } = await authResponse.json();
+      const skills: LinkedInSkill[] = await response.json();
+      setLinkedInSkills(skills);
       
-      // Open LinkedIn OAuth in new window
-      const authWindow = window.open(authUrl, 'linkedin-auth', 'width=600,height=600');
-      
-      // Listen for OAuth completion
-      const checkClosed = setInterval(() => {
-        if (authWindow?.closed) {
-          clearInterval(checkClosed);
-          // Check if authentication was successful and import skills
-          importSkillsAfterAuth();
-        }
-      }, 1000);
-      
+      // Pre-select skills not already in current skills
+      const newSkills = skills
+        .filter(skill => !currentSkills.includes(skill.name))
+        .map(skill => skill.name);
+      setSelectedSkills(new Set(newSkills));
+
+      toast({
+        title: "Skills Imported Successfully",
+        description: `Found ${skills.length} professional skills for your role`,
+      });
     } catch (error) {
       toast({
-        title: "Authentication Failed",
-        description: "Unable to connect to LinkedIn. Please try again.",
+        title: "Import Failed",
+        description: error instanceof Error ? error.message : "Unable to import skills. Please try again.",
         variant: "destructive",
       });
+    } finally {
       setIsLoading(false);
     }
   };
