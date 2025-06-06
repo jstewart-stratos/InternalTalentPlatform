@@ -206,16 +206,7 @@ export default function Profile() {
     return colors[skill as keyof typeof colors] || "bg-gray-100 text-gray-600";
   };
 
-  const getAvailabilityColor = (availability: string) => {
-    switch (availability) {
-      case "available":
-        return "text-green-600";
-      case "busy":
-        return "text-yellow-600";
-      default:
-        return "text-red-600";
-    }
-  };
+
 
   const getEndorsementCount = (skill: string) => {
     return endorsements.filter(e => e.skill === skill).length;
