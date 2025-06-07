@@ -19,17 +19,15 @@ interface ExpertProfile extends Employee {
 export default function ExpertDirectory() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSkill, setSelectedSkill] = useState<string>("");
-  const [availabilityFilter, setAvailabilityFilter] = useState<string>("");
   const [experienceFilter, setExperienceFilter] = useState<string>("");
   const { toast } = useToast();
 
   const { data: experts = [], isLoading } = useQuery({
-    queryKey: ["/api/experts", searchTerm, selectedSkill, availabilityFilter, experienceFilter],
+    queryKey: ["/api/experts", searchTerm, selectedSkill, experienceFilter],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (searchTerm) params.append("search", searchTerm);
       if (selectedSkill && selectedSkill !== "all") params.append("skill", selectedSkill);
-      if (availabilityFilter && availabilityFilter !== "all") params.append("availability", availabilityFilter);
       if (experienceFilter && experienceFilter !== "all") params.append("experience", experienceFilter);
       
       const response = await fetch(`/api/experts?${params}`);
@@ -46,15 +44,6 @@ export default function ExpertDirectory() {
       return response.json() as Promise<string[]>;
     },
   });
-
-  const getAvailabilityColor = (status: string) => {
-    switch (status) {
-      case "available": return "bg-green-100 text-green-800";
-      case "busy": return "bg-yellow-100 text-yellow-800";
-      case "unavailable": return "bg-red-100 text-red-800";
-      default: return "bg-gray-100 text-gray-600";
-    }
-  };
 
   const getContactIcon = (method: string) => {
     switch (method) {
@@ -168,18 +157,6 @@ export default function ExpertDirectory() {
             </SelectContent>
           </Select>
 
-          <Select value={availabilityFilter} onValueChange={setAvailabilityFilter}>
-            <SelectTrigger>
-              <SelectValue placeholder="Availability" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All statuses</SelectItem>
-              <SelectItem value="available">Available</SelectItem>
-              <SelectItem value="busy">Busy</SelectItem>
-              <SelectItem value="unavailable">Unavailable</SelectItem>
-            </SelectContent>
-          </Select>
-
           <Select value={experienceFilter} onValueChange={setExperienceFilter}>
             <SelectTrigger>
               <SelectValue placeholder="Experience level" />
@@ -226,9 +203,6 @@ export default function ExpertDirectory() {
                       </CardTitle>
                       <p className="text-sm text-gray-600 mb-2">{expert.title}</p>
                       <div className="flex items-center space-x-2">
-                        <Badge className={getAvailabilityColor(expert.availabilityStatus || "available")}>
-                          {expert.availabilityStatus || "available"}
-                        </Badge>
                         <Badge variant="outline" className="text-xs">
                           {expert.experienceLevel}
                         </Badge>
@@ -299,7 +273,7 @@ export default function ExpertDirectory() {
                       {getContactIcon(expert.preferredContactMethod || "email")}
                       <span className="ml-2">Contact</span>
                     </Button>
-                    {expert.maxMentees !== undefined && expert.maxMentees > 0 && (
+                    {expert.maxMentees !== undefined && expert.maxMentees !== null && expert.maxMentees > 0 && (
                       <Button 
                         size="sm" 
                         variant="outline"
