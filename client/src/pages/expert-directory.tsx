@@ -299,7 +299,7 @@ export default function ExpertDirectory() {
                       {getContactIcon(expert.preferredContactMethod || "email")}
                       <span className="ml-2">Contact</span>
                     </Button>
-                    {expert.maxMentees && expert.maxMentees > 0 && (
+                    {expert.maxMentees !== undefined && expert.maxMentees > 0 && (
                       <Button 
                         size="sm" 
                         variant="outline"
