@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Mail, MessageCircle, Phone, Users, Award, Clock, MapPin } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import ProfileAvatar from "@/components/profile-avatar";
 import type { Employee } from "@shared/schema";
 
@@ -20,6 +21,7 @@ export default function ExpertDirectory() {
   const [selectedSkill, setSelectedSkill] = useState<string>("");
   const [availabilityFilter, setAvailabilityFilter] = useState<string>("");
   const [experienceFilter, setExperienceFilter] = useState<string>("");
+  const { toast } = useToast();
 
   const { data: experts = [], isLoading } = useQuery({
     queryKey: ["/api/experts", searchTerm, selectedSkill, availabilityFilter, experienceFilter],
@@ -61,6 +63,63 @@ export default function ExpertDirectory() {
       case "teams": return <MessageCircle className="h-4 w-4" />;
       case "phone": return <Phone className="h-4 w-4" />;
       default: return <Mail className="h-4 w-4" />;
+    }
+  };
+
+  const handleContact = (expert: ExpertProfile) => {
+    const method = expert.preferredContactMethod || "email";
+    
+    switch (method) {
+      case "email":
+        if (expert.email) {
+          window.location.href = `mailto:${expert.email}?subject=Expert Consultation Request&body=Hi ${expert.name},%0D%0A%0D%0AI would like to request your expertise regarding...`;
+        } else {
+          toast({
+            title: "Contact Information Not Available",
+            description: "Email address not found for this expert.",
+            variant: "destructive",
+          });
+        }
+        break;
+      case "phone":
+        if (expert.phone) {
+          window.location.href = `tel:${expert.phone}`;
+        } else {
+          toast({
+            title: "Contact Information Not Available", 
+            description: "Phone number not found for this expert.",
+            variant: "destructive",
+          });
+        }
+        break;
+      case "slack":
+      case "teams":
+        toast({
+          title: "Contact Expert",
+          description: `Please reach out to ${expert.name} via ${method.charAt(0).toUpperCase() + method.slice(1)}.`,
+        });
+        break;
+      default:
+        if (expert.email) {
+          window.location.href = `mailto:${expert.email}?subject=Expert Consultation Request&body=Hi ${expert.name},%0D%0A%0D%0AI would like to request your expertise regarding...`;
+        } else {
+          toast({
+            title: "Contact Information Not Available",
+            description: "No contact method available for this expert.",
+            variant: "destructive",
+          });
+        }
+    }
+  };
+
+  const handleMentorshipRequest = (expert: ExpertProfile) => {
+    if (expert.email) {
+      window.location.href = `mailto:${expert.email}?subject=Mentorship Request&body=Hi ${expert.name},%0D%0A%0D%0AI am interested in your mentorship program and would like to discuss...`;
+    } else {
+      toast({
+        title: "Mentorship Request",
+        description: `Please contact ${expert.name} directly to request mentorship.`,
+      });
     }
   };
 
@@ -232,12 +291,20 @@ export default function ExpertDirectory() {
                   </div>
 
                   <div className="flex space-x-2">
-                    <Button size="sm" className="flex-1">
+                    <Button 
+                      size="sm" 
+                      className="flex-1"
+                      onClick={() => handleContact(expert)}
+                    >
                       {getContactIcon(expert.preferredContactMethod || "email")}
                       <span className="ml-2">Contact</span>
                     </Button>
                     {expert.maxMentees && expert.maxMentees > 0 && (
-                      <Button size="sm" variant="outline">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handleMentorshipRequest(expert)}
+                      >
                         Request Mentorship
                       </Button>
                     )}
