@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search, UserPlus, Users, TrendingUp, BarChart3, Network, Award } from "lucide-react";
+import { Search, UserPlus, Users, TrendingUp, BarChart3, Network, Award, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -11,6 +11,7 @@ import SearchFilters from "@/components/search-filters";
 import EmployeeCard from "@/components/employee-card";
 import TrendingSkills from "@/components/trending-skills";
 import ProfileAvatar from "@/components/profile-avatar";
+import { useLocation } from "wouter";
 import type { Employee, SkillEndorsement } from "@shared/schema";
 
 export default function Home() {
@@ -18,6 +19,7 @@ export default function Home() {
   const [selectedExperience, setSelectedExperience] = useState("Any Level");
   const [sortBy, setSortBy] = useState("relevance");
   const [activeTab, setActiveTab] = useState("discover");
+  const [, setLocation] = useLocation();
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [skillSearchQuery, setSkillSearchQuery] = useState("");
 
@@ -479,13 +481,10 @@ export default function Home() {
                     <Button 
                       size="sm" 
                       className="w-full"
-                      onClick={() => {
-                        if (expert.email) {
-                          window.location.href = `mailto:${expert.email}?subject=Expert Consultation Request&body=Hi ${expert.name},%0D%0A%0D%0AI would like to request your expertise regarding...`;
-                        }
-                      }}
+                      onClick={() => setLocation(`/profile/${expert.id}`)}
                     >
-                      Contact Expert
+                      <User className="h-4 w-4 mr-2" />
+                      View Profile
                     </Button>
                   </CardContent>
                 </Card>
