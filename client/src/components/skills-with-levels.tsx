@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { isUnauthorizedError } from "@/lib/authUtils";
 import type { EmployeeSkill, InsertEmployeeSkill } from "@shared/schema";
 
 interface SkillsWithLevelsProps {
@@ -87,7 +88,19 @@ export default function SkillsWithLevels({
         description: "Your skill has been added successfully.",
       });
     },
-    onError: () => {
+    onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      
       toast({
         title: "Error",
         description: "Failed to add skill. Please try again.",
@@ -109,7 +122,19 @@ export default function SkillsWithLevels({
         description: "Your skill has been updated successfully.",
       });
     },
-    onError: () => {
+    onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      
       toast({
         title: "Error",
         description: "Failed to update skill. Please try again.",
@@ -130,7 +155,19 @@ export default function SkillsWithLevels({
         description: "Your skill has been removed successfully.",
       });
     },
-    onError: () => {
+    onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      
       toast({
         title: "Error",
         description: "Failed to remove skill. Please try again.",

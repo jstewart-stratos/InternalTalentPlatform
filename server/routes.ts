@@ -286,7 +286,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(skill);
     } catch (error) {
       console.error('Error creating employee skill:', error);
-      res.status(500).json({ error: "Failed to create employee skill", details: error.message });
+      res.status(500).json({ error: "Failed to create employee skill", details: (error as Error).message });
     }
   });
 
@@ -316,7 +316,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(skill);
     } catch (error) {
       console.error('Error updating employee skill:', error);
-      res.status(500).json({ error: "Failed to update employee skill", details: error.message });
+      res.status(500).json({ error: "Failed to update employee skill", details: (error as Error).message });
     }
   });
 
