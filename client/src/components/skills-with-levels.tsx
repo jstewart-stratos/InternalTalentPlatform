@@ -558,38 +558,41 @@ function SkillItem({
 
   return (
     <Card className="hover:shadow-md transition-shadow border border-gray-200 hover:border-gray-300">
-      <CardContent className="p-5">
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <div className="flex items-center space-x-3 mb-2">
-              <Badge className={`${getLevelColor(skill.experienceLevel)} text-base px-3 py-1 font-medium`} variant="secondary">
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-3">
+              <Badge className={`${getLevelColor(skill.experienceLevel)} text-sm px-2 py-1 font-medium flex-shrink-0`} variant="secondary">
                 {skill.skillName}
               </Badge>
               {isOwnProfile && canEdit && (
-                <Button size="sm" variant="ghost" onClick={onEdit} className="h-8 w-8 p-0 hover:bg-gray-100">
-                  <Edit3 className="h-4 w-4" />
+                <Button size="sm" variant="ghost" onClick={onEdit} className="h-7 w-7 p-0 hover:bg-gray-100 flex-shrink-0">
+                  <Edit3 className="h-3 w-3" />
                 </Button>
               )}
             </div>
             
-            <div className="flex items-center space-x-4 text-sm">
-              <div className="flex items-center space-x-2 text-gray-700">
-                <span className="text-lg">{getStarRating(skill.experienceLevel)}</span>
+            <div className="flex flex-wrap items-center gap-2 text-xs text-gray-600">
+              <div className="flex items-center gap-1">
+                <span className="text-base">{getStarRating(skill.experienceLevel)}</span>
                 <span className="font-medium capitalize">{skill.experienceLevel}</span>
               </div>
               
-              <div className="flex items-center space-x-1 text-gray-600">
-                <span>•</span>
+              <span className="text-gray-400">•</span>
+              
+              <div className="flex items-center gap-1">
                 <span className="font-medium">{skill.yearsOfExperience}</span>
-                <span>year{skill.yearsOfExperience !== 1 ? 's' : ''} experience</span>
+                <span>yr{skill.yearsOfExperience !== 1 ? 's' : ''}</span>
               </div>
               
               {(skill.endorsementCount || 0) > 0 && (
-                <div className="flex items-center space-x-1 text-gray-500">
-                  <span>•</span>
-                  <Users className="h-4 w-4" />
-                  <span>{skill.endorsementCount || 0} endorsement{(skill.endorsementCount || 0) !== 1 ? 's' : ''}</span>
-                </div>
+                <>
+                  <span className="text-gray-400">•</span>
+                  <div className="flex items-center gap-1">
+                    <Users className="h-3 w-3" />
+                    <span>{skill.endorsementCount || 0}</span>
+                  </div>
+                </>
               )}
             </div>
           </div>
