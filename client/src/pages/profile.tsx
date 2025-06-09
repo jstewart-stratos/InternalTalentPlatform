@@ -111,37 +111,7 @@ export default function Profile() {
     },
   });
 
-  const updateSkillsMutation = useMutation({
-    mutationFn: async (skills: string[]) => {
-      await apiRequest(`/api/employees/${employeeId}`, "PATCH", { skills });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/employees", employeeId] });
-      queryClient.invalidateQueries({ queryKey: ["/api/skill-endorsements", employeeId] });
-      toast({
-        title: "Skills updated",
-        description: "Your skills have been updated successfully.",
-      });
-      setIsEditingSkills(false);
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to update skills. Please try again.",
-        variant: "destructive",
-      });
-    },
-  });
 
-  const handleSkillsUpdate = (newSkills: string[]) => {
-    updateSkillsMutation.mutate(newSkills);
-  };
-
-  const handleLinkedInSkillsSelected = (selectedSkills: string[]) => {
-    const currentSkills = employee?.skills || [];
-    const updatedSkills = [...currentSkills, ...selectedSkills];
-    updateSkillsMutation.mutate(updatedSkills);
-  };
 
   if (isLoading) {
     return (
@@ -275,89 +245,12 @@ export default function Profile() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div>
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-gray-900 flex items-center">
-                  <Award className="h-5 w-5 mr-2" />
-                  Skills & Expertise
-                </h2>
-                <div className="flex items-center space-x-2">
-                  {isOwnProfile && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setIsEditingSkills(!isEditingSkills)}
-                      className="flex items-center space-x-1"
-                    >
-                      <Settings className="h-3 w-3" />
-                      <span>{isEditingSkills ? "Cancel" : "Manage Skills"}</span>
-                    </Button>
-                  )}
-                  <Badge variant="secondary" className="bg-green-100 text-green-800">
-                    {employee.skills.length} skills
-                  </Badge>
-                </div>
-              </div>
-
-              {isEditingSkills && isOwnProfile && (
-                <div className="space-y-6 mb-6">
-                  {/* LinkedIn Skills Import */}
-                  <LinkedInSkillsImport
-                    onSkillsSelected={handleLinkedInSkillsSelected}
-                    currentSkills={employee.skills}
-                    className="mb-4"
-                  />
-
-                  {/* Manual Skills Editor */}
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-900 mb-2">Edit Skills Manually</h3>
-                    <SkillTaggingSystem
-                      selectedSkills={employee.skills}
-                      onSkillsChange={handleSkillsUpdate}
-                      placeholder="Add or remove skills..."
-                      maxSkills={30}
-                      showAISuggestions={true}
-                      context="profile"
-                    />
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-3">
-                {employee.skills.map((skill) => {
-                  const endorsementCount = getEndorsementCount(skill);
-                  const userHasEndorsed = hasUserEndorsed(skill);
-                  const isViewingOwnProfile = employeeId === (currentUser?.id || 1);
-                  
-                  return (
-                    <div key={skill} className="flex items-center justify-between bg-gray-50 rounded-lg p-3">
-                      <div className="flex items-center space-x-3">
-                        <Badge
-                          className={`text-sm ${getSkillColor(skill)}`}
-                          variant="secondary"
-                        >
-                          {skill}
-                        </Badge>
-                        <div className="flex items-center text-sm text-gray-600">
-                          <Users className="h-4 w-4 mr-1" />
-                          <span>{endorsementCount} endorsement{endorsementCount !== 1 ? 's' : ''}</span>
-                        </div>
-                      </div>
-                      {!isViewingOwnProfile && (
-                        <Button
-                          size="sm"
-                          variant={userHasEndorsed ? "default" : "outline"}
-                          onClick={() => handleEndorseSkill(skill)}
-                          disabled={endorseMutation.isPending || removeEndorsementMutation.isPending}
-                          className="flex items-center space-x-1"
-                        >
-                          <ThumbsUp className="h-3 w-3" />
-                          <span>{userHasEndorsed ? "Endorsed" : "Endorse"}</span>
-                        </Button>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+              <SkillsWithLevels
+                employeeId={employeeId}
+                isOwnProfile={isOwnProfile}
+                isEditing={isEditingSkills}
+                onEditToggle={() => setIsEditingSkills(!isEditingSkills)}
+              />
             </div>
 
             <div>
