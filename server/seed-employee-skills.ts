@@ -119,34 +119,105 @@ export async function seedEmployeeSkills() {
 
   let totalSkillsAdded = 0;
 
+  // Financial services skill pools by category
+  const financialSkillPools = {
+    core: ["Risk Assessment", "Financial Analysis", "Compliance", "Regulatory Reporting", "Financial Modeling", "Excel Advanced", "Data Analysis", "Client Relations"],
+    investment: ["Investment Management", "Portfolio Management", "Asset Management", "Wealth Management", "Market Research", "Quantitative Analysis", "Risk Modeling", "Due Diligence"],
+    banking: ["Credit Analysis", "Corporate Finance", "Private Banking", "Digital Banking", "Mobile Banking", "Payment Processing", "AML Compliance", "KYC Procedures"],
+    insurance: ["Insurance Underwriting", "Claims Processing", "Actuarial Analysis", "Life Insurance", "Property & Casualty", "Health Insurance", "Reinsurance", "Policy Administration", "Claims Investigation"],
+    technology: ["FinTech Solutions", "Trading Systems", "Blockchain", "SQL", "Python", "R Programming", "SAS", "Tableau", "Power BI", "Algorithmic Trading", "Robo-Advisory"],
+    regulatory: ["Sarbanes-Oxley", "Basel III", "GDPR Compliance", "Financial Auditing", "Internal Controls"],
+    leadership: ["Project Management", "Team Leadership", "Strategic Planning", "Change Management", "Business Analysis", "Sales Management", "Business Development", "Performance Management"]
+  };
+
+  function getSkillsForEmployee(employee: any): string[] {
+    const skills = new Set<string>();
+    
+    // Add core financial skills for everyone (3-6 skills)
+    const coreSkillCount = Math.floor(Math.random() * 4) + 3;
+    const shuffledCore = [...financialSkillPools.core].sort(() => 0.5 - Math.random());
+    shuffledCore.slice(0, coreSkillCount).forEach(skill => skills.add(skill));
+    
+    const title = employee.title?.toLowerCase() || '';
+    
+    // Add role-specific skills based on title
+    if (title.includes('insurance') || title.includes('underwriting') || title.includes('claims')) {
+      const insuranceCount = Math.floor(Math.random() * 4) + 2;
+      const shuffledInsurance = [...financialSkillPools.insurance].sort(() => 0.5 - Math.random());
+      shuffledInsurance.slice(0, insuranceCount).forEach(skill => skills.add(skill));
+    }
+    
+    if (title.includes('investment') || title.includes('portfolio') || title.includes('wealth')) {
+      const investmentCount = Math.floor(Math.random() * 4) + 2;
+      const shuffledInvestment = [...financialSkillPools.investment].sort(() => 0.5 - Math.random());
+      shuffledInvestment.slice(0, investmentCount).forEach(skill => skills.add(skill));
+    }
+    
+    if (title.includes('credit') || title.includes('lending') || title.includes('bank')) {
+      const bankingCount = Math.floor(Math.random() * 3) + 2;
+      const shuffledBanking = [...financialSkillPools.banking].sort(() => 0.5 - Math.random());
+      shuffledBanking.slice(0, bankingCount).forEach(skill => skills.add(skill));
+    }
+    
+    if (title.includes('technology') || title.includes('analyst') || title.includes('data')) {
+      const techCount = Math.floor(Math.random() * 3) + 2;
+      const shuffledTech = [...financialSkillPools.technology].sort(() => 0.5 - Math.random());
+      shuffledTech.slice(0, techCount).forEach(skill => skills.add(skill));
+    }
+    
+    if (title.includes('compliance') || title.includes('risk') || title.includes('audit')) {
+      const regCount = Math.floor(Math.random() * 3) + 2;
+      const shuffledReg = [...financialSkillPools.regulatory].sort(() => 0.5 - Math.random());
+      shuffledReg.slice(0, regCount).forEach(skill => skills.add(skill));
+    }
+    
+    if (title.includes('manager') || title.includes('director') || title.includes('lead')) {
+      const leadershipCount = Math.floor(Math.random() * 3) + 2;
+      const shuffledLeadership = [...financialSkillPools.leadership].sort(() => 0.5 - Math.random());
+      shuffledLeadership.slice(0, leadershipCount).forEach(skill => skills.add(skill));
+    }
+    
+    // Ensure minimum skill count by adding random financial skills
+    const allSkills = Object.values(financialSkillPools).flat();
+    while (skills.size < 5) {
+      const randomSkill = allSkills[Math.floor(Math.random() * allSkills.length)];
+      skills.add(randomSkill);
+    }
+    
+    // Cap at reasonable maximum
+    const skillArray = Array.from(skills);
+    return skillArray.slice(0, Math.min(15, skillArray.length));
+  }
+
   for (const employee of allEmployees) {
-    if (employee.skills && employee.skills.length > 0) {
-      for (const skillName of employee.skills) {
-        // Check if skill already exists for this employee
-        const existingSkills = await db
-          .select()
-          .from(employeeSkills)
-          .where(eq(employeeSkills.employeeId, employee.id));
+    // Get role-appropriate financial services skills
+    const skillsToAdd = getSkillsForEmployee(employee);
+    
+    for (const skillName of skillsToAdd) {
+      // Check if skill already exists for this employee
+      const existingSkills = await db
+        .select()
+        .from(employeeSkills)
+        .where(eq(employeeSkills.employeeId, employee.id));
+      
+      const existingSkill = existingSkills.find(s => s.skillName === skillName);
         
-        const existingSkill = existingSkills.find(s => s.skillName === skillName.trim());
-          
-        if (!existingSkill) {
-          const { level, years } = getExperienceLevel(skillName.trim(), employee.yearsExperience);
-          const isEndorsed = Math.random() > 0.7; // 30% chance of being endorsed
-          const endorsementCount = isEndorsed ? Math.floor(Math.random() * 5) + 1 : 0;
-          
-          await db.insert(employeeSkills).values({
-            employeeId: employee.id,
-            skillName: skillName.trim(),
-            experienceLevel: level,
-            yearsOfExperience: years,
-            lastUsed: getLastUsedDate(),
-            isEndorsed,
-            endorsementCount,
-          });
-          
-          totalSkillsAdded++;
-        }
+      if (!existingSkill) {
+        const { level, years } = getExperienceLevel(skillName, employee.yearsExperience);
+        const isEndorsed = Math.random() > 0.6; // 40% chance of being endorsed
+        const endorsementCount = isEndorsed ? Math.floor(Math.random() * 5) + 1 : 0;
+        
+        await db.insert(employeeSkills).values({
+          employeeId: employee.id,
+          skillName: skillName,
+          experienceLevel: level,
+          yearsOfExperience: years,
+          lastUsed: getLastUsedDate(),
+          isEndorsed,
+          endorsementCount,
+        });
+        
+        totalSkillsAdded++;
       }
     }
   }

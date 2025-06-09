@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { employees, employeeSkills } from "@shared/schema";
+import { employees, employeeSkills } from "../shared/schema";
 import { eq } from "drizzle-orm";
 
 // Financial Services & Insurance focused skill seeding
