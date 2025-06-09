@@ -84,9 +84,7 @@ export default function SearchFilters({ onSearch, isLoading }: SearchFiltersProp
             disabled={isLoading}
             variant="outline"
             className="border-primary text-primary hover:bg-primary hover:text-white"
-          >
-            View All Employees
-          </Button>
+          >View All Experts</Button>
         </div>
       </div>
     </div>
