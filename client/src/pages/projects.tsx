@@ -80,45 +80,55 @@ export default function Projects() {
 
   // Filter and sort projects
   const filteredAndSortedProjects = useMemo(() => {
-    let filtered = projects.filter(project => {
-      // Search filter
-      const matchesSearch = searchQuery === "" || 
-        project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        project.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        project.requiredSkills.some(skill => skill.toLowerCase().includes(searchQuery.toLowerCase()));
+    let filtered = projects;
 
-      // Status filter
-      const matchesStatus = statusFilter === "all" || project.status === statusFilter;
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(project => 
+        project.title.toLowerCase().includes(query) ||
+        project.description.toLowerCase().includes(query) ||
+        (project.requiredSkills && project.requiredSkills.some(skill => 
+          skill.toLowerCase().includes(query)
+        ))
+      );
+    }
 
-      // Priority filter
-      const matchesPriority = priorityFilter === "all" || project.priority === priorityFilter;
+    // Apply status filter
+    if (statusFilter !== "all") {
+      filtered = filtered.filter(project => project.status === statusFilter);
+    }
 
-      return matchesSearch && matchesStatus && matchesPriority;
-    });
+    // Apply priority filter
+    if (priorityFilter !== "all") {
+      filtered = filtered.filter(project => project.priority === priorityFilter);
+    }
 
-    // Sort projects
-    filtered.sort((a, b) => {
+    // Apply sorting
+    const sorted = [...filtered].sort((a, b) => {
       switch (sortBy) {
         case "newest":
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+          return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
         case "oldest":
-          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+          return new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
         case "title":
           return a.title.localeCompare(b.title);
-        case "priority":
+        case "priority": {
           const priorityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
           return priorityOrder[b.priority] - priorityOrder[a.priority];
-        case "deadline":
+        }
+        case "deadline": {
           if (!a.deadline && !b.deadline) return 0;
           if (!a.deadline) return 1;
           if (!b.deadline) return -1;
           return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
+        }
         default:
           return 0;
       }
     });
 
-    return filtered;
+    return sorted;
   }, [projects, searchQuery, statusFilter, priorityFilter, sortBy]);
 
   // Handle URL parameters for direct project access
@@ -182,41 +192,33 @@ export default function Projects() {
 
   const createProjectMutation = useMutation({
     mutationFn: async (data: InsertProject) => {
-      const response = await fetch("/api/projects", {
+      const response = await apiRequest("/api/projects", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify(data),
       });
-      if (!response.ok) throw new Error("Failed to create project");
-      return response.json();
+      return response;
     },
-    onSuccess: (newProject) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
       setIsCreateDialogOpen(false);
       form.reset();
-      setSelectedProject(newProject);
+      setSelectedProject(null);
     },
   });
 
   const updateProjectMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: number; data: any }) => {
-      const response = await fetch(`/api/projects/${id}`, {
+    mutationFn: async ({ id, data }: { id: number; data: Partial<InsertProject> }) => {
+      const response = await apiRequest(`/api/projects/${id}`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify(data),
       });
-      if (!response.ok) throw new Error("Failed to update project");
-      return response.json();
+      return response;
     },
-    onSuccess: (updatedProject) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
       setIsEditDialogOpen(false);
       editForm.reset();
-      setSelectedProject(updatedProject);
+      setSelectedProject(null);
       setEditingProject(null);
     },
   });
@@ -225,27 +227,24 @@ export default function Projects() {
     const projectData: InsertProject = {
       title: data.title,
       description: data.description,
-      ownerId: currentUser?.id || 40,
       status: data.status || "planning",
       priority: data.priority || "medium",
-      deadline: data.deadline ? new Date(data.deadline) : null,
+      deadline: data.deadline ? data.deadline : null,
       requiredSkills: data.requiredSkills || [],
       estimatedDuration: data.estimatedDuration || null,
       budget: data.budget || null,
+      ownerId: currentUser?.id || "",
+      teamMembers: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
     };
-    
-    const submitData = {
-      ...projectData,
-      deadline: projectData.deadline ? projectData.deadline.toISOString() : null,
-    };
-    
-    createProjectMutation.mutate(submitData as InsertProject);
+    createProjectMutation.mutate(projectData);
   };
 
   const onEditSubmit = (data: CreateProjectForm) => {
     if (!editingProject) return;
     
-    const updateData = {
+    const updateData: Partial<InsertProject> = {
       title: data.title,
       description: data.description,
       status: data.status || "planning",
@@ -352,23 +351,31 @@ export default function Projects() {
                       {selectedProject.status}
                     </Badge>
                     <Badge className={priorityColors[selectedProject.priority]}>
-                      {selectedProject.priority} priority
+                      {selectedProject.priority}
                     </Badge>
                   </div>
                 </div>
+                {isProjectOwner(selectedProject) && (
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openEditDialog(selectedProject)}
+                    >
+                      Edit Project
+                    </Button>
+                  </div>
+                )}
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Project Description */}
               <div>
-                <h3 className="text-lg font-semibold mb-3">Project Description</h3>
-                <p className="text-gray-700 leading-relaxed">
-                  {selectedProject.description}
-                </p>
+                <h3 className="text-lg font-semibold mb-3">Description</h3>
+                <p className="text-gray-700 leading-relaxed">{selectedProject.description}</p>
               </div>
 
               {/* Project Details Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="flex items-center p-4 bg-gray-50 rounded-lg">
                   <Calendar className="h-5 w-5 text-gray-500 mr-3" />
                   <div>
@@ -376,27 +383,23 @@ export default function Projects() {
                     <p className="text-sm font-semibold">{formatDate(selectedProject.deadline)}</p>
                   </div>
                 </div>
-                
-                {selectedProject.estimatedDuration && (
-                  <div className="flex items-center p-4 bg-gray-50 rounded-lg">
-                    <Clock className="h-5 w-5 text-gray-500 mr-3" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">Duration</p>
-                      <p className="text-sm font-semibold">{selectedProject.estimatedDuration}</p>
-                    </div>
+
+                <div className="flex items-center p-4 bg-gray-50 rounded-lg">
+                  <Clock className="h-5 w-5 text-gray-500 mr-3" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Duration</p>
+                    <p className="text-sm font-semibold">{selectedProject.estimatedDuration || "Not specified"}</p>
                   </div>
-                )}
-                
-                {selectedProject.budget && (
-                  <div className="flex items-center p-4 bg-gray-50 rounded-lg">
-                    <DollarSign className="h-5 w-5 text-gray-500 mr-3" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">Budget</p>
-                      <p className="text-sm font-semibold">{selectedProject.budget}</p>
-                    </div>
+                </div>
+
+                <div className="flex items-center p-4 bg-gray-50 rounded-lg">
+                  <DollarSign className="h-5 w-5 text-gray-500 mr-3" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Budget</p>
+                    <p className="text-sm font-semibold">{selectedProject.budget || "Not specified"}</p>
                   </div>
-                )}
-                
+                </div>
+
                 <div className="flex items-center p-4 bg-gray-50 rounded-lg">
                   <User className="h-5 w-5 text-gray-500 mr-3" />
                   <div>
@@ -449,11 +452,8 @@ export default function Projects() {
 
           {/* AI Employee Recommendations */}
           <EmployeeRecommendations 
-            project={selectedProject}
-            onEmployeeSelect={(employee) => {
-              // Handle employee selection - could open contact dialog
-              console.log("Selected employee:", employee);
-            }}
+            projectId={selectedProject.id} 
+            requiredSkills={selectedProject.requiredSkills || []}
           />
         </div>
       </div>
@@ -519,31 +519,7 @@ export default function Projects() {
                     )}
                   />
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="priority"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Priority</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select priority" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="low">Low</SelectItem>
-                              <SelectItem value="medium">Medium</SelectItem>
-                              <SelectItem value="high">High</SelectItem>
-                              <SelectItem value="critical">Critical</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
                       name="status"
@@ -567,9 +543,33 @@ export default function Projects() {
                         </FormItem>
                       )}
                     />
+
+                    <FormField
+                      control={form.control}
+                      name="priority"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Priority</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select priority" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="low">Low</SelectItem>
+                              <SelectItem value="medium">Medium</SelectItem>
+                              <SelectItem value="high">High</SelectItem>
+                              <SelectItem value="critical">Critical</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
                       name="deadline"
@@ -777,39 +777,11 @@ export default function Projects() {
                         <Calendar className="h-4 w-4 mr-1" />
                         {formatDate(project.deadline)}
                       </div>
-                      {project.estimatedDuration && (
+                      {project.budget && (
                         <div className="flex items-center">
-                          <Clock className="h-4 w-4 mr-1" />
-                          {project.estimatedDuration}
+                          <DollarSign className="h-4 w-4 mr-1" />
+                          {project.budget}
                         </div>
-                      )}
-                    </div>
-
-                    {project.budget && (
-                      <div className="flex items-center text-sm text-gray-500">
-                        <DollarSign className="h-4 w-4 mr-1" />
-                        {project.budget}
-                      </div>
-                    )}
-
-                    <div className="flex gap-2">
-                      <Button 
-                        variant="outline" 
-                        className="flex-1"
-                        onClick={() => setSelectedProject(project)}
-                      >
-                        <Users className="h-4 w-4 mr-2" />
-                        View Details
-                      </Button>
-                      {isProjectOwner(project) && (
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => openEditDialog(project)}
-                          className="px-3"
-                        >
-                          Edit
-                        </Button>
                       )}
                     </div>
                   </CardContent>
@@ -821,17 +793,24 @@ export default function Projects() {
           <div className="text-center py-16">
             <div className="max-w-md mx-auto">
               <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-medium text-gray-900 mb-2">No projects yet</h3>
+              <h3 className="text-xl font-medium text-gray-900 mb-2">
+                {projects.length === 0 ? "No projects yet" : "No projects match your filters"}
+              </h3>
               <p className="text-gray-500 mb-6">
-                Be the first to post a project and start collaborating with your colleagues.
+                {projects.length === 0 
+                  ? "Be the first to post a project and start collaborating with your colleagues."
+                  : "Try adjusting your search terms or filters to find more projects."
+                }
               </p>
-              <Button
-                onClick={() => setIsCreateDialogOpen(true)}
-                className="bg-accent hover:bg-accent/90"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Post Your First Project
-              </Button>
+              {projects.length === 0 && (
+                <Button
+                  onClick={() => setIsCreateDialogOpen(true)}
+                  className="bg-accent hover:bg-accent/90"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Post Your First Project
+                </Button>
+              )}
             </div>
           </div>
         )}
@@ -870,9 +849,9 @@ export default function Projects() {
                         <FormLabel>Description</FormLabel>
                         <FormControl>
                           <Textarea 
-                            placeholder="Describe the project goals, requirements, and expectations"
+                            placeholder="Describe your project and what you're looking to achieve"
                             className="min-h-[100px]"
-                            {...field} 
+                            {...field}
                           />
                         </FormControl>
                         <FormMessage />
@@ -886,7 +865,7 @@ export default function Projects() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Status</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Select status" />
@@ -910,7 +889,7 @@ export default function Projects() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Priority</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Select priority" />
@@ -949,27 +928,27 @@ export default function Projects() {
                       <FormItem>
                         <FormLabel>Estimated Duration (Optional)</FormLabel>
                         <FormControl>
-                          <Input placeholder="e.g., 3 months, 6 weeks" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={editForm.control}
-                    name="budget"
-                    render={({ field }) => (
-                      <FormItem className="md:col-span-2">
-                        <FormLabel>Budget (Optional)</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g., $50,000, 100 hours" {...field} />
+                          <Input placeholder="e.g., 2 weeks" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 </div>
+
+                <FormField
+                  control={editForm.control}
+                  name="budget"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Budget (Optional)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., $5,000" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 <FormField
                   control={editForm.control}
@@ -981,7 +960,7 @@ export default function Projects() {
                         <SkillTaggingSystem
                           selectedSkills={field.value}
                           onSkillsChange={field.onChange}
-                          placeholder="Update project skills with AI suggestions..."
+                          placeholder="Add project skills with AI suggestions..."
                           maxSkills={15}
                           showAISuggestions={true}
                           context="project"
@@ -992,20 +971,20 @@ export default function Projects() {
                   )}
                 />
 
-                <div className="flex justify-end space-x-3">
-                  <Button 
-                    type="button" 
-                    variant="outline" 
+                <div className="flex justify-end gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
                     onClick={() => setIsEditDialogOpen(false)}
                   >
                     Cancel
                   </Button>
-                  <Button 
-                    type="submit" 
+                  <Button
+                    type="submit"
                     disabled={updateProjectMutation.isPending}
                     className="bg-accent hover:bg-accent/90"
                   >
-                    {updateProjectMutation.isPending ? "Updating..." : "Update Project"}
+                    {updateProjectMutation.isPending ? "Saving..." : "Save Changes"}
                   </Button>
                 </div>
               </form>
