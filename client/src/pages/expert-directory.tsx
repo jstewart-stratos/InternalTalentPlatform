@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Mail, MessageCircle, Phone, Users, Award, Clock, MapPin } from "lucide-react";
+import { Search, Mail, MessageCircle, Phone, Users, Award, Clock, MapPin, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 import ProfileAvatar from "@/components/profile-avatar";
 import type { Employee } from "@shared/schema";
 
@@ -21,6 +22,7 @@ export default function ExpertDirectory() {
   const [selectedSkill, setSelectedSkill] = useState<string>("");
   const [experienceFilter, setExperienceFilter] = useState<string>("");
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
 
   const { data: experts = [], isLoading } = useQuery({
     queryKey: ["/api/experts", searchTerm, selectedSkill, experienceFilter],
@@ -268,18 +270,18 @@ export default function ExpertDirectory() {
                     <Button 
                       size="sm" 
                       className="flex-1"
-                      onClick={() => handleContact(expert)}
+                      onClick={() => setLocation(`/profile/${expert.id}`)}
                     >
-                      {getContactIcon(expert.preferredContactMethod || "email")}
-                      <span className="ml-2">Contact</span>
+                      <User className="h-4 w-4 mr-2" />
+                      <span>View Profile</span>
                     </Button>
                     {expert.maxMentees !== undefined && expert.maxMentees !== null && expert.maxMentees > 0 && (
                       <Button 
                         size="sm" 
                         variant="outline"
-                        onClick={() => handleMentorshipRequest(expert)}
+                        onClick={() => handleContact(expert)}
                       >
-                        Request Mentorship
+                        Contact Expert
                       </Button>
                     )}
                   </div>
