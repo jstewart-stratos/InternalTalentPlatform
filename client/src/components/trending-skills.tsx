@@ -24,7 +24,7 @@ export default function TrendingSkills() {
     // Navigate to expert directory filtered by this skill
     const params = new URLSearchParams();
     params.set('skill', skill);
-    window.location.href = `/expert-directory?${params.toString()}`;
+    window.location.href = `/experts?${params.toString()}`;
   };
 
   if (isLoading) {
