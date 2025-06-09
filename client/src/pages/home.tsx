@@ -15,7 +15,6 @@ import type { Employee, SkillEndorsement } from "@shared/schema";
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedDepartment, setSelectedDepartment] = useState("All Departments");
   const [selectedExperience, setSelectedExperience] = useState("Any Level");
   const [sortBy, setSortBy] = useState("relevance");
   const [activeTab, setActiveTab] = useState("discover");
@@ -34,7 +33,7 @@ export default function Home() {
   }, []);
 
   const { data: allEmployees = [], isLoading: isLoadingEmployees } = useQuery({
-    queryKey: ["/api/employees", searchQuery, selectedDepartment, selectedExperience],
+    queryKey: ["/api/employees", searchQuery, selectedExperience],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (searchQuery) {
@@ -52,7 +51,7 @@ export default function Home() {
           }
         }
       }
-      if (selectedDepartment !== "All Departments") params.append("department", selectedDepartment);
+
       if (selectedExperience !== "Any Level") params.append("experienceLevel", selectedExperience);
       
       const response = await fetch(`/api/employees?${params}`);
@@ -63,7 +62,7 @@ export default function Home() {
 
   // Function to randomize and limit employees to 9
   const getDisplayEmployees = (employees: Employee[]): Employee[] => {
-    if (searchQuery || selectedDepartment !== "All Departments" || selectedExperience !== "Any Level") {
+    if (searchQuery || selectedExperience !== "Any Level") {
       // Show all results when filtering/searching
       return employees;
     }
