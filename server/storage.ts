@@ -23,6 +23,13 @@ export interface IStorage {
   getSkillEndorsementsBySkill(employeeId: number, skill: string): Promise<SkillEndorsement[]>;
   removeSkillEndorsement(employeeId: number, endorserId: number, skill: string): Promise<boolean>;
 
+  // Individual employee skills methods
+  createEmployeeSkill(skill: InsertEmployeeSkill): Promise<EmployeeSkill>;
+  getEmployeeSkills(employeeId: number): Promise<EmployeeSkill[]>;
+  updateEmployeeSkill(id: number, skill: Partial<InsertEmployeeSkill>): Promise<EmployeeSkill | undefined>;
+  deleteEmployeeSkill(id: number): Promise<boolean>;
+  getEmployeeSkillByName(employeeId: number, skillName: string): Promise<EmployeeSkill | undefined>;
+
   // Skill search tracking methods
   trackSkillSearch(skill: string): Promise<void>;
   getTrendingSkills(): Promise<Array<{ skill: string; searchCount: number; employeeCount: number; trending: boolean }>>;
@@ -168,9 +175,7 @@ export class DatabaseStorage implements IStorage {
       );
     }
 
-    if (department && department !== "All Departments") {
-      conditions.push(eq(employees.department, department));
-    }
+
 
     if (experienceLevel && experienceLevel !== "Any Level") {
       switch (experienceLevel) {
@@ -309,6 +314,50 @@ export class DatabaseStorage implements IStorage {
       .slice(0, 12);
 
     return trendingSkills;
+  }
+
+  // Individual employee skills methods
+  async createEmployeeSkill(insertSkill: InsertEmployeeSkill): Promise<EmployeeSkill> {
+    const [skill] = await db
+      .insert(employeeSkills)
+      .values(insertSkill)
+      .returning();
+    return skill;
+  }
+
+  async getEmployeeSkills(employeeId: number): Promise<EmployeeSkill[]> {
+    return await db
+      .select()
+      .from(employeeSkills)
+      .where(eq(employeeSkills.employeeId, employeeId))
+      .orderBy(employeeSkills.skillName);
+  }
+
+  async updateEmployeeSkill(id: number, updateSkill: Partial<InsertEmployeeSkill>): Promise<EmployeeSkill | undefined> {
+    const [skill] = await db
+      .update(employeeSkills)
+      .set({ ...updateSkill, updatedAt: new Date() })
+      .where(eq(employeeSkills.id, id))
+      .returning();
+    return skill || undefined;
+  }
+
+  async deleteEmployeeSkill(id: number): Promise<boolean> {
+    const result = await db
+      .delete(employeeSkills)
+      .where(eq(employeeSkills.id, id));
+    return result.rowCount > 0;
+  }
+
+  async getEmployeeSkillByName(employeeId: number, skillName: string): Promise<EmployeeSkill | undefined> {
+    const [skill] = await db
+      .select()
+      .from(employeeSkills)
+      .where(and(
+        eq(employeeSkills.employeeId, employeeId),
+        eq(employeeSkills.skillName, skillName)
+      ));
+    return skill || undefined;
   }
 
   async getAllSkills(): Promise<string[]> {
