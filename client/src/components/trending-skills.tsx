@@ -21,10 +21,10 @@ export default function TrendingSkills() {
   });
 
   const handleSkillClick = (skill: string) => {
-    // Navigate to search results for this skill
+    // Navigate to expert directory filtered by this skill
     const params = new URLSearchParams();
-    params.set('q', skill);
-    window.location.href = `/?${params.toString()}`;
+    params.set('skill', skill);
+    window.location.href = `/expert-directory?${params.toString()}`;
   };
 
   if (isLoading) {

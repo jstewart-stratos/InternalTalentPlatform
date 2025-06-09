@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,18 @@ export default function ExpertDirectory() {
   const [experienceFilter, setExperienceFilter] = useState<string>("");
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+
+  // Handle URL parameters on initial load
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const skillParam = urlParams.get('skill');
+    const searchParam = urlParams.get('search');
+    const experienceParam = urlParams.get('experience');
+    
+    if (skillParam) setSelectedSkill(skillParam);
+    if (searchParam) setSearchTerm(searchParam);
+    if (experienceParam) setExperienceFilter(experienceParam);
+  }, []);
 
   const { data: experts = [], isLoading } = useQuery({
     queryKey: ["/api/experts", searchTerm, selectedSkill, experienceFilter],
