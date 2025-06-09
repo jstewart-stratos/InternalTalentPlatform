@@ -214,6 +214,17 @@ export default function Profile() {
                       {employee.yearsExperience} years experience
                     </span>
                   </div>
+                  
+                  <div className="mt-4 space-y-2">
+                    <div className="flex items-center text-sm text-gray-600">
+                      <Mail className="h-4 w-4 mr-2 text-gray-400" />
+                      <span>{employee.email}</span>
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <MapPin className="h-4 w-4 mr-2 text-gray-400" />
+                      <span>{employee.address || "No address provided"}</span>
+                    </div>
+                  </div>
                 </div>
                 <div className="flex flex-col space-y-2 mt-4 md:mt-0">
                   <ContactDialog employee={employee} />
@@ -243,29 +254,13 @@ export default function Profile() {
 
           <Separator className="mb-8" />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div>
-              <SkillsWithLevels
-                employeeId={employeeId}
-                isOwnProfile={isOwnProfile}
-                isEditing={isEditingSkills}
-                onEditToggle={() => setIsEditingSkills(!isEditingSkills)}
-              />
-            </div>
-
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Contact Information</h2>
-              <div className="space-y-2">
-                <div className="flex items-center">
-                  <Mail className="h-4 w-4 mr-2 text-gray-400" />
-                  <span className="text-gray-600">{employee.email}</span>
-                </div>
-                <div className="flex items-center">
-                  <MapPin className="h-4 w-4 mr-2 text-gray-400" />
-                  <span className="text-gray-600">{employee.address || "No address provided"}</span>
-                </div>
-              </div>
-            </div>
+          <div>
+            <SkillsWithLevels
+              employeeId={employeeId}
+              isOwnProfile={isOwnProfile}
+              isEditing={isEditingSkills}
+              onEditToggle={() => setIsEditingSkills(!isEditingSkills)}
+            />
           </div>
 
 
