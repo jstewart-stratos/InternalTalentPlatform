@@ -240,6 +240,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Employee skills management routes
+  app.get("/api/employees/:id/skills", async (req, res) => {
+    try {
+      const employeeId = parseInt(req.params.id);
+      const skills = await storage.getEmployeeSkills(employeeId);
+      res.json(skills);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch employee skills" });
+    }
+  });
+
+  app.post("/api/employees/:id/skills", async (req, res) => {
+    try {
+      const employeeId = parseInt(req.params.id);
+      const skillData = {
+        employeeId,
+        skillName: req.body.skillName,
+        experienceLevel: req.body.experienceLevel || 'beginner',
+        yearsOfExperience: req.body.yearsOfExperience || 1,
+        lastUsed: new Date(req.body.lastUsed || Date.now()),
+        isEndorsed: req.body.isEndorsed || false,
+        endorsementCount: req.body.endorsementCount || 0
+      };
+      const skill = await storage.createEmployeeSkill(skillData);
+      res.status(201).json(skill);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create employee skill" });
+    }
+  });
+
+  app.put("/api/employees/:id/skills/:skillId", async (req, res) => {
+    try {
+      const skillId = parseInt(req.params.skillId);
+      const updateData: any = {};
+      if (req.body.experienceLevel) updateData.experienceLevel = req.body.experienceLevel;
+      if (req.body.yearsOfExperience) updateData.yearsOfExperience = req.body.yearsOfExperience;
+      if (req.body.lastUsed) updateData.lastUsed = new Date(req.body.lastUsed);
+      if (req.body.isEndorsed !== undefined) updateData.isEndorsed = req.body.isEndorsed;
+      if (req.body.endorsementCount !== undefined) updateData.endorsementCount = req.body.endorsementCount;
+      
+      const skill = await storage.updateEmployeeSkill(skillId, updateData);
+      if (!skill) {
+        return res.status(404).json({ error: "Skill not found" });
+      }
+      res.json(skill);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update employee skill" });
+    }
+  });
+
+  app.delete("/api/employees/:id/skills/:skillId", async (req, res) => {
+    try {
+      const skillId = parseInt(req.params.skillId);
+      const success = await storage.deleteEmployeeSkill(skillId);
+      if (!success) {
+        return res.status(404).json({ error: "Skill not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete employee skill" });
+    }
+  });
+
   // Skill endorsement routes
   app.post("/api/skill-endorsements", async (req, res) => {
     try {

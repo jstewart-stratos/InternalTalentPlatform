@@ -1,291 +1,374 @@
-import { useState, useEffect } from "react";
-import { Badge } from "@/components/ui/badge";
+import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Plus, X, Star, Users, Edit3, Check, X as XIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, X, Edit3, Check, Star } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-
-interface SkillWithLevel {
-  id?: number;
-  skillName: string;
-  experienceLevel: "beginner" | "intermediate" | "advanced" | "expert";
-  yearsOfExperience: number;
-  lastUsed?: string;
-  isEndorsed?: boolean;
-  endorsementCount?: number;
-}
+import { apiRequest } from "@/lib/queryClient";
+import type { EmployeeSkill, InsertEmployeeSkill } from "@shared/schema";
 
 interface SkillsWithLevelsProps {
   employeeId: number;
-  skills: SkillWithLevel[];
-  onSkillsChange?: (skills: SkillWithLevel[]) => void;
-  readonly?: boolean;
+  isOwnProfile: boolean;
+  isEditing: boolean;
+  onEditToggle: () => void;
 }
 
-const experienceLevels = [
-  { value: "beginner", label: "Beginner", color: "bg-gray-100 text-gray-800", stars: 1 },
-  { value: "intermediate", label: "Intermediate", color: "bg-blue-100 text-blue-800", stars: 2 },
-  { value: "advanced", label: "Advanced", color: "bg-green-100 text-green-800", stars: 3 },
-  { value: "expert", label: "Expert", color: "bg-purple-100 text-purple-800", stars: 4 },
-];
-
-export default function SkillsWithLevels({ employeeId, skills, onSkillsChange, readonly = false }: SkillsWithLevelsProps) {
-  const [localSkills, setLocalSkills] = useState<SkillWithLevel[]>(skills);
-  const [isAddingSkill, setIsAddingSkill] = useState(false);
-  const [editingSkillId, setEditingSkillId] = useState<number | null>(null);
-  const [newSkill, setNewSkill] = useState<Partial<SkillWithLevel>>({
-    skillName: "",
-    experienceLevel: "beginner",
-    yearsOfExperience: 1,
-  });
+export default function SkillsWithLevels({ 
+  employeeId, 
+  isOwnProfile, 
+  isEditing, 
+  onEditToggle 
+}: SkillsWithLevelsProps) {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [newSkill, setNewSkill] = useState({
+    name: "",
+    level: "beginner" as const,
+    years: 1
+  });
+  const [editingSkill, setEditingSkill] = useState<number | null>(null);
 
-  useEffect(() => {
-    setLocalSkills(skills);
-  }, [skills]);
+  const { data: skills = [], isLoading } = useQuery({
+    queryKey: ["/api/employees", employeeId, "skills"],
+    queryFn: async () => {
+      const response = await fetch(`/api/employees/${employeeId}/skills`);
+      if (!response.ok) throw new Error("Failed to fetch skills");
+      return response.json() as Promise<EmployeeSkill[]>;
+    },
+  });
 
-  const getExperienceLevelInfo = (level: string) => {
-    return experienceLevels.find(l => l.value === level) || experienceLevels[0];
-  };
+  const { data: allSkills = [] } = useQuery({
+    queryKey: ["/api/skills/all"],
+    queryFn: async () => {
+      const response = await fetch("/api/skills/all");
+      if (!response.ok) throw new Error("Failed to fetch all skills");
+      return response.json() as Promise<string[]>;
+    },
+  });
 
-  const renderStars = (count: number) => {
-    return Array.from({ length: 4 }, (_, i) => (
-      <Star
-        key={i}
-        className={`h-3 w-3 ${i < count ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
-      />
-    ));
-  };
-
-  const handleAddSkill = async () => {
-    if (!newSkill.skillName?.trim()) {
+  const addSkillMutation = useMutation({
+    mutationFn: async (skill: Omit<InsertEmployeeSkill, "employeeId">) => {
+      return apiRequest(`/api/employees/${employeeId}/skills`, "POST", {
+        ...skill,
+        employeeId
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/employees", employeeId, "skills"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/employees", employeeId] });
+      setNewSkill({ name: "", level: "beginner", years: 1 });
+      toast({
+        title: "Skill added",
+        description: "Your skill has been added successfully.",
+      });
+    },
+    onError: () => {
       toast({
         title: "Error",
-        description: "Please enter a skill name",
+        description: "Failed to add skill. Please try again.",
         variant: "destructive",
       });
-      return;
-    }
+    },
+  });
 
-    // Check for duplicates
-    if (localSkills.some(s => s.skillName.toLowerCase() === newSkill.skillName?.toLowerCase())) {
+  const updateSkillMutation = useMutation({
+    mutationFn: async ({ skillId, updates }: { skillId: number; updates: Partial<InsertEmployeeSkill> }) => {
+      return apiRequest(`/api/employees/${employeeId}/skills/${skillId}`, "PUT", updates);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/employees", employeeId, "skills"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/employees", employeeId] });
+      setEditingSkill(null);
+      toast({
+        title: "Skill updated",
+        description: "Your skill has been updated successfully.",
+      });
+    },
+    onError: () => {
       toast({
         title: "Error",
-        description: "This skill already exists",
+        description: "Failed to update skill. Please try again.",
         variant: "destructive",
       });
-      return;
-    }
+    },
+  });
 
-    const skillToAdd: SkillWithLevel = {
-      skillName: newSkill.skillName.trim(),
-      experienceLevel: newSkill.experienceLevel as any || "beginner",
-      yearsOfExperience: newSkill.yearsOfExperience || 1,
-      lastUsed: new Date().toISOString(),
-      isEndorsed: false,
-      endorsementCount: 0,
+  const deleteSkillMutation = useMutation({
+    mutationFn: async (skillId: number) => {
+      return apiRequest(`/api/employees/${employeeId}/skills/${skillId}`, "DELETE");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/employees", employeeId, "skills"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/employees", employeeId] });
+      toast({
+        title: "Skill removed",
+        description: "Your skill has been removed successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to remove skill. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const getStarRating = (level: string) => {
+    const levels = { beginner: 1, intermediate: 2, advanced: 3, expert: 4 };
+    const stars = levels[level as keyof typeof levels] || 1;
+    return "⭐".repeat(stars);
+  };
+
+  const getLevelColor = (level: string) => {
+    const colors = {
+      beginner: "bg-green-100 text-green-800",
+      intermediate: "bg-blue-100 text-blue-800", 
+      advanced: "bg-purple-100 text-purple-800",
+      expert: "bg-orange-100 text-orange-800"
     };
-
-    try {
-      // In a real implementation, you would call an API here
-      // const response = await fetch(`/api/employee-skills`, {
-      //   method: "POST",
-      //   headers: { "Content-Type": "application/json" },
-      //   body: JSON.stringify({ ...skillToAdd, employeeId }),
-      // });
-      
-      // For now, simulate adding the skill
-      const updatedSkills = [...localSkills, { ...skillToAdd, id: Date.now() }];
-      setLocalSkills(updatedSkills);
-      onSkillsChange?.(updatedSkills);
-      
-      setNewSkill({ skillName: "", experienceLevel: "beginner", yearsOfExperience: 1 });
-      setIsAddingSkill(false);
-      
-      toast({
-        title: "Success",
-        description: "Skill added successfully",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to add skill",
-        variant: "destructive",
-      });
-    }
+    return colors[level as keyof typeof colors] || colors.beginner;
   };
 
-  const handleRemoveSkill = async (skillId: number) => {
-    try {
-      // In a real implementation, you would call an API here
-      // await fetch(`/api/employee-skills/${skillId}`, { method: "DELETE" });
-      
-      const updatedSkills = localSkills.filter(s => s.id !== skillId);
-      setLocalSkills(updatedSkills);
-      onSkillsChange?.(updatedSkills);
-      
-      toast({
-        title: "Success",
-        description: "Skill removed successfully",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to remove skill",
-        variant: "destructive",
-      });
-    }
+  const handleAddSkill = () => {
+    if (!newSkill.name.trim()) return;
+    
+    addSkillMutation.mutate({
+      skillName: newSkill.name,
+      experienceLevel: newSkill.level,
+      yearsOfExperience: newSkill.years,
+      lastUsed: new Date(),
+      isEndorsed: false,
+      endorsementCount: 0
+    });
   };
 
-  const handleUpdateSkill = async (skillId: number, updates: Partial<SkillWithLevel>) => {
-    try {
-      // In a real implementation, you would call an API here
-      // await fetch(`/api/employee-skills/${skillId}`, {
-      //   method: "PATCH",
-      //   headers: { "Content-Type": "application/json" },
-      //   body: JSON.stringify(updates),
-      // });
-      
-      const updatedSkills = localSkills.map(s => 
-        s.id === skillId ? { ...s, ...updates } : s
-      );
-      setLocalSkills(updatedSkills);
-      onSkillsChange?.(updatedSkills);
-      setEditingSkillId(null);
-      
-      toast({
-        title: "Success",
-        description: "Skill updated successfully",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update skill",
-        variant: "destructive",
-      });
-    }
+  const handleUpdateSkill = (skillId: number, updates: Partial<InsertEmployeeSkill>) => {
+    updateSkillMutation.mutate({ skillId, updates });
   };
+
+  if (isLoading) {
+    return <div className="animate-pulse space-y-3">
+      {[1, 2, 3].map(i => (
+        <div key={i} className="h-16 bg-gray-200 rounded-lg"></div>
+      ))}
+    </div>;
+  }
 
   return (
-    <Card className="w-full">
-      <CardHeader className="pb-4">
-        <CardTitle className="text-lg">Skills & Experience Levels</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-3">
-          {localSkills.map((skill) => {
-            const levelInfo = getExperienceLevelInfo(skill.experienceLevel);
-            const isEditing = editingSkillId === skill.id;
-            
-            return (
-              <div key={skill.id} className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex items-center space-x-3 flex-1">
-                  <div className="flex flex-col">
-                    <span className="font-medium">{skill.skillName}</span>
-                    <div className="flex items-center space-x-2 mt-1">
-                      <Badge className={levelInfo.color}>
-                        {levelInfo.label}
-                      </Badge>
-                      <div className="flex items-center space-x-1">
-                        {renderStars(levelInfo.stars)}
-                      </div>
-                      <span className="text-sm text-gray-500">
-                        {skill.yearsOfExperience} years
-                      </span>
-                      {skill.endorsementCount && skill.endorsementCount > 0 && (
-                        <Badge variant="secondary" className="text-xs">
-                          {skill.endorsementCount} endorsements
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                
-                {!readonly && (
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => setEditingSkillId(isEditing ? null : skill.id!)}
-                    >
-                      {isEditing ? <Check className="h-4 w-4" /> : <Edit3 className="h-4 w-4" />}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleRemoveSkill(skill.id!)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-          
-          {isAddingSkill && !readonly && (
-            <div className="p-3 border-2 border-dashed border-gray-300 rounded-lg">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <h3 className="text-lg font-semibold">Skills & Experience</h3>
+          <Badge variant="secondary" className="bg-green-100 text-green-800">
+            {skills.length} skills
+          </Badge>
+        </div>
+        {isOwnProfile && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onEditToggle}
+            className="flex items-center space-x-1"
+          >
+            <Edit3 className="h-3 w-3" />
+            <span>{isEditing ? "Done" : "Manage"}</span>
+          </Button>
+        )}
+      </div>
+
+      {isEditing && isOwnProfile && (
+        <Card className="border-dashed border-2 border-gray-300">
+          <CardContent className="pt-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+              <div>
                 <Input
-                  placeholder="Skill name (e.g., JavaScript)"
-                  value={newSkill.skillName || ""}
-                  onChange={(e) => setNewSkill({ ...newSkill, skillName: e.target.value })}
+                  placeholder="Skill name"
+                  value={newSkill.name}
+                  onChange={(e) => setNewSkill(prev => ({ ...prev, name: e.target.value }))}
+                  list="available-skills"
                 />
-                <Select
-                  value={newSkill.experienceLevel || "beginner"}
-                  onValueChange={(value) => setNewSkill({ ...newSkill, experienceLevel: value as any })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {experienceLevels.map((level) => (
-                      <SelectItem key={level.value} value={level.value}>
-                        <div className="flex items-center space-x-2">
-                          <span>{level.label}</span>
-                          <div className="flex items-center">
-                            {renderStars(level.stars)}
-                          </div>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Input
-                  type="number"
-                  min="0"
-                  max="50"
-                  placeholder="Years"
-                  value={newSkill.yearsOfExperience || 1}
-                  onChange={(e) => setNewSkill({ ...newSkill, yearsOfExperience: parseInt(e.target.value) || 1 })}
-                />
-                <div className="flex space-x-2">
-                  <Button size="sm" onClick={handleAddSkill}>
-                    Add
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={() => setIsAddingSkill(false)}>
-                    Cancel
-                  </Button>
-                </div>
+                <datalist id="available-skills">
+                  {allSkills.map(skill => (
+                    <option key={skill} value={skill} />
+                  ))}
+                </datalist>
               </div>
+              <Select 
+                value={newSkill.level} 
+                onValueChange={(value: any) => setNewSkill(prev => ({ ...prev, level: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="beginner">Beginner ⭐</SelectItem>
+                  <SelectItem value="intermediate">Intermediate ⭐⭐</SelectItem>
+                  <SelectItem value="advanced">Advanced ⭐⭐⭐</SelectItem>
+                  <SelectItem value="expert">Expert ⭐⭐⭐⭐</SelectItem>
+                </SelectContent>
+              </Select>
+              <Input
+                type="number"
+                placeholder="Years"
+                min="1"
+                max="50"
+                value={newSkill.years}
+                onChange={(e) => setNewSkill(prev => ({ ...prev, years: parseInt(e.target.value) || 1 }))}
+              />
+              <Button 
+                onClick={handleAddSkill}
+                disabled={!newSkill.name.trim() || addSkillMutation.isPending}
+                className="bg-orange-500 hover:bg-orange-600"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Add
+              </Button>
             </div>
-          )}
-          
-          {!isAddingSkill && !readonly && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsAddingSkill(true)}
-              className="w-full border-dashed"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Skill
-            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="space-y-3">
+        {skills.map((skill) => (
+          <SkillItem
+            key={skill.id}
+            skill={skill}
+            isEditing={isEditing && editingSkill === skill.id}
+            isOwnProfile={isOwnProfile}
+            canEdit={isEditing}
+            onEdit={() => setEditingSkill(skill.id)}
+            onCancelEdit={() => setEditingSkill(null)}
+            onUpdate={(updates) => handleUpdateSkill(skill.id, updates)}
+            onDelete={() => deleteSkillMutation.mutate(skill.id)}
+            getStarRating={getStarRating}
+            getLevelColor={getLevelColor}
+          />
+        ))}
+      </div>
+
+      {skills.length === 0 && (
+        <div className="text-center py-8 text-gray-500">
+          <Star className="h-12 w-12 mx-auto mb-4 opacity-50" />
+          <p>No skills listed yet</p>
+          {isOwnProfile && (
+            <p className="text-sm">Click "Manage" to add your skills</p>
           )}
         </div>
-      </CardContent>
-    </Card>
+      )}
+    </div>
+  );
+}
+
+interface SkillItemProps {
+  skill: EmployeeSkill;
+  isEditing: boolean;
+  isOwnProfile: boolean;
+  canEdit: boolean;
+  onEdit: () => void;
+  onCancelEdit: () => void;
+  onUpdate: (updates: Partial<InsertEmployeeSkill>) => void;
+  onDelete: () => void;
+  getStarRating: (level: string) => string;
+  getLevelColor: (level: string) => string;
+}
+
+function SkillItem({
+  skill,
+  isEditing,
+  isOwnProfile,
+  canEdit,
+  onEdit,
+  onCancelEdit,
+  onUpdate,
+  onDelete,
+  getStarRating,
+  getLevelColor
+}: SkillItemProps) {
+  const [editForm, setEditForm] = useState({
+    level: skill.experienceLevel,
+    years: skill.yearsOfExperience
+  });
+
+  const handleSave = () => {
+    onUpdate({
+      experienceLevel: editForm.level,
+      yearsOfExperience: editForm.years
+    });
+  };
+
+  if (isEditing) {
+    return (
+      <div className="flex items-center justify-between bg-blue-50 rounded-lg p-4 border border-blue-200">
+        <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="flex items-center">
+            <Badge className="bg-gray-100 text-gray-800">{skill.skillName}</Badge>
+          </div>
+          <Select 
+            value={editForm.level} 
+            onValueChange={(value: any) => setEditForm(prev => ({ ...prev, level: value }))}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="beginner">Beginner ⭐</SelectItem>
+              <SelectItem value="intermediate">Intermediate ⭐⭐</SelectItem>
+              <SelectItem value="advanced">Advanced ⭐⭐⭐</SelectItem>
+              <SelectItem value="expert">Expert ⭐⭐⭐⭐</SelectItem>
+            </SelectContent>
+          </Select>
+          <Input
+            type="number"
+            min="1"
+            max="50"
+            value={editForm.years || 1}
+            onChange={(e) => setEditForm(prev => ({ ...prev, years: parseInt(e.target.value) || 1 }))}
+          />
+        </div>
+        <div className="flex items-center space-x-2 ml-4">
+          <Button size="sm" onClick={handleSave} className="bg-green-600 hover:bg-green-700">
+            <Check className="h-3 w-3" />
+          </Button>
+          <Button size="sm" variant="outline" onClick={onCancelEdit}>
+            <XIcon className="h-3 w-3" />
+          </Button>
+          <Button size="sm" variant="destructive" onClick={onDelete}>
+            <X className="h-3 w-3" />
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center justify-between bg-gray-50 rounded-lg p-4">
+      <div className="flex items-center space-x-4">
+        <Badge className={getLevelColor(skill.experienceLevel)} variant="secondary">
+          {skill.skillName}
+        </Badge>
+        <div className="flex items-center space-x-2 text-sm text-gray-600">
+          <span className="font-medium">{getStarRating(skill.experienceLevel)}</span>
+          <span>{skill.experienceLevel}</span>
+          <span>•</span>
+          <span>{skill.yearsOfExperience} year{skill.yearsOfExperience !== 1 ? 's' : ''}</span>
+        </div>
+        {(skill.endorsementCount || 0) > 0 && (
+          <div className="flex items-center text-sm text-gray-500">
+            <Users className="h-4 w-4 mr-1" />
+            <span>{skill.endorsementCount || 0} endorsement{(skill.endorsementCount || 0) !== 1 ? 's' : ''}</span>
+          </div>
+        )}
+      </div>
+      {isOwnProfile && canEdit && (
+        <Button size="sm" variant="ghost" onClick={onEdit}>
+          <Edit3 className="h-3 w-3" />
+        </Button>
+      )}
+    </div>
   );
 }

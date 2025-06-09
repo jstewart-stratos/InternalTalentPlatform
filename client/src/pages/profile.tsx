@@ -11,8 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useUser } from "@/contexts/user-context";
 import ContactDialog from "@/components/contact-dialog";
-import LinkedInSkillsImport from "@/components/linkedin-skills-import";
-import SkillTaggingSystem from "@/components/skill-tagging-system";
+import SkillsWithLevels from "@/components/skills-with-levels";
 import type { Employee, SkillEndorsement } from "@shared/schema";
 
 export default function Profile() {
