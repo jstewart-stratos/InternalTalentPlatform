@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, X, Star, Users, Edit3, Check, X as XIcon } from "lucide-react";
+import { Plus, X, Star, Users, Edit3, Check, X as XIcon, Sparkles, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -31,6 +31,8 @@ export default function SkillsWithLevels({
     years: 1
   });
   const [editingSkill, setEditingSkill] = useState<number | null>(null);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedSuggestion, setSelectedSuggestion] = useState(-1);
 
   const { data: skills = [], isLoading } = useQuery({
     queryKey: ["/api/employees", employeeId, "skills"],
@@ -48,6 +50,25 @@ export default function SkillsWithLevels({
       if (!response.ok) throw new Error("Failed to fetch all skills");
       return response.json() as Promise<string[]>;
     },
+  });
+
+  const { data: aiSuggestions = [], refetch: refetchSuggestions } = useQuery({
+    queryKey: ["/api/skills/ai-suggestions", newSkill.name],
+    queryFn: async () => {
+      if (!newSkill.name.trim() || newSkill.name.length < 2) return [];
+      const response = await fetch("/api/skills/ai-suggestions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          currentSkill: newSkill.name,
+          context: "skill_input",
+          existingSkills: skills.map(s => s.skillName)
+        })
+      });
+      if (!response.ok) return [];
+      return response.json() as Promise<string[]>;
+    },
+    enabled: newSkill.name.length >= 2,
   });
 
   const addSkillMutation = useMutation({
@@ -138,7 +159,7 @@ export default function SkillsWithLevels({
     if (!newSkill.name.trim()) return;
     
     addSkillMutation.mutate({
-      skillName: newSkill.name,
+      skillName: newSkill.name.trim(),
       experienceLevel: newSkill.level,
       yearsOfExperience: newSkill.years,
       lastUsed: new Date(),
@@ -149,6 +170,46 @@ export default function SkillsWithLevels({
 
   const handleUpdateSkill = (skillId: number, updates: Partial<InsertEmployeeSkill>) => {
     updateSkillMutation.mutate({ skillId, updates });
+  };
+
+  const handleSkillNameChange = (value: string) => {
+    setNewSkill(prev => ({ ...prev, name: value }));
+    setShowSuggestions(value.length >= 2);
+    setSelectedSuggestion(-1);
+  };
+
+  const handleSelectSuggestion = (suggestion: string) => {
+    setNewSkill(prev => ({ ...prev, name: suggestion }));
+    setShowSuggestions(false);
+    setSelectedSuggestion(-1);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!showSuggestions) return;
+    
+    const filteredExistingSkills = allSkills.filter(s => 
+      s.toLowerCase().includes(newSkill.name.toLowerCase()) && 
+      !skills.some(es => es.skillName === s)
+    );
+    const allSuggestions = [...aiSuggestions, ...filteredExistingSkills];
+    const uniqueSuggestions = allSuggestions.filter((skill, index) => 
+      allSuggestions.indexOf(skill) === index
+    );
+    const suggestions = uniqueSuggestions.slice(0, 8);
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedSuggestion(prev => Math.min(prev + 1, suggestions.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedSuggestion(prev => Math.max(prev - 1, -1));
+    } else if (e.key === 'Enter' && selectedSuggestion >= 0) {
+      e.preventDefault();
+      handleSelectSuggestion(suggestions[selectedSuggestion]);
+    } else if (e.key === 'Escape') {
+      setShowSuggestions(false);
+      setSelectedSuggestion(-1);
+    }
   };
 
   if (isLoading) {
@@ -184,50 +245,105 @@ export default function SkillsWithLevels({
       {isEditing && isOwnProfile && (
         <Card className="border-dashed border-2 border-gray-300">
           <CardContent className="pt-4">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-              <div>
-                <Input
-                  placeholder="Skill name"
-                  value={newSkill.name}
-                  onChange={(e) => setNewSkill(prev => ({ ...prev, name: e.target.value }))}
-                  list="available-skills"
-                />
-                <datalist id="available-skills">
-                  {allSkills.map(skill => (
-                    <option key={skill} value={skill} />
-                  ))}
-                </datalist>
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2 text-sm text-gray-600">
+                <Lightbulb className="h-4 w-4" />
+                <span>Type any skill to get AI-powered suggestions and guidance</span>
               </div>
-              <Select 
-                value={newSkill.level} 
-                onValueChange={(value: any) => setNewSkill(prev => ({ ...prev, level: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="beginner">Beginner ⭐</SelectItem>
-                  <SelectItem value="intermediate">Intermediate ⭐⭐</SelectItem>
-                  <SelectItem value="advanced">Advanced ⭐⭐⭐</SelectItem>
-                  <SelectItem value="expert">Expert ⭐⭐⭐⭐</SelectItem>
-                </SelectContent>
-              </Select>
-              <Input
-                type="number"
-                placeholder="Years"
-                min="1"
-                max="50"
-                value={newSkill.years}
-                onChange={(e) => setNewSkill(prev => ({ ...prev, years: parseInt(e.target.value) || 1 }))}
-              />
-              <Button 
-                onClick={handleAddSkill}
-                disabled={!newSkill.name.trim() || addSkillMutation.isPending}
-                className="bg-orange-500 hover:bg-orange-600"
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                Add
-              </Button>
+              
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <div className="relative">
+                  <Input
+                    placeholder="Enter any skill (e.g., Python, Leadership, Risk Analysis...)"
+                    value={newSkill.name}
+                    onChange={(e) => handleSkillNameChange(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    onFocus={() => newSkill.name.length >= 2 && setShowSuggestions(true)}
+                    onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                    className="pr-8"
+                  />
+                  {newSkill.name.length >= 2 && (
+                    <Sparkles className="absolute right-2 top-2.5 h-4 w-4 text-orange-500 animate-pulse" />
+                  )}
+                  
+                  {showSuggestions && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                      {(() => {
+                        const filteredExistingSkills = allSkills.filter(s => 
+                          s.toLowerCase().includes(newSkill.name.toLowerCase()) && 
+                          !skills.some(es => es.skillName === s)
+                        );
+                        const allSuggestions = [...aiSuggestions, ...filteredExistingSkills];
+                        const uniqueSuggestions = allSuggestions.filter((skill, index) => 
+                          allSuggestions.indexOf(skill) === index
+                        );
+                        const suggestions = uniqueSuggestions.slice(0, 8);
+                        
+                        if (suggestions.length === 0) {
+                          return (
+                            <div className="p-3 text-sm text-gray-500 text-center">
+                              <Sparkles className="h-4 w-4 mx-auto mb-1" />
+                              AI suggestions loading...
+                            </div>
+                          );
+                        }
+                        
+                        return suggestions.map((suggestion, index) => (
+                          <button
+                            key={suggestion}
+                            className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 border-b border-gray-100 last:border-b-0 ${
+                              index === selectedSuggestion ? 'bg-orange-50 border-orange-200' : ''
+                            }`}
+                            onClick={() => handleSelectSuggestion(suggestion)}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span>{suggestion}</span>
+                              {aiSuggestions.includes(suggestion) && (
+                                <Badge variant="secondary" className="bg-orange-100 text-orange-800 text-xs">
+                                  AI
+                                </Badge>
+                              )}
+                            </div>
+                          </button>
+                        ));
+                      })()}
+                    </div>
+                  )}
+                </div>
+                
+                <Select 
+                  value={newSkill.level} 
+                  onValueChange={(value: any) => setNewSkill(prev => ({ ...prev, level: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="beginner">Beginner ⭐</SelectItem>
+                    <SelectItem value="intermediate">Intermediate ⭐⭐</SelectItem>
+                    <SelectItem value="advanced">Advanced ⭐⭐⭐</SelectItem>
+                    <SelectItem value="expert">Expert ⭐⭐⭐⭐</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                <Input
+                  type="number"
+                  placeholder="Years"
+                  min="1"
+                  max="50"
+                  value={newSkill.years}
+                  onChange={(e) => setNewSkill(prev => ({ ...prev, years: parseInt(e.target.value) || 1 }))}
+                />
+                
+                <Button 
+                  onClick={handleAddSkill}
+                  disabled={!newSkill.name.trim() || addSkillMutation.isPending}
+                  className="bg-orange-500 hover:bg-orange-600"
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
