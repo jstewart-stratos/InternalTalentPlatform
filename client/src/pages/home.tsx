@@ -129,9 +129,8 @@ export default function Home() {
 
 
 
-  const handleSearch = (query: string, department: string, experienceLevel: string) => {
+  const handleSearch = (query: string, experienceLevel: string) => {
     setSearchQuery(query);
-    setSelectedDepartment(department);
     setSelectedExperience(experienceLevel);
     
     // Scroll to results section after search
@@ -248,7 +247,6 @@ export default function Home() {
             </div>
             <SearchFilters
               onSearch={handleSearch}
-              departments={departments}
               isLoading={isLoadingEmployees}
             />
           </TabsContent>

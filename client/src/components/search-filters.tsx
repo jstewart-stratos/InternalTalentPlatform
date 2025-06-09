@@ -6,20 +6,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 
 interface SearchFiltersProps {
-  onSearch: (query: string, department: string, experienceLevel: string) => void;
-  departments: string[];
+  onSearch: (query: string, experienceLevel: string) => void;
   isLoading?: boolean;
 }
 
-export default function SearchFilters({ onSearch, departments, isLoading }: SearchFiltersProps) {
+export default function SearchFilters({ onSearch, isLoading }: SearchFiltersProps) {
   const [query, setQuery] = useState("");
-  const [department, setDepartment] = useState("All Departments");
   const [experienceLevel, setExperienceLevel] = useState("Any Level");
 
   const popularSkills = ["JavaScript", "Project Management", "Data Analysis", "UI/UX Design", "Digital Marketing"];
 
   const handleSearch = () => {
-    onSearch(query, department, experienceLevel);
+    onSearch(query, experienceLevel);
   };
 
   const handleSkillClick = (skill: string) => {
@@ -42,19 +40,7 @@ export default function SearchFilters({ onSearch, departments, isLoading }: Sear
             <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-secondary h-4 w-4" />
           </div>
         </div>
-        <div>
-          <Select value={department} onValueChange={setDepartment}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="All Departments">All Departments</SelectItem>
-              {departments.filter(dept => dept && dept.trim()).map((dept) => (
-                <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Experience Level</label>
           <Select value={experienceLevel} onValueChange={setExperienceLevel}>
@@ -93,7 +79,7 @@ export default function SearchFilters({ onSearch, departments, isLoading }: Sear
           {isLoading ? "Searching..." : "Search Talent"}
         </Button>
         <Button
-          onClick={() => onSearch("", "All Departments", "Any Level")}
+          onClick={() => onSearch("", "Any Level")}
           disabled={isLoading}
           variant="outline"
           className="border-primary text-primary hover:bg-primary hover:text-white"
