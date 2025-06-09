@@ -246,6 +246,7 @@ export default function Home() {
             </div>
             <SearchFilters
               onSearch={handleSearch}
+              onTabChange={setActiveTab}
               isLoading={isLoadingEmployees}
             />
           </TabsContent>

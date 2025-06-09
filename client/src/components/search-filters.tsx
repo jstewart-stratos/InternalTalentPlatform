@@ -7,10 +7,11 @@ import { Badge } from "@/components/ui/badge";
 
 interface SearchFiltersProps {
   onSearch: (query: string, experienceLevel: string) => void;
+  onTabChange?: (tab: string) => void;
   isLoading?: boolean;
 }
 
-export default function SearchFilters({ onSearch, isLoading }: SearchFiltersProps) {
+export default function SearchFilters({ onSearch, onTabChange, isLoading }: SearchFiltersProps) {
   const [query, setQuery] = useState("");
   const [experienceLevel, setExperienceLevel] = useState("Any Level");
 
@@ -80,7 +81,7 @@ export default function SearchFilters({ onSearch, isLoading }: SearchFiltersProp
             {isLoading ? "Searching..." : "Search Talent"}
           </Button>
           <Button
-            onClick={() => onSearch("", "Any Level")}
+            onClick={() => onTabChange?.("experts")}
             disabled={isLoading}
             variant="outline"
             className="border-primary text-primary hover:bg-primary hover:text-white"
