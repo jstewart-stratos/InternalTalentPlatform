@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Calendar, Clock, DollarSign, Users, AlertCircle, CheckCircle, Pause, Play, ArrowLeft, Mail, User } from "lucide-react";
+import { Plus, Calendar, Clock, DollarSign, Users, AlertCircle, CheckCircle, Pause, Play, ArrowLeft, Mail, User, Filter, Search } from "lucide-react";
 import { useUser } from "@/contexts/user-context";
 import EmployeeRecommendations from "@/components/employee-recommendations";
 import { Button } from "@/components/ui/button";
@@ -60,6 +60,12 @@ export default function Projects() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   
+  // Filter and sort state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [priorityFilter, setPriorityFilter] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<string>("newest");
+  
   const queryClient = useQueryClient();
   const { currentUser } = useUser();
 
@@ -71,6 +77,49 @@ export default function Projects() {
       return response.json() as Promise<Project[]>;
     },
   });
+
+  // Filter and sort projects
+  const filteredAndSortedProjects = useMemo(() => {
+    let filtered = projects.filter(project => {
+      // Search filter
+      const matchesSearch = searchQuery === "" || 
+        project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        project.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        project.requiredSkills.some(skill => skill.toLowerCase().includes(searchQuery.toLowerCase()));
+
+      // Status filter
+      const matchesStatus = statusFilter === "all" || project.status === statusFilter;
+
+      // Priority filter
+      const matchesPriority = priorityFilter === "all" || project.priority === priorityFilter;
+
+      return matchesSearch && matchesStatus && matchesPriority;
+    });
+
+    // Sort projects
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case "newest":
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        case "oldest":
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        case "title":
+          return a.title.localeCompare(b.title);
+        case "priority":
+          const priorityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
+          return priorityOrder[b.priority] - priorityOrder[a.priority];
+        case "deadline":
+          if (!a.deadline && !b.deadline) return 0;
+          if (!a.deadline) return 1;
+          if (!b.deadline) return -1;
+          return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
+        default:
+          return 0;
+      }
+    });
+
+    return filtered;
+  }, [projects, searchQuery, statusFilter, priorityFilter, sortBy]);
 
   // Handle URL parameters for direct project access
   useEffect(() => {
@@ -607,10 +656,76 @@ export default function Projects() {
           </Dialog>
         </div>
 
+        {/* Search and Filter Controls */}
+        <div className="mb-6 space-y-4">
+          {/* Search Bar */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input
+              placeholder="Search projects by title, description, or skills..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+
+          {/* Filter and Sort Controls */}
+          <div className="flex flex-wrap gap-4 items-center">
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-gray-500" />
+              <span className="text-sm font-medium text-gray-700">Filters:</span>
+            </div>
+
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-32">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="planning">Planning</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="paused">Paused</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+              <SelectTrigger className="w-32">
+                <SelectValue placeholder="Priority" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Priority</SelectItem>
+                <SelectItem value="critical">Critical</SelectItem>
+                <SelectItem value="high">High</SelectItem>
+                <SelectItem value="medium">Medium</SelectItem>
+                <SelectItem value="low">Low</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="w-36">
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="newest">Newest First</SelectItem>
+                <SelectItem value="oldest">Oldest First</SelectItem>
+                <SelectItem value="title">Title A-Z</SelectItem>
+                <SelectItem value="priority">Priority High-Low</SelectItem>
+                <SelectItem value="deadline">Deadline</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Results Count */}
+            <div className="ml-auto text-sm text-gray-500">
+              {filteredAndSortedProjects.length} of {projects.length} projects
+            </div>
+          </div>
+        </div>
+
         {/* Projects Grid */}
-        {projects.length > 0 ? (
+        {filteredAndSortedProjects.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {projects.map((project) => {
+            {filteredAndSortedProjects.map((project) => {
               const StatusIcon = statusIcons[project.status];
               return (
                 <Card 
