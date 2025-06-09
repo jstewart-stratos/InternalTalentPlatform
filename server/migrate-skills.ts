@@ -18,7 +18,7 @@ export async function migrateSkillsToIndividualRecords() {
           .where(eq(employeeSkills.employeeId, employee.id))
           .where(eq(employeeSkills.skillName, skillName));
           
-        if (existing.length === 0) {
+        if (!existingSkill) {
           // Determine experience level based on employee's overall experience
           let experienceLevel = "beginner";
           if (employee.yearsExperience >= 6) {
