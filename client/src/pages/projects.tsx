@@ -192,10 +192,7 @@ export default function Projects() {
 
   const createProjectMutation = useMutation({
     mutationFn: async (data: InsertProject) => {
-      const response = await apiRequest("/api/projects", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
+      const response = await apiRequest("/api/projects", "POST", data);
       return response;
     },
     onSuccess: () => {
@@ -208,10 +205,7 @@ export default function Projects() {
 
   const updateProjectMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: Partial<InsertProject> }) => {
-      const response = await apiRequest(`/api/projects/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify(data),
-      });
+      const response = await apiRequest(`/api/projects/${id}`, "PATCH", data);
       return response;
     },
     onSuccess: () => {
@@ -224,19 +218,20 @@ export default function Projects() {
   });
 
   const onSubmit = (data: CreateProjectForm) => {
+    // Get current employee ID from user context
+    const { currentEmployee } = useUser();
+    
     const projectData: InsertProject = {
       title: data.title,
       description: data.description,
       status: data.status || "planning",
       priority: data.priority || "medium",
-      deadline: data.deadline ? data.deadline : null,
+      deadline: data.deadline ? new Date(data.deadline) : null,
       requiredSkills: data.requiredSkills || [],
       estimatedDuration: data.estimatedDuration || null,
       budget: data.budget || null,
-      ownerId: currentUser?.id || "",
+      ownerId: currentEmployee?.id || 1, // Use employee ID instead of user ID
       teamMembers: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
     };
     createProjectMutation.mutate(projectData);
   };
@@ -249,7 +244,7 @@ export default function Projects() {
       description: data.description,
       status: data.status || "planning",
       priority: data.priority || "medium",
-      deadline: data.deadline ? data.deadline : null,
+      deadline: data.deadline ? new Date(data.deadline) : null,
       requiredSkills: data.requiredSkills || [],
       estimatedDuration: data.estimatedDuration || null,
       budget: data.budget || null,
@@ -452,8 +447,7 @@ export default function Projects() {
 
           {/* AI Employee Recommendations */}
           <EmployeeRecommendations 
-            projectId={selectedProject.id} 
-            requiredSkills={selectedProject.requiredSkills || []}
+            project={selectedProject}
           />
         </div>
       </div>
