@@ -218,8 +218,7 @@ export default function Projects() {
   });
 
   const onSubmit = (data: CreateProjectForm) => {
-    // Get current employee ID from user context
-    const { currentEmployee } = useUser();
+    const { currentUser } = useUser();
     
     const projectData: InsertProject = {
       title: data.title,
@@ -230,8 +229,7 @@ export default function Projects() {
       requiredSkills: data.requiredSkills || [],
       estimatedDuration: data.estimatedDuration || null,
       budget: data.budget || null,
-      ownerId: currentEmployee?.id || 1, // Use employee ID instead of user ID
-      teamMembers: [],
+      ownerId: currentUser?.id || 1, // Use employee ID
     };
     createProjectMutation.mutate(projectData);
   };
