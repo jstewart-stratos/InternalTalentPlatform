@@ -14,6 +14,7 @@ import Analytics from "@/pages/analytics";
 import Admin from "@/pages/admin";
 import Skills from "@/pages/skills";
 import Projects from "@/pages/projects";
+import MyProjects from "@/pages/my-projects";
 import ExpertDirectory from "@/pages/expert-directory";
 import NotFound from "@/pages/not-found";
 
@@ -50,6 +51,7 @@ function Router() {
       <Route path="/admin" component={Admin} />
       <Route path="/skills" component={Skills} />
       <Route path="/projects" component={Projects} />
+      <Route path="/my-projects" component={MyProjects} />
 
       <Route path="/experts" component={ExpertDirectory} />
       <Route component={NotFound} />
