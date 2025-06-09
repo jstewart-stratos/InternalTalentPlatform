@@ -273,7 +273,7 @@ export default function ExpertDirectory() {
                       onClick={() => setLocation(`/profile/${expert.id}`)}
                     >
                       <User className="h-4 w-4 mr-2" />
-                      <span>View Profile</span>
+                      View Profile
                     </Button>
                     {expert.maxMentees !== undefined && expert.maxMentees !== null && expert.maxMentees > 0 && (
                       <Button 
