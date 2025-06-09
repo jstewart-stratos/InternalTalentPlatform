@@ -9,45 +9,85 @@ export async function seedEmployeeSkills() {
   // Get all employees to populate their individual skills
   const allEmployees = await db.select().from(employees);
   
-  // Skill categories with typical progression paths
+  // Financial Services & Insurance skill categories with typical progression paths
   const skillProgression = {
-    // Technical skills - often have clear progression
-    "JavaScript": { beginner: 1, intermediate: 3, advanced: 5, expert: 8 },
-    "Python": { beginner: 1, intermediate: 3, advanced: 5, expert: 7 },
-    "React": { beginner: 1, intermediate: 2, advanced: 4, expert: 6 },
-    "Node.js": { beginner: 1, intermediate: 2, advanced: 4, expert: 6 },
-    "SQL": { beginner: 1, intermediate: 2, advanced: 4, expert: 8 },
-    "Java": { beginner: 1, intermediate: 3, advanced: 5, expert: 10 },
-    "C#": { beginner: 1, intermediate: 3, advanced: 5, expert: 8 },
-    "API Development": { beginner: 1, intermediate: 2, advanced: 4, expert: 6 },
-    "Database Design": { beginner: 1, intermediate: 3, advanced: 5, expert: 8 },
-    "Cloud Computing": { beginner: 1, intermediate: 2, advanced: 4, expert: 6 },
-    "Docker": { beginner: 1, intermediate: 2, advanced: 3, expert: 5 },
-    "Kubernetes": { beginner: 1, intermediate: 2, advanced: 4, expert: 6 },
-    
-    // Financial & domain skills
+    // Core Financial Services Skills
     "Risk Assessment": { beginner: 1, intermediate: 2, advanced: 4, expert: 8 },
     "Financial Analysis": { beginner: 1, intermediate: 3, advanced: 5, expert: 10 },
-    "Compliance": { beginner: 1, intermediate: 2, advanced: 4, expert: 8 },
-    "Regulatory Reporting": { beginner: 1, intermediate: 2, advanced: 4, expert: 7 },
     "Credit Analysis": { beginner: 1, intermediate: 3, advanced: 5, expert: 8 },
     "Investment Management": { beginner: 1, intermediate: 3, advanced: 6, expert: 10 },
+    "Portfolio Management": { beginner: 1, intermediate: 3, advanced: 5, expert: 8 },
+    "Asset Management": { beginner: 1, intermediate: 3, advanced: 5, expert: 8 },
+    "Wealth Management": { beginner: 1, intermediate: 3, advanced: 6, expert: 10 },
+    "Private Banking": { beginner: 1, intermediate: 4, advanced: 7, expert: 12 },
+    "Corporate Finance": { beginner: 1, intermediate: 3, advanced: 6, expert: 10 },
+    "Mergers & Acquisitions": { beginner: 2, intermediate: 4, advanced: 7, expert: 12 },
+    "Financial Planning": { beginner: 1, intermediate: 2, advanced: 4, expert: 7 },
+    "Tax Planning": { beginner: 1, intermediate: 3, advanced: 5, expert: 8 },
+    
+    // Insurance Specific Skills  
     "Insurance Underwriting": { beginner: 1, intermediate: 2, advanced: 4, expert: 8 },
     "Claims Processing": { beginner: 1, intermediate: 2, advanced: 3, expert: 6 },
     "Actuarial Analysis": { beginner: 2, intermediate: 4, advanced: 6, expert: 10 },
-    "Portfolio Management": { beginner: 1, intermediate: 3, advanced: 5, expert: 8 },
+    "Life Insurance": { beginner: 1, intermediate: 2, advanced: 4, expert: 7 },
+    "Property & Casualty": { beginner: 1, intermediate: 2, advanced: 4, expert: 7 },
+    "Health Insurance": { beginner: 1, intermediate: 2, advanced: 4, expert: 6 },
+    "Reinsurance": { beginner: 2, intermediate: 3, advanced: 5, expert: 8 },
+    "Insurance Sales": { beginner: 1, intermediate: 2, advanced: 3, expert: 6 },
+    "Policy Administration": { beginner: 1, intermediate: 2, advanced: 3, expert: 5 },
+    "Claims Investigation": { beginner: 1, intermediate: 2, advanced: 4, expert: 6 },
     
-    // Soft skills - progression based on experience and leadership
+    // Regulatory & Compliance
+    "Compliance": { beginner: 1, intermediate: 2, advanced: 4, expert: 8 },
+    "Regulatory Reporting": { beginner: 1, intermediate: 2, advanced: 4, expert: 7 },
+    "AML Compliance": { beginner: 1, intermediate: 2, advanced: 3, expert: 5 },
+    "KYC Procedures": { beginner: 1, intermediate: 2, advanced: 3, expert: 5 },
+    "Sarbanes-Oxley": { beginner: 1, intermediate: 3, advanced: 5, expert: 8 },
+    "Basel III": { beginner: 2, intermediate: 3, advanced: 5, expert: 8 },
+    "GDPR Compliance": { beginner: 1, intermediate: 2, advanced: 3, expert: 5 },
+    "Financial Auditing": { beginner: 1, intermediate: 3, advanced: 5, expert: 8 },
+    "Internal Controls": { beginner: 1, intermediate: 2, advanced: 4, expert: 6 },
+    
+    // Financial Technology
+    "FinTech Solutions": { beginner: 1, intermediate: 2, advanced: 4, expert: 6 },
+    "Trading Systems": { beginner: 1, intermediate: 3, advanced: 5, expert: 8 },
+    "Payment Processing": { beginner: 1, intermediate: 2, advanced: 3, expert: 5 },
+    "Blockchain": { beginner: 1, intermediate: 2, advanced: 4, expert: 6 },
+    "Digital Banking": { beginner: 1, intermediate: 2, advanced: 3, expert: 5 },
+    "Mobile Banking": { beginner: 1, intermediate: 2, advanced: 3, expert: 5 },
+    "Robo-Advisory": { beginner: 1, intermediate: 2, advanced: 4, expert: 6 },
+    "Algorithmic Trading": { beginner: 2, intermediate: 3, advanced: 5, expert: 8 },
+    
+    // Data & Analytics
+    "Financial Modeling": { beginner: 1, intermediate: 3, advanced: 5, expert: 8 },
+    "Quantitative Analysis": { beginner: 2, intermediate: 3, advanced: 5, expert: 8 },
+    "Risk Modeling": { beginner: 1, intermediate: 3, advanced: 5, expert: 8 },
+    "Excel Advanced": { beginner: 1, intermediate: 2, advanced: 3, expert: 5 },
+    "SQL": { beginner: 1, intermediate: 2, advanced: 4, expert: 6 },
+    "Python": { beginner: 1, intermediate: 3, advanced: 5, expert: 7 },
+    "R Programming": { beginner: 1, intermediate: 3, advanced: 5, expert: 7 },
+    "SAS": { beginner: 1, intermediate: 3, advanced: 5, expert: 8 },
+    "Tableau": { beginner: 1, intermediate: 2, advanced: 3, expert: 5 },
+    "Power BI": { beginner: 1, intermediate: 2, advanced: 3, expert: 5 },
+    
+    // Client & Business Skills
+    "Client Relations": { beginner: 1, intermediate: 2, advanced: 4, expert: 7 },
+    "Relationship Management": { beginner: 1, intermediate: 2, advanced: 4, expert: 7 },
+    "Sales Management": { beginner: 1, intermediate: 3, advanced: 5, expert: 8 },
+    "Business Development": { beginner: 1, intermediate: 3, advanced: 5, expert: 8 },
+    "Product Development": { beginner: 1, intermediate: 3, advanced: 5, expert: 8 },
+    "Market Research": { beginner: 1, intermediate: 2, advanced: 4, expert: 6 },
+    "Due Diligence": { beginner: 1, intermediate: 2, advanced: 4, expert: 6 },
+    "Vendor Management": { beginner: 1, intermediate: 2, advanced: 4, expert: 6 },
+    
+    // Leadership & Management
     "Project Management": { beginner: 1, intermediate: 2, advanced: 4, expert: 7 },
     "Team Leadership": { beginner: 2, intermediate: 3, advanced: 5, expert: 8 },
     "Strategic Planning": { beginner: 2, intermediate: 4, advanced: 6, expert: 10 },
-    "Client Relations": { beginner: 1, intermediate: 2, advanced: 4, expert: 7 },
-    "Business Analysis": { beginner: 1, intermediate: 2, advanced: 4, expert: 6 },
-    "Data Analysis": { beginner: 1, intermediate: 2, advanced: 3, expert: 5 },
-    "Presentation Skills": { beginner: 1, intermediate: 2, advanced: 3, expert: 5 },
-    "Negotiation": { beginner: 1, intermediate: 3, advanced: 5, expert: 8 },
     "Change Management": { beginner: 1, intermediate: 3, advanced: 5, expert: 8 },
-    "Vendor Management": { beginner: 1, intermediate: 2, advanced: 4, expert: 6 },
+    "Business Analysis": { beginner: 1, intermediate: 2, advanced: 4, expert: 6 },
+    "Process Improvement": { beginner: 1, intermediate: 2, advanced: 4, expert: 6 },
+    "Performance Management": { beginner: 1, intermediate: 3, advanced: 5, expert: 8 },
   };
 
   // Function to determine experience level based on years

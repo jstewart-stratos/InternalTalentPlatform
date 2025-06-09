@@ -466,6 +466,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Seed financial services skills for all employees
+  app.post("/api/skills/seed-financial", async (req, res) => {
+    try {
+      const { seedFinancialServicesSkills } = require("./seed-financial-skills");
+      const result = await seedFinancialServicesSkills();
+      res.json({ 
+        message: "Financial services skills seeded successfully",
+        ...result
+      });
+    } catch (error) {
+      console.error("Error seeding financial skills:", error);
+      res.status(500).json({ error: "Failed to seed financial skills" });
+    }
+  });
+
   app.post("/api/skills/ai-suggestions", async (req, res) => {
     try {
       const { currentSkill, existingSkills = [], context, limit = 8 } = req.body;
