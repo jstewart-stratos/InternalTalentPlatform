@@ -23,10 +23,8 @@ export default function Navigation() {
   const isAdmin = (user as any)?.role === "admin";
 
   const navItems = [
-    { path: "/", label: "Discover Talent", active: location === "/" },
-    { path: "/skills", label: "Skills Network", active: location === "/skills" },
+    { path: "/", label: "Talent Directory", active: location === "/" || location === "/skills" || location === "/experts" },
     { path: "/projects", label: "Projects Hub", active: location === "/projects" },
-    { path: "/experts", label: "Expert Directory", active: location === "/experts" },
     ...(isAdmin ? [
       { path: "/analytics", label: "Analytics", active: location === "/analytics" || location === "/skills-gap-analysis" },
       { path: "/admin", label: "Admin", active: location === "/admin" },
