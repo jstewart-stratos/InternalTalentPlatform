@@ -388,8 +388,8 @@ export default function SkillsWithLevels({
         </Card>
       )}
 
-      <div className="space-y-3">
-        {skills.map((skill) => (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {skills.slice(0, 20).map((skill) => (
           <SkillItem
             key={skill.id}
             skill={skill}
@@ -405,6 +405,14 @@ export default function SkillsWithLevels({
           />
         ))}
       </div>
+
+      {skills.length > 20 && (
+        <div className="text-center py-4">
+          <Badge variant="outline" className="text-gray-600">
+            Showing 20 of {skills.length} skills
+          </Badge>
+        </div>
+      )}
 
       {skills.length === 0 && (
         <div className="text-center py-8 text-gray-500">
