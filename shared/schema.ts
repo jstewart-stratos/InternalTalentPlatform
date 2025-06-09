@@ -150,6 +150,20 @@ export const expertiseRequests = pgTable("expertise_requests", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Individual skill experience levels for granular tracking
+export const employeeSkills = pgTable("employee_skills", {
+  id: serial("id").primaryKey(),
+  employeeId: integer("employee_id").notNull().references(() => employees.id),
+  skillName: text("skill_name").notNull(),
+  experienceLevel: text("experience_level").notNull().default("beginner"), // "beginner", "intermediate", "advanced", "expert"
+  yearsOfExperience: integer("years_of_experience").default(0),
+  lastUsed: timestamp("last_used"),
+  isEndorsed: boolean("is_endorsed").default(false),
+  endorsementCount: integer("endorsement_count").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const skillExpertise = pgTable("skill_expertise", {
   id: serial("id").primaryKey(),
   employeeId: integer("employee_id").notNull().references(() => employees.id),
@@ -174,6 +188,12 @@ export const insertEmployeeSchema = createInsertSchema(employees).omit({
 });
 
 export const insertExpertiseRequestSchema = createInsertSchema(expertiseRequests).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertEmployeeSkillSchema = createInsertSchema(employeeSkills).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
@@ -248,5 +268,7 @@ export type InsertDepartment = z.infer<typeof insertDepartmentSchema>;
 export type Department = typeof departments.$inferSelect;
 export type InsertExpertiseRequest = z.infer<typeof insertExpertiseRequestSchema>;
 export type ExpertiseRequest = typeof expertiseRequests.$inferSelect;
+export type InsertEmployeeSkill = z.infer<typeof insertEmployeeSkillSchema>;
+export type EmployeeSkill = typeof employeeSkills.$inferSelect;
 export type InsertSkillExpertise = z.infer<typeof insertSkillExpertiseSchema>;
 export type SkillExpertise = typeof skillExpertise.$inferSelect;
