@@ -468,11 +468,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/skills/ai-suggestions", async (req, res) => {
     try {
-      const { currentSkills, context, limit = 8 } = req.body;
+      const { currentSkill, existingSkills = [], context, limit = 8 } = req.body;
       
-      if (!currentSkills || !Array.isArray(currentSkills)) {
-        return res.status(400).json({ error: "currentSkills array is required" });
-      }
+      // Handle both currentSkills (old format) and existingSkills (new format)
+      const userSkills = req.body.currentSkills || existingSkills || [];
 
       // Get all skills from the platform for fallback suggestions
       const employees = await storage.getAllEmployees();
@@ -507,59 +506,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'Git': ['GitHub', 'GitLab', 'CI/CD', 'Version Control']
       };
 
-      for (const currentSkill of currentSkills) {
-        const relatedSkills = skillRelations[currentSkill] || [];
+      // Generate suggestions based on current input and existing skills
+      for (const userSkill of userSkills) {
+        const relatedSkills = skillRelations[userSkill as keyof typeof skillRelations] || [];
         for (const relatedSkill of relatedSkills) {
-          if (allSkills.has(relatedSkill) && !currentSkills.includes(relatedSkill)) {
-            suggestions.push({
-              skill: relatedSkill,
-              relevance: 0.9,
-              category: 'Related',
-              relatedTo: [currentSkill]
-            });
+          if (allSkills.has(relatedSkill) && !userSkills.includes(relatedSkill)) {
+            suggestions.push(relatedSkill);
           }
         }
+      }
+
+      // If typing a skill, suggest based on partial match
+      if (currentSkill && currentSkill.length >= 2) {
+        const partialMatches = skillArray.filter(skill => 
+          skill.toLowerCase().includes(currentSkill.toLowerCase()) && 
+          !userSkills.includes(skill)
+        );
+        suggestions.push(...partialMatches);
       }
 
       // Add complementary skills based on context
       if (context === 'project') {
         const projectSkills = ['Project Management', 'Agile', 'Scrum', 'Leadership'];
         for (const skill of projectSkills) {
-          if (allSkills.has(skill) && !currentSkills.includes(skill)) {
-            suggestions.push({
-              skill,
-              relevance: 0.7,
-              category: 'Project',
-              relatedTo: []
-            });
+          if (allSkills.has(skill) && !userSkills.includes(skill)) {
+            suggestions.push(skill);
           }
         }
       }
 
-      // Pattern matching for similar skills
-      for (const skill of skillArray) {
-        if (!currentSkills.includes(skill)) {
-          for (const currentSkill of currentSkills) {
-            if (skill.toLowerCase().includes(currentSkill.toLowerCase()) || 
-                currentSkill.toLowerCase().includes(skill.toLowerCase())) {
-              suggestions.push({
-                skill,
-                relevance: 0.6,
-                category: 'Similar',
-                relatedTo: [currentSkill]
-              });
-            }
-          }
-        }
+      // Remove duplicates and return unique suggestions
+      const uniqueSet = new Set(suggestions);
+      const uniqueSuggestions = [];
+      for (const suggestion of uniqueSet) {
+        uniqueSuggestions.push(suggestion);
       }
-
-      // Remove duplicates and sort by relevance
-      const uniqueSuggestions = suggestions
-        .filter((suggestion, index, self) => 
-          self.findIndex(s => s.skill === suggestion.skill) === index
-        )
-        .sort((a, b) => b.relevance - a.relevance)
-        .slice(0, limit);
+      const finalSuggestions = uniqueSuggestions.slice(0, limit);
 
       res.json(uniqueSuggestions);
     } catch (error) {

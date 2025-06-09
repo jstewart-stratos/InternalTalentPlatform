@@ -243,105 +243,144 @@ export default function SkillsWithLevels({
       </div>
 
       {isEditing && isOwnProfile && (
-        <Card className="border-dashed border-2 border-gray-300">
-          <CardContent className="pt-4">
-            <div className="space-y-4">
-              <div className="flex items-center space-x-2 text-sm text-gray-600">
-                <Lightbulb className="h-4 w-4" />
-                <span>Type any skill to get AI-powered suggestions and guidance</span>
+        <Card className="border-dashed border-2 border-gray-300 bg-gradient-to-br from-orange-50 to-blue-50">
+          <CardContent className="pt-6 pb-6">
+            <div className="space-y-6">
+              <div className="flex items-center space-x-3 text-gray-700">
+                <Lightbulb className="h-5 w-5 text-orange-500" />
+                <span className="text-base font-medium">Add a new skill with experience details</span>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                <div className="relative">
-                  <Input
-                    placeholder="Enter any skill (e.g., Python, Leadership, Risk Analysis...)"
-                    value={newSkill.name}
-                    onChange={(e) => handleSkillNameChange(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    onFocus={() => newSkill.name.length >= 2 && setShowSuggestions(true)}
-                    onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                    className="pr-8"
-                  />
-                  {newSkill.name.length >= 2 && (
-                    <Sparkles className="absolute right-2 top-2.5 h-4 w-4 text-orange-500 animate-pulse" />
-                  )}
-                  
-                  {showSuggestions && (
-                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                      {(() => {
-                        const filteredExistingSkills = allSkills.filter(s => 
-                          s.toLowerCase().includes(newSkill.name.toLowerCase()) && 
-                          !skills.some(es => es.skillName === s)
-                        );
-                        const allSuggestions = [...aiSuggestions, ...filteredExistingSkills];
-                        const uniqueSuggestions = allSuggestions.filter((skill, index) => 
-                          allSuggestions.indexOf(skill) === index
-                        );
-                        const suggestions = uniqueSuggestions.slice(0, 8);
-                        
-                        if (suggestions.length === 0) {
-                          return (
-                            <div className="p-3 text-sm text-gray-500 text-center">
-                              <Sparkles className="h-4 w-4 mx-auto mb-1" />
-                              AI suggestions loading...
-                            </div>
+              <div className="space-y-4">
+                {/* Skill Name Input - Full Width */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Skill Name</label>
+                  <div className="relative">
+                    <Input
+                      placeholder="Enter any skill (e.g., Python, Leadership, Risk Analysis, Data Science...)"
+                      value={newSkill.name}
+                      onChange={(e) => handleSkillNameChange(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      onFocus={() => newSkill.name.length >= 2 && setShowSuggestions(true)}
+                      onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                      className="h-12 text-base pr-10 border-2 border-gray-200 focus:border-orange-400 focus:ring-orange-200"
+                    />
+                    {newSkill.name.length >= 2 && (
+                      <Sparkles className="absolute right-3 top-3.5 h-5 w-5 text-orange-500 animate-pulse" />
+                    )}
+                    
+                    {showSuggestions && (
+                      <div className="absolute z-10 w-full mt-2 bg-white border-2 border-gray-200 rounded-xl shadow-xl max-h-64 overflow-y-auto">
+                        {(() => {
+                          const filteredExistingSkills = allSkills.filter(s => 
+                            s.toLowerCase().includes(newSkill.name.toLowerCase()) && 
+                            !skills.some(es => es.skillName === s)
                           );
-                        }
-                        
-                        return suggestions.map((suggestion, index) => (
-                          <button
-                            key={suggestion}
-                            className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 border-b border-gray-100 last:border-b-0 ${
-                              index === selectedSuggestion ? 'bg-orange-50 border-orange-200' : ''
-                            }`}
-                            onClick={() => handleSelectSuggestion(suggestion)}
-                          >
-                            <div className="flex items-center justify-between">
-                              <span>{suggestion}</span>
-                              {aiSuggestions.includes(suggestion) && (
-                                <Badge variant="secondary" className="bg-orange-100 text-orange-800 text-xs">
-                                  AI
-                                </Badge>
-                              )}
-                            </div>
-                          </button>
-                        ));
-                      })()}
-                    </div>
-                  )}
+                          const allSuggestions = [...aiSuggestions, ...filteredExistingSkills];
+                          const uniqueSuggestions = allSuggestions.filter((skill, index) => 
+                            allSuggestions.indexOf(skill) === index
+                          );
+                          const suggestions = uniqueSuggestions.slice(0, 8);
+                          
+                          if (suggestions.length === 0) {
+                            return (
+                              <div className="p-4 text-center text-gray-500">
+                                <Sparkles className="h-5 w-5 mx-auto mb-2 text-orange-400" />
+                                <span className="text-sm">AI suggestions loading...</span>
+                              </div>
+                            );
+                          }
+                          
+                          return suggestions.map((suggestion, index) => (
+                            <button
+                              key={suggestion}
+                              className={`w-full text-left px-4 py-3 text-base hover:bg-gray-50 border-b border-gray-100 last:border-b-0 transition-colors ${
+                                index === selectedSuggestion ? 'bg-orange-50 border-orange-200' : ''
+                              }`}
+                              onClick={() => handleSelectSuggestion(suggestion)}
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="font-medium">{suggestion}</span>
+                                {aiSuggestions.includes(suggestion) && (
+                                  <Badge variant="secondary" className="bg-orange-100 text-orange-800 text-xs font-semibold">
+                                    AI
+                                  </Badge>
+                                )}
+                              </div>
+                            </button>
+                          ));
+                        })()}
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500 flex items-center space-x-1">
+                    <Sparkles className="h-3 w-3" />
+                    <span>Type to see AI-powered suggestions and existing skills</span>
+                  </p>
                 </div>
-                
-                <Select 
-                  value={newSkill.level} 
-                  onValueChange={(value: any) => setNewSkill(prev => ({ ...prev, level: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="beginner">Beginner ⭐</SelectItem>
-                    <SelectItem value="intermediate">Intermediate ⭐⭐</SelectItem>
-                    <SelectItem value="advanced">Advanced ⭐⭐⭐</SelectItem>
-                    <SelectItem value="expert">Expert ⭐⭐⭐⭐</SelectItem>
-                  </SelectContent>
-                </Select>
-                
-                <Input
-                  type="number"
-                  placeholder="Years"
-                  min="1"
-                  max="50"
-                  value={newSkill.years}
-                  onChange={(e) => setNewSkill(prev => ({ ...prev, years: parseInt(e.target.value) || 1 }))}
-                />
-                
+
+                {/* Experience Level and Years - Side by Side */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">Experience Level</label>
+                    <Select 
+                      value={newSkill.level} 
+                      onValueChange={(value: any) => setNewSkill(prev => ({ ...prev, level: value }))}
+                    >
+                      <SelectTrigger className="h-12 text-base border-2 border-gray-200 focus:border-orange-400">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="beginner" className="text-base py-3">
+                          <div className="flex items-center space-x-2">
+                            <span>⭐</span>
+                            <span>Beginner</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="intermediate" className="text-base py-3">
+                          <div className="flex items-center space-x-2">
+                            <span>⭐⭐</span>
+                            <span>Intermediate</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="advanced" className="text-base py-3">
+                          <div className="flex items-center space-x-2">
+                            <span>⭐⭐⭐</span>
+                            <span>Advanced</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="expert" className="text-base py-3">
+                          <div className="flex items-center space-x-2">
+                            <span>⭐⭐⭐⭐</span>
+                            <span>Expert</span>
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">Years of Experience</label>
+                    <Input
+                      type="number"
+                      placeholder="Enter years"
+                      min="1"
+                      max="50"
+                      value={newSkill.years}
+                      onChange={(e) => setNewSkill(prev => ({ ...prev, years: parseInt(e.target.value) || 1 }))}
+                      className="h-12 text-base border-2 border-gray-200 focus:border-orange-400 focus:ring-orange-200"
+                    />
+                  </div>
+                </div>
+
+                {/* Add Button - Full Width */}
                 <Button 
                   onClick={handleAddSkill}
                   disabled={!newSkill.name.trim() || addSkillMutation.isPending}
-                  className="bg-orange-500 hover:bg-orange-600"
+                  className="w-full h-12 text-base font-medium bg-orange-500 hover:bg-orange-600 text-white border-0 rounded-lg shadow-lg hover:shadow-xl transition-all"
                 >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add
+                  <Plus className="h-5 w-5 mr-2" />
+                  {addSkillMutation.isPending ? "Adding Skill..." : "Add Skill"}
                 </Button>
               </div>
             </div>
@@ -419,72 +458,143 @@ function SkillItem({
 
   if (isEditing) {
     return (
-      <div className="flex items-center justify-between bg-blue-50 rounded-lg p-4 border border-blue-200">
-        <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="flex items-center">
-            <Badge className="bg-gray-100 text-gray-800">{skill.skillName}</Badge>
+      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200">
+        <CardContent className="p-6">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="text-lg font-semibold text-gray-800">Editing Skill</h4>
+                <Badge className="bg-blue-100 text-blue-800 text-sm font-medium mt-1">
+                  {skill.skillName}
+                </Badge>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button 
+                  onClick={handleSave} 
+                  size="default"
+                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2"
+                >
+                  <Check className="h-4 w-4 mr-2" />
+                  Save Changes
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={onCancelEdit}
+                  size="default"
+                  className="px-4 py-2"
+                >
+                  <XIcon className="h-4 w-4 mr-2" />
+                  Cancel
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  onClick={onDelete}
+                  size="default"
+                  className="px-4 py-2"
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Delete
+                </Button>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Experience Level</label>
+                <Select 
+                  value={editForm.level} 
+                  onValueChange={(value: any) => setEditForm(prev => ({ ...prev, level: value }))}
+                >
+                  <SelectTrigger className="h-12 text-base border-2 border-gray-200 focus:border-blue-400">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="beginner" className="text-base py-3">
+                      <div className="flex items-center space-x-2">
+                        <span>⭐</span>
+                        <span>Beginner</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="intermediate" className="text-base py-3">
+                      <div className="flex items-center space-x-2">
+                        <span>⭐⭐</span>
+                        <span>Intermediate</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="advanced" className="text-base py-3">
+                      <div className="flex items-center space-x-2">
+                        <span>⭐⭐⭐</span>
+                        <span>Advanced</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="expert" className="text-base py-3">
+                      <div className="flex items-center space-x-2">
+                        <span>⭐⭐⭐⭐</span>
+                        <span>Expert</span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Years of Experience</label>
+                <Input
+                  type="number"
+                  min="1"
+                  max="50"
+                  value={editForm.years || 1}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, years: parseInt(e.target.value) || 1 }))}
+                  className="h-12 text-base border-2 border-gray-200 focus:border-blue-400 focus:ring-blue-200"
+                  placeholder="Enter years"
+                />
+              </div>
+            </div>
           </div>
-          <Select 
-            value={editForm.level} 
-            onValueChange={(value: any) => setEditForm(prev => ({ ...prev, level: value }))}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="beginner">Beginner ⭐</SelectItem>
-              <SelectItem value="intermediate">Intermediate ⭐⭐</SelectItem>
-              <SelectItem value="advanced">Advanced ⭐⭐⭐</SelectItem>
-              <SelectItem value="expert">Expert ⭐⭐⭐⭐</SelectItem>
-            </SelectContent>
-          </Select>
-          <Input
-            type="number"
-            min="1"
-            max="50"
-            value={editForm.years || 1}
-            onChange={(e) => setEditForm(prev => ({ ...prev, years: parseInt(e.target.value) || 1 }))}
-          />
-        </div>
-        <div className="flex items-center space-x-2 ml-4">
-          <Button size="sm" onClick={handleSave} className="bg-green-600 hover:bg-green-700">
-            <Check className="h-3 w-3" />
-          </Button>
-          <Button size="sm" variant="outline" onClick={onCancelEdit}>
-            <XIcon className="h-3 w-3" />
-          </Button>
-          <Button size="sm" variant="destructive" onClick={onDelete}>
-            <X className="h-3 w-3" />
-          </Button>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className="flex items-center justify-between bg-gray-50 rounded-lg p-4">
-      <div className="flex items-center space-x-4">
-        <Badge className={getLevelColor(skill.experienceLevel)} variant="secondary">
-          {skill.skillName}
-        </Badge>
-        <div className="flex items-center space-x-2 text-sm text-gray-600">
-          <span className="font-medium">{getStarRating(skill.experienceLevel)}</span>
-          <span>{skill.experienceLevel}</span>
-          <span>•</span>
-          <span>{skill.yearsOfExperience} year{skill.yearsOfExperience !== 1 ? 's' : ''}</span>
-        </div>
-        {(skill.endorsementCount || 0) > 0 && (
-          <div className="flex items-center text-sm text-gray-500">
-            <Users className="h-4 w-4 mr-1" />
-            <span>{skill.endorsementCount || 0} endorsement{(skill.endorsementCount || 0) !== 1 ? 's' : ''}</span>
+    <Card className="hover:shadow-md transition-shadow border border-gray-200 hover:border-gray-300">
+      <CardContent className="p-5">
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <div className="flex items-center space-x-3 mb-2">
+              <Badge className={`${getLevelColor(skill.experienceLevel)} text-base px-3 py-1 font-medium`} variant="secondary">
+                {skill.skillName}
+              </Badge>
+              {isOwnProfile && canEdit && (
+                <Button size="sm" variant="ghost" onClick={onEdit} className="h-8 w-8 p-0 hover:bg-gray-100">
+                  <Edit3 className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+            
+            <div className="flex items-center space-x-4 text-sm">
+              <div className="flex items-center space-x-2 text-gray-700">
+                <span className="text-lg">{getStarRating(skill.experienceLevel)}</span>
+                <span className="font-medium capitalize">{skill.experienceLevel}</span>
+              </div>
+              
+              <div className="flex items-center space-x-1 text-gray-600">
+                <span>•</span>
+                <span className="font-medium">{skill.yearsOfExperience}</span>
+                <span>year{skill.yearsOfExperience !== 1 ? 's' : ''} experience</span>
+              </div>
+              
+              {(skill.endorsementCount || 0) > 0 && (
+                <div className="flex items-center space-x-1 text-gray-500">
+                  <span>•</span>
+                  <Users className="h-4 w-4" />
+                  <span>{skill.endorsementCount || 0} endorsement{(skill.endorsementCount || 0) !== 1 ? 's' : ''}</span>
+                </div>
+              )}
+            </div>
           </div>
-        )}
-      </div>
-      {isOwnProfile && canEdit && (
-        <Button size="sm" variant="ghost" onClick={onEdit}>
-          <Edit3 className="h-3 w-3" />
-        </Button>
-      )}
-    </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
