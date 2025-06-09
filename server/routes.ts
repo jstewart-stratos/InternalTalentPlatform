@@ -1653,6 +1653,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return times[Math.floor(Math.random() * times.length)];
   }
 
+  // Admin endpoint to populate individual skill experience levels
+  app.post("/api/admin/seed-skill-levels", isAuthenticated, async (req: any, res) => {
+    try {
+      // Check if user is admin
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      console.log("Starting skill level seeding...");
+      await seedEmployeeSkills();
+      
+      const summary = await getSkillLevelSummary();
+      
+      res.json({
+        success: true,
+        message: "Individual skill experience levels populated successfully",
+        summary
+      });
+    } catch (error) {
+      console.error("Error seeding skill levels:", error);
+      res.status(500).json({ error: "Failed to seed skill levels" });
+    }
+  });
+
+  // Get skill level summary
+  app.get("/api/admin/skill-levels-summary", isAuthenticated, async (req: any, res) => {
+    try {
+      // Check if user is admin
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const summary = await getSkillLevelSummary();
+      res.json(summary);
+    } catch (error) {
+      console.error("Error getting skill level summary:", error);
+      res.status(500).json({ error: "Failed to get skill level summary" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
