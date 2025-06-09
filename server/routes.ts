@@ -5,6 +5,7 @@ import { insertEmployeeSchema, insertSkillEndorsementSchema, insertProjectSchema
 import { sendEmail } from "./sendgrid";
 import { getProjectRecommendationsForEmployee, getEmployeeRecommendationsForProject, getSkillGapAnalysis } from "./ai-recommendations";
 import { getProjectRecommendationsForEmployee as getSkillBasedProjectRecs, getEmployeeRecommendationsForProject as getSkillBasedEmployeeRecs } from "./skill-matching";
+import { seedEmployeeSkills, getSkillLevelSummary } from "./seed-employee-skills";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { z } from "zod";
 
