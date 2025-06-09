@@ -1,6 +1,7 @@
 import { db } from "./db";
-import { employees, skillEndorsements, type InsertEmployee, type InsertSkillEndorsement } from "@shared/schema";
+import { employees, skillEndorsements, projects, type InsertEmployee, type InsertSkillEndorsement } from "@shared/schema";
 import { seedDepartments } from "./seed-departments";
+import { seedSampleProjects } from "./seed-sample-projects";
 
 async function seed() {
   console.log("Seeding database...");
@@ -10,9 +11,11 @@ async function seed() {
 
   // Check if employees already exist
   const existingEmployees = await db.select().from(employees);
+  const existingProjects = await db.select().from(projects);
   if (existingEmployees.length > 0) {
     console.log("Database already contains data, clearing and reseeding...");
     await db.delete(skillEndorsements);
+    await db.delete(projects);
     await db.delete(employees);
   }
 
@@ -340,6 +343,9 @@ async function seed() {
   }
   
   console.log(`Seeded ${sampleEmployees.length} employees and ${endorsementData.length} skill endorsements`);
+  
+  // Seed sample projects after employees are created
+  await seedSampleProjects();
 }
 
 // Run seed if this file is executed directly
