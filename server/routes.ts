@@ -251,28 +251,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/employees/:id/skills", async (req, res) => {
+  app.post("/api/employees/:id/skills", isAuthenticated, async (req: any, res) => {
     try {
       const employeeId = parseInt(req.params.id);
+      const userId = req.user?.claims?.sub;
+      
+      // Verify user can only add skills to their own profile
+      const employee = await storage.getEmployee(employeeId);
+      if (!employee) {
+        return res.status(404).json({ error: "Employee not found" });
+      }
+      
+      const currentEmployee = await storage.getEmployeeByUserId(userId);
+      if (!currentEmployee || currentEmployee.id !== employeeId) {
+        return res.status(403).json({ error: "Cannot add skills to another user's profile" });
+      }
+
+      if (!req.body.skillName || !req.body.skillName.trim()) {
+        return res.status(400).json({ error: "Skill name is required" });
+      }
+
       const skillData = {
         employeeId,
-        skillName: req.body.skillName,
+        skillName: req.body.skillName.trim(),
         experienceLevel: req.body.experienceLevel || 'beginner',
         yearsOfExperience: req.body.yearsOfExperience || 1,
         lastUsed: new Date(req.body.lastUsed || Date.now()),
         isEndorsed: req.body.isEndorsed || false,
         endorsementCount: req.body.endorsementCount || 0
       };
+      
+      console.log('Creating skill:', skillData);
       const skill = await storage.createEmployeeSkill(skillData);
       res.status(201).json(skill);
     } catch (error) {
-      res.status(500).json({ error: "Failed to create employee skill" });
+      console.error('Error creating employee skill:', error);
+      res.status(500).json({ error: "Failed to create employee skill", details: error.message });
     }
   });
 
-  app.put("/api/employees/:id/skills/:skillId", async (req, res) => {
+  app.put("/api/employees/:id/skills/:skillId", isAuthenticated, async (req: any, res) => {
     try {
+      const employeeId = parseInt(req.params.id);
       const skillId = parseInt(req.params.skillId);
+      const userId = req.user?.claims?.sub;
+      
+      // Verify user can only update skills on their own profile
+      const currentEmployee = await storage.getEmployeeByUserId(userId);
+      if (!currentEmployee || currentEmployee.id !== employeeId) {
+        return res.status(403).json({ error: "Cannot update skills on another user's profile" });
+      }
+
       const updateData: any = {};
       if (req.body.experienceLevel) updateData.experienceLevel = req.body.experienceLevel;
       if (req.body.yearsOfExperience) updateData.yearsOfExperience = req.body.yearsOfExperience;
@@ -286,20 +315,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json(skill);
     } catch (error) {
-      res.status(500).json({ error: "Failed to update employee skill" });
+      console.error('Error updating employee skill:', error);
+      res.status(500).json({ error: "Failed to update employee skill", details: error.message });
     }
   });
 
-  app.delete("/api/employees/:id/skills/:skillId", async (req, res) => {
+  app.delete("/api/employees/:id/skills/:skillId", isAuthenticated, async (req: any, res) => {
     try {
+      const employeeId = parseInt(req.params.id);
       const skillId = parseInt(req.params.skillId);
+      const userId = req.user?.claims?.sub;
+      
+      // Verify user can only delete skills from their own profile
+      const currentEmployee = await storage.getEmployeeByUserId(userId);
+      if (!currentEmployee || currentEmployee.id !== employeeId) {
+        return res.status(403).json({ error: "Cannot delete skills from another user's profile" });
+      }
+
       const success = await storage.deleteEmployeeSkill(skillId);
       if (!success) {
         return res.status(404).json({ error: "Skill not found" });
       }
       res.json({ success: true });
     } catch (error) {
-      res.status(500).json({ error: "Failed to delete employee skill" });
+      console.error('Error deleting employee skill:', error);
+      res.status(500).json({ error: "Failed to delete employee skill", details: (error as Error).message });
     }
   });
 
