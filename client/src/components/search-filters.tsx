@@ -15,7 +15,7 @@ export default function SearchFilters({ onSearch, onTabChange, isLoading }: Sear
   const [query, setQuery] = useState("");
   const [experienceLevel, setExperienceLevel] = useState("Any Level");
 
-  const popularSkills = ["JavaScript", "Project Management", "Data Analysis", "UI/UX Design", "Digital Marketing"];
+  const popularSkills = ["Risk Assessment", "Financial Analysis", "Portfolio Management", "Compliance", "Investment Management"];
 
   const handleSearch = () => {
     onSearch(query, experienceLevel);
