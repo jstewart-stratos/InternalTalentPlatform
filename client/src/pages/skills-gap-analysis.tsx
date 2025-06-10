@@ -50,7 +50,7 @@ export default function SkillsGapAnalysis() {
   const targetEmployee = employees.find(emp => emp.id === targetEmployeeId);
 
   const { data: employeeSkills = [] } = useQuery<EmployeeSkill[]>({
-    queryKey: ["/api/employees", targetEmployeeId?.toString(), "skills"],
+    queryKey: [`/api/employees/${targetEmployeeId}/skills`],
     enabled: !!targetEmployeeId,
   });
 
