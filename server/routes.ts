@@ -1909,7 +1909,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Learning Path Generation with OpenAI and Curated Fallback
+  // Learning Path Generation with Curated Resources
   app.post("/api/learning-paths", async (req, res) => {
     try {
       const { skill, currentLevel, targetLevel, context } = req.body;
@@ -1997,7 +1997,7 @@ Respond with JSON in this exact format:
         }
       }
 
-      // Use curated learning resources when OpenAI is unavailable
+      // Use curated learning resources
       const learningPath = generateCuratedLearningPath(skill, currentLevel, targetLevel, context);
       res.json(learningPath);
 
