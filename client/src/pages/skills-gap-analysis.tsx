@@ -78,34 +78,37 @@ export default function SkillsGapAnalysis() {
 
     const recommendations: SkillRecommendation[] = [];
 
-    // Generate recommendations based on career paths and project opportunities
-    const careerPaths = getCareerPaths();
-    
-    careerPaths.forEach(path => {
-      path.missingSkills.forEach(skill => {
+    // Generate recommendations based on project opportunities
+    const allSkillsInProjects = new Set<string>();
+    projects.forEach(project => {
+      project.requiredSkills?.forEach(skill => {
         if (!currentSkills.has(skill)) {
-          const demand = skillDemand.get(skill) || 0;
-          const supply = skillSupply.get(skill) || 0;
-          const demandScore = supply > 0 ? demand / supply : demand;
-          
-          let priority: 'critical' | 'high' | 'medium' | 'low' = 'low';
-          if (demandScore >= 2) priority = 'critical';
-          else if (demandScore >= 1) priority = 'high';
-          else if (demandScore >= 0.5) priority = 'medium';
-
-          recommendations.push({
-            skillName: skill,
-            category: getCategoryForSkill(skill),
-            priority,
-            reasoning: `Required for ${path.title} career path. High demand with ${demand} projects requiring this skill.`,
-            projectOpportunities: skillProjects.get(skill) || 0,
-            averageSalaryImpact: priority === 'critical' ? '+15-25%' : priority === 'high' ? '+10-20%' : '+5-15%',
-            learningPath: getLearningPath(skill),
-            timeToAcquire: getTimeToAcquire(skill),
-            relatedSkills: getRelatedSkills(skill, currentSkills),
-            demandScore
-          });
+          allSkillsInProjects.add(skill);
         }
+      });
+    });
+    
+    allSkillsInProjects.forEach(skill => {
+      const demand = skillDemand.get(skill) || 0;
+      const supply = skillSupply.get(skill) || 0;
+      const demandScore = supply > 0 ? demand / supply : demand;
+      
+      let priority: 'critical' | 'high' | 'medium' | 'low' = 'low';
+      if (demandScore >= 2) priority = 'critical';
+      else if (demandScore >= 1) priority = 'high';
+      else if (demandScore >= 0.5) priority = 'medium';
+
+      recommendations.push({
+        skillName: skill,
+        category: getCategoryForSkill(skill),
+        priority,
+        reasoning: `High demand skill with ${demand} projects requiring this expertise. Strong career advancement opportunity.`,
+        projectOpportunities: skillProjects.get(skill) || 0,
+        averageSalaryImpact: priority === 'critical' ? '+15-25%' : priority === 'high' ? '+10-20%' : '+5-15%',
+        learningPath: getLearningPath(skill),
+        timeToAcquire: getTimeToAcquire(skill),
+        relatedSkills: getRelatedSkills(skill, currentSkills),
+        demandScore
       });
     });
 
@@ -125,53 +128,7 @@ export default function SkillsGapAnalysis() {
       .slice(0, 10);
   };
 
-  const getCareerPaths = (): CareerPath[] => {
-    if (!targetEmployee || !employeeSkills.length) return [];
 
-    const currentSkills = new Set(employeeSkills.map(s => s.skillName));
-    
-    const paths = [
-      {
-        title: "Senior Financial Analyst",
-        description: "Lead complex financial modeling and analysis projects",
-        requiredSkills: ["Financial Modeling", "Excel", "Python", "SQL", "Tableau", "Risk Management", "Portfolio Management"],
-        salaryRange: "$80,000 - $120,000",
-        estimatedTimeframe: "12-18 months"
-      },
-      {
-        title: "Data Scientist",
-        description: "Apply machine learning to financial data and predictions",
-        requiredSkills: ["Python", "R", "Machine Learning", "SQL", "Statistics", "Tableau", "TensorFlow"],
-        salaryRange: "$95,000 - $140,000",
-        estimatedTimeframe: "18-24 months"
-      },
-      {
-        title: "Product Manager",
-        description: "Drive product strategy and development in fintech",
-        requiredSkills: ["Product Management", "Agile", "SQL", "User Research", "A/B Testing", "Wireframing"],
-        salaryRange: "$90,000 - $130,000",
-        estimatedTimeframe: "15-20 months"
-      },
-      {
-        title: "Cybersecurity Specialist",
-        description: "Protect financial systems and ensure compliance",
-        requiredSkills: ["Network Security", "Risk Assessment", "Compliance", "Penetration Testing", "CISSP"],
-        salaryRange: "$85,000 - $125,000",
-        estimatedTimeframe: "20-30 months"
-      }
-    ];
-
-    return paths.map(path => {
-      const missingSkills = path.requiredSkills.filter(skill => !currentSkills.has(skill));
-      const completionPercentage = Math.round(((path.requiredSkills.length - missingSkills.length) / path.requiredSkills.length) * 100);
-
-      return {
-        ...path,
-        missingSkills,
-        completionPercentage
-      };
-    }).sort((a, b) => b.completionPercentage - a.completionPercentage);
-  };
 
   const getCategoryForSkill = (skill: string): string => {
     const skillLower = skill.toLowerCase();
@@ -221,9 +178,6 @@ export default function SkillsGapAnalysis() {
   };
 
   const recommendations = getSkillRecommendations();
-  const careerPaths = getCareerPaths();
-  const filteredPaths = selectedCareerPath === "all" ? careerPaths : 
-    careerPaths.filter(path => path.title.toLowerCase().includes(selectedCareerPath.toLowerCase()));
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -246,23 +200,10 @@ export default function SkillsGapAnalysis() {
               ))}
             </SelectContent>
           </Select>
-
-          <Select value={selectedCareerPath} onValueChange={setSelectedCareerPath}>
-            <SelectTrigger className="w-64">
-              <SelectValue placeholder="Filter by career path" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Career Paths</SelectItem>
-              <SelectItem value="analyst">Financial Analyst</SelectItem>
-              <SelectItem value="scientist">Data Scientist</SelectItem>
-              <SelectItem value="manager">Product Manager</SelectItem>
-              <SelectItem value="security">Cybersecurity</SelectItem>
-            </SelectContent>
-          </Select>
         </div>
 
         {targetEmployee && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="max-w-4xl mx-auto">
             {/* Skill Recommendations */}
             <Card>
               <CardHeader>
@@ -273,7 +214,7 @@ export default function SkillsGapAnalysis() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {recommendations.slice(0, 5).map((rec, index) => (
+                  {recommendations.slice(0, 10).map((rec, index) => (
                     <div key={rec.skillName} className="p-4 border rounded-lg">
                       <div className="flex justify-between items-start mb-2">
                         <div>
@@ -316,60 +257,6 @@ export default function SkillsGapAnalysis() {
                           ))}
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Career Paths */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5 text-accent" />
-                  Career Path Progress
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {filteredPaths.slice(0, 4).map((path, index) => (
-                    <div key={path.title} className="p-4 border rounded-lg">
-                      <div className="flex justify-between items-start mb-3">
-                        <div>
-                          <h3 className="font-semibold">{path.title}</h3>
-                          <p className="text-sm text-gray-600">{path.description}</p>
-                        </div>
-                        <div className="text-right text-sm">
-                          <div className="font-medium text-green-600">{path.salaryRange}</div>
-                          <div className="text-gray-600">{path.estimatedTimeframe}</div>
-                        </div>
-                      </div>
-
-                      <div className="mb-3">
-                        <div className="flex justify-between text-sm mb-1">
-                          <span>Progress</span>
-                          <span>{path.completionPercentage}%</span>
-                        </div>
-                        <Progress value={path.completionPercentage} className="h-2" />
-                      </div>
-
-                      {path.missingSkills.length > 0 && (
-                        <div>
-                          <div className="text-sm font-medium mb-2">Missing Skills:</div>
-                          <div className="flex flex-wrap gap-1">
-                            {path.missingSkills.slice(0, 4).map(skill => (
-                              <Badge key={skill} variant="outline" className="text-xs">
-                                {skill}
-                              </Badge>
-                            ))}
-                            {path.missingSkills.length > 4 && (
-                              <Badge variant="outline" className="text-xs">
-                                +{path.missingSkills.length - 4} more
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                      )}
                     </div>
                   ))}
                 </div>
