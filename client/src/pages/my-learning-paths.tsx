@@ -206,18 +206,14 @@ export default function MyLearningPaths() {
             });
             if (response.ok) {
               const completions = await response.json();
-              console.log(`Raw completions for recommendation ${recommendation.id}:`, completions);
               const stepIndices = Array.isArray(completions) ? completions.map((c: any) => c.stepIndex) : [];
               completedStepsData[`${recommendation.id}`] = stepIndices;
-              console.log(`Processed step indices for recommendation ${recommendation.id}:`, stepIndices);
             } else {
               completedStepsData[`${recommendation.id}`] = [];
-              console.log(`Failed response ${response.status} for recommendation ${recommendation.id}`);
             }
           } catch (error) {
             // Set empty array for failed requests
             completedStepsData[`${recommendation.id}`] = [];
-            console.log(`Error for recommendation ${recommendation.id}:`, error);
           }
         }
         
@@ -356,7 +352,6 @@ export default function MyLearningPaths() {
                             {recommendation.learningPathData.steps.map((step: any, index: number) => {
                               const completedStepsForRec = completedSteps[`${recommendation.id}`] || [];
                               const isCompleted = completedStepsForRec.includes(index);
-                              console.log(`Step ${index} for rec ${recommendation.id}: completed steps = [${completedStepsForRec.join(',')}], isCompleted = ${isCompleted}`);
                               return (
                                 <div key={index} className={`bg-white rounded p-3 border ${isCompleted ? 'border-green-200 bg-green-50' : ''}`}>
                                   <div className="flex justify-between items-start mb-2">
