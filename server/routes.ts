@@ -1918,6 +1918,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Skill name is required" });
       }
 
+      // Check if OpenAI API key is available
+      if (!process.env.OPENAI_API_KEY) {
+        return res.status(503).json({ 
+          error: "OpenAI API key not configured",
+          message: "To enable AI-powered learning paths, please provide your OpenAI API key in the environment variables."
+        });
+      }
+
       const prompt = `Generate a comprehensive learning path for acquiring "${skill}" skill in the financial services industry.
 
 Current level: ${currentLevel || 'beginner'}
@@ -1985,11 +1993,30 @@ Respond with JSON in this exact format:
       const learningPath = JSON.parse(response.choices[0].message.content || '{}');
       res.json(learningPath);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating learning path:', error);
+      
+      // Handle specific OpenAI API errors
+      if (error.status === 429) {
+        return res.status(429).json({ 
+          error: "OpenAI API quota exceeded",
+          message: "The OpenAI API quota has been exceeded. Please provide your own OpenAI API key or try again later.",
+          type: "quota_exceeded"
+        });
+      }
+      
+      if (error.status === 401) {
+        return res.status(401).json({ 
+          error: "Invalid OpenAI API key",
+          message: "Please provide a valid OpenAI API key to enable AI-powered learning paths.",
+          type: "invalid_api_key"
+        });
+      }
+
       res.status(500).json({ 
         error: "Failed to generate learning path",
-        details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
+        message: "Unable to generate AI-powered learning path. Please ensure your OpenAI API key is valid and has sufficient quota.",
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
   });
