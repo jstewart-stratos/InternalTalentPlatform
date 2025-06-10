@@ -800,11 +800,32 @@ export class DatabaseStorage implements IStorage {
     notes?: string;
     resourcesCompleted?: string[];
   }) {
-    const [completion] = await db
-      .insert(learningStepCompletions)
-      .values(stepData)
-      .returning();
-    return completion;
+    try {
+      const [completion] = await db
+        .insert(learningStepCompletions)
+        .values(stepData)
+        .onConflictDoNothing()
+        .returning();
+      
+      // If no completion was returned, fetch the existing one
+      if (!completion) {
+        const [existing] = await db
+          .select()
+          .from(learningStepCompletions)
+          .where(
+            and(
+              eq(learningStepCompletions.savedRecommendationId, stepData.savedRecommendationId),
+              eq(learningStepCompletions.stepIndex, stepData.stepIndex)
+            )
+          );
+        return existing;
+      }
+      
+      return completion;
+    } catch (error) {
+      console.error("Error in completeLearningStep:", error);
+      throw error;
+    }
   }
 
   async getLearningStepCompletions(savedRecommendationId: number) {

@@ -184,17 +184,21 @@ export default function MyLearningPaths() {
         for (const recommendation of savedRecommendations) {
           try {
             const response = await fetch(`/api/learning-steps/completions/${recommendation.id}`);
+            console.log(`Response for recommendation ${recommendation.id}:`, response.status);
             if (response.ok) {
               const completions = await response.json();
+              console.log(`Raw completions for recommendation ${recommendation.id}:`, completions);
               const stepIndices = Array.isArray(completions) ? completions.map((c: any) => c.stepIndex) : [];
               completedStepsData[`${recommendation.id}`] = stepIndices;
-              console.log(`Loaded completions for recommendation ${recommendation.id}:`, stepIndices);
+              console.log(`Processed step indices for recommendation ${recommendation.id}:`, stepIndices);
             } else {
               completedStepsData[`${recommendation.id}`] = [];
+              console.log(`Failed response for recommendation ${recommendation.id}, setting empty array`);
             }
           } catch (error) {
             // Set empty array for failed requests
             completedStepsData[`${recommendation.id}`] = [];
+            console.log(`Error for recommendation ${recommendation.id}:`, error);
           }
         }
         
