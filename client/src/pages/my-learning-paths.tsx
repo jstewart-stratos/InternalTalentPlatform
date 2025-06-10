@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { BookOpen, Clock, ExternalLink, CheckCircle, Trash2, Play, Heart } from 'lucide-react';
+import { BookOpen, Clock, ExternalLink, CheckCircle, Trash2, Play, Heart, Star, TrendingUp, NotebookPen } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 
@@ -107,6 +107,65 @@ export default function MyLearningPaths() {
       });
     },
   });
+
+  // Complete learning step mutation
+  const completeStep = useMutation({
+    mutationFn: async ({ 
+      savedRecommendationId, 
+      stepIndex, 
+      stepTitle 
+    }: { 
+      savedRecommendationId: number; 
+      stepIndex: number; 
+      stepTitle: string; 
+    }) => {
+      const res = await apiRequest('/api/learning-steps/complete', 'POST', {
+        savedRecommendationId,
+        stepIndex,
+        stepTitle
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/saved-skill-recommendations"] });
+      toast({
+        title: "Step Completed!",
+        description: "Your progress has been updated.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to complete step",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Request advanced materials mutation
+  const requestAdvancedMaterial = useMutation({
+    mutationFn: async ({ skill }: { skill: string }) => {
+      const res = await apiRequest('/api/learning-paths/advanced-material', 'POST', { skill });
+      return res.json();
+    },
+    onSuccess: (data, variables) => {
+      setAdvancedMaterials(prev => ({ ...prev, [variables.skill]: data }));
+      toast({
+        title: "Advanced Materials Generated!",
+        description: "Check the Advanced Materials section below.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to generate advanced materials",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const [completedSteps, setCompletedSteps] = useState<{ [key: string]: number[] }>({});
+  const [advancedMaterials, setAdvancedMaterials] = useState<{ [skill: string]: any }>({});
 
   const handleProgressUpdate = (id: number, newProgress: number) => {
     updateProgress.mutate({ id, progressPercentage: newProgress });
@@ -233,25 +292,61 @@ export default function MyLearningPaths() {
                         {recommendation.learningPathData.steps?.length > 0 && (
                           <div className="space-y-2">
                             <h5 className="font-medium text-sm">Learning Steps:</h5>
-                            {recommendation.learningPathData.steps.slice(0, 2).map((step: any, index: number) => (
-                              <div key={index} className="bg-white rounded p-3 border">
-                                <div className="font-medium text-sm">{step.title}</div>
-                                <div className="text-xs text-gray-600 mb-2">{step.description}</div>
-                                {step.resources?.length > 0 && (
-                                  <div className="flex items-center gap-2">
-                                    <a 
-                                      href={step.resources[0].url}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="text-xs text-blue-600 hover:underline flex items-center gap-1"
-                                    >
-                                      {step.resources[0].title}
-                                      <ExternalLink className="h-3 w-3" />
-                                    </a>
+                            {recommendation.learningPathData.steps.map((step: any, index: number) => {
+                              const isCompleted = completedSteps[`${recommendation.id}`]?.includes(index) || false;
+                              return (
+                                <div key={index} className={`bg-white rounded p-3 border ${isCompleted ? 'border-green-200 bg-green-50' : ''}`}>
+                                  <div className="flex justify-between items-start mb-2">
+                                    <div className="font-medium text-sm flex items-center gap-2">
+                                      {isCompleted && <CheckCircle className="h-4 w-4 text-green-600" />}
+                                      {step.title}
+                                    </div>
+                                    {!isCompleted && recommendation.status !== 'completed' && (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => {
+                                          completeStep.mutate({
+                                            savedRecommendationId: recommendation.id,
+                                            stepIndex: index,
+                                            stepTitle: step.title
+                                          });
+                                          setCompletedSteps(prev => ({
+                                            ...prev,
+                                            [`${recommendation.id}`]: [...(prev[`${recommendation.id}`] || []), index]
+                                          }));
+                                        }}
+                                        disabled={completeStep.isPending}
+                                        className="text-xs h-6 px-2"
+                                      >
+                                        {completeStep.isPending ? (
+                                          <Clock className="h-3 w-3 animate-spin" />
+                                        ) : (
+                                          "Complete"
+                                        )}
+                                      </Button>
+                                    )}
                                   </div>
-                                )}
-                              </div>
-                            ))}
+                                  <div className="text-xs text-gray-600 mb-2">{step.description}</div>
+                                  {step.resources?.length > 0 && (
+                                    <div className="flex flex-wrap gap-2">
+                                      {step.resources.slice(0, 2).map((resource: any, resourceIndex: number) => (
+                                        <a 
+                                          key={resourceIndex}
+                                          href={resource.url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-xs text-blue-600 hover:underline flex items-center gap-1 bg-blue-50 px-2 py-1 rounded"
+                                        >
+                                          {resource.title}
+                                          <ExternalLink className="h-3 w-3" />
+                                        </a>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
                           </div>
                         )}
                       </div>
@@ -259,7 +354,7 @@ export default function MyLearningPaths() {
 
                     {/* Action Buttons */}
                     <div className="flex justify-between items-center pt-4 border-t">
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 flex-wrap">
                         {recommendation.status !== 'completed' && (
                           <>
                             <Button
@@ -283,6 +378,22 @@ export default function MyLearningPaths() {
                             )}
                           </>
                         )}
+                        {recommendation.progressPercentage >= 50 && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => requestAdvancedMaterial.mutate({ skill: recommendation.skill })}
+                            disabled={requestAdvancedMaterial.isPending}
+                            className="text-purple-600 border-purple-200 hover:bg-purple-50"
+                          >
+                            {requestAdvancedMaterial.isPending ? (
+                              <Clock className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                              <TrendingUp className="h-4 w-4 mr-2" />
+                            )}
+                            Advanced Materials
+                          </Button>
+                        )}
                       </div>
                       <Button
                         size="sm"
@@ -305,6 +416,87 @@ export default function MyLearningPaths() {
                 </Card>
               ))}
             </div>
+
+            {/* Advanced Materials Section */}
+            {Object.keys(advancedMaterials).length > 0 && (
+              <Card className="mt-6">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Star className="h-5 w-5 text-purple-600" />
+                    Advanced Learning Materials
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    {Object.entries(advancedMaterials).map(([skill, material]) => (
+                      <div key={skill} className="border rounded-lg p-4">
+                        <h3 className="font-semibold text-lg mb-3 text-purple-900">{skill} - Advanced Track</h3>
+                        <div className="flex gap-2 mb-4">
+                          <Badge variant="outline" className="text-xs">
+                            {material.totalDuration}
+                          </Badge>
+                          <Badge variant="outline" className="text-xs capitalize text-purple-600">
+                            {material.difficulty}
+                          </Badge>
+                        </div>
+                        
+                        {material.steps?.length > 0 && (
+                          <div className="space-y-3">
+                            <h4 className="font-medium text-sm">Advanced Learning Steps:</h4>
+                            {material.steps.map((step: any, index: number) => (
+                              <div key={index} className="bg-purple-50 rounded p-3 border border-purple-200">
+                                <div className="font-medium text-sm text-purple-900">{step.title}</div>
+                                <div className="text-xs text-gray-600 mb-2">{step.description}</div>
+                                {step.resources?.length > 0 && (
+                                  <div className="flex flex-wrap gap-2">
+                                    {step.resources.map((resource: any, resourceIndex: number) => (
+                                      <a 
+                                        key={resourceIndex}
+                                        href={resource.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-xs text-purple-600 hover:underline flex items-center gap-1 bg-purple-100 px-2 py-1 rounded"
+                                      >
+                                        {resource.title}
+                                        <ExternalLink className="h-3 w-3" />
+                                      </a>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {material.certifications?.length > 0 && (
+                          <div className="mt-4 space-y-2">
+                            <h4 className="font-medium text-sm">Advanced Certifications:</h4>
+                            <div className="flex flex-wrap gap-2">
+                              {material.certifications.map((cert: any, index: number) => (
+                                <a
+                                  key={index}
+                                  href={cert.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="bg-yellow-50 border border-yellow-200 rounded px-3 py-2 text-sm hover:bg-yellow-100 flex items-center gap-2"
+                                >
+                                  <NotebookPen className="h-4 w-4 text-yellow-600" />
+                                  <div>
+                                    <div className="font-medium">{cert.name}</div>
+                                    <div className="text-xs text-gray-600">{cert.provider} - {cert.timeToComplete}</div>
+                                  </div>
+                                  <ExternalLink className="h-3 w-3" />
+                                </a>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
       </div>
