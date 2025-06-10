@@ -72,11 +72,26 @@ export default function Analytics() {
     },
   });
 
-  // Calculate analytics from employee data
-  const skillCounts = employees.reduce((acc, employee) => {
-    employee.skills?.forEach(skill => {
-      acc[skill] = (acc[skill] || 0) + 1;
-    });
+  // Fetch all employee skills for accurate gap analysis
+  const { data: allEmployeeSkills = [] } = useQuery({
+    queryKey: ["/api/all-employee-skills"],
+    queryFn: async () => {
+      const response = await fetch("/api/all-employee-skills");
+      if (!response.ok) throw new Error("Failed to fetch employee skills");
+      return response.json() as Promise<Array<{
+        id: number;
+        employeeId: number;
+        skillName: string;
+        experienceLevel: string;
+        yearsOfExperience: number;
+        employee: { name: string; department: string };
+      }>>;
+    },
+  });
+
+  // Calculate analytics from employee skills data
+  const skillCounts = allEmployeeSkills.reduce((acc, skillRecord) => {
+    acc[skillRecord.skillName] = (acc[skillRecord.skillName] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
 
@@ -85,12 +100,13 @@ export default function Analytics() {
     .slice(0, 10);
 
   const departmentCounts = employees.reduce((acc, employee) => {
-    acc[employee.department] = (acc[employee.department] || 0) + 1;
+    acc[employee.title] = (acc[employee.title] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
 
   const availabilityStats = employees.reduce((acc, employee) => {
-    acc[employee.availability] = (acc[employee.availability] || 0) + 1;
+    const status = employee.availabilityStatus || 'available';
+    acc[status] = (acc[status] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
 

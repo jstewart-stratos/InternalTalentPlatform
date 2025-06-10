@@ -471,6 +471,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all employee skills for analytics
+  app.get("/api/all-employee-skills", async (req, res) => {
+    try {
+      const allSkills = await storage.getAllEmployeeSkillsWithDetails();
+      res.json(allSkills);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch all employee skills" });
+    }
+  });
+
   // Email route for Contact Me functionality
   const emailSchema = z.object({
     to: z.string().email("Invalid email address"),

@@ -34,6 +34,14 @@ export interface IStorage {
   trackSkillSearch(skill: string): Promise<void>;
   getTrendingSkills(): Promise<Array<{ skill: string; searchCount: number; employeeCount: number; trending: boolean }>>;
   getAllSkills(): Promise<string[]>;
+  getAllEmployeeSkillsWithDetails(): Promise<Array<{
+    id: number;
+    employeeId: number;
+    skillName: string;
+    experienceLevel: string;
+    yearsOfExperience: number;
+    employee: { name: string; department: string };
+  }>>;
 
   // Project methods
   createProject(project: InsertProject): Promise<Project>;
@@ -397,16 +405,45 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllSkills(): Promise<string[]> {
-    const employees = await this.getAllEmployees();
-    const allSkills = new Set<string>();
+    const skills = await db
+      .selectDistinct({ skillName: employeeSkills.skillName })
+      .from(employeeSkills);
     
-    employees.forEach(employee => {
-      employee.skills.forEach(skill => {
-        allSkills.add(skill.trim());
-      });
-    });
-    
-    return Array.from(allSkills).sort();
+    return skills.map(s => s.skillName).sort();
+  }
+
+  async getAllEmployeeSkillsWithDetails(): Promise<Array<{
+    id: number;
+    employeeId: number;
+    skillName: string;
+    experienceLevel: string;
+    yearsOfExperience: number;
+    employee: { name: string; department: string };
+  }>> {
+    const skills = await db
+      .select({
+        id: employeeSkills.id,
+        employeeId: employeeSkills.employeeId,
+        skillName: employeeSkills.skillName,
+        experienceLevel: employeeSkills.experienceLevel,
+        yearsOfExperience: employeeSkills.yearsOfExperience,
+        employeeName: employees.name,
+        employeeTitle: employees.title
+      })
+      .from(employeeSkills)
+      .innerJoin(employees, eq(employeeSkills.employeeId, employees.id));
+
+    return skills.map(skill => ({
+      id: skill.id,
+      employeeId: skill.employeeId,
+      skillName: skill.skillName,
+      experienceLevel: skill.experienceLevel,
+      yearsOfExperience: skill.yearsOfExperience,
+      employee: {
+        name: skill.employeeName,
+        department: skill.employeeTitle // Using title as department
+      }
+    }));
   }
 
   // Project methods
