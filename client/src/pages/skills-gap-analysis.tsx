@@ -79,13 +79,12 @@ interface LearningPath {
 }
 
 export default function SkillsGapAnalysis() {
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | null>(null);
   const [learningPaths, setLearningPaths] = useState<{ [skill: string]: LearningPath }>({});
   const queryClient = useQueryClient();
 
-  // Fetch employees
-  const { data: employees = [] } = useQuery<Employee[]>({
-    queryKey: ["/api/employees"],
+  // Fetch current user's employee profile
+  const { data: currentEmployee } = useQuery<Employee>({
+    queryKey: ["/api/employees/current"],
   });
 
   // Fetch projects
@@ -93,18 +92,11 @@ export default function SkillsGapAnalysis() {
     queryKey: ["/api/projects"],
   });
 
-  // Fetch all employee skills
-  const { data: allEmployeeSkills = [] } = useQuery<EmployeeSkill[]>({
-    queryKey: ["/api/all-employee-skills"],
-  });
-
-  // Fetch skills for selected employee
+  // Fetch skills for current employee
   const { data: employeeSkills = [] } = useQuery<EmployeeSkill[]>({
-    queryKey: ["/api/employees", selectedEmployeeId, "skills"],
-    enabled: !!selectedEmployeeId,
+    queryKey: ["/api/employees", currentEmployee?.id, "skills"],
+    enabled: !!currentEmployee?.id,
   });
-
-  const targetEmployee = employees.find(emp => emp.id === selectedEmployeeId);
 
   // Generate learning path mutation
   const generateLearningPath = useMutation({
@@ -129,9 +121,9 @@ export default function SkillsGapAnalysis() {
     },
   });
 
-  // Get skill recommendations for the selected employee
+  // Get skill recommendations for the current employee
   const getSkillRecommendations = (): SkillRecommendation[] => {
-    if (!targetEmployee || !employeeSkills.length) return [];
+    if (!currentEmployee || !employeeSkills.length) return [];
 
     const currentSkills = new Set(employeeSkills.map(s => s.skillName));
     const skillDemand: { [skill: string]: number } = {};
@@ -197,29 +189,26 @@ export default function SkillsGapAnalysis() {
           </p>
         </div>
 
-        {/* Employee Selection */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5 text-accent" />
-              Select Employee for Analysis
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Select value={selectedEmployeeId?.toString()} onValueChange={(value) => setSelectedEmployeeId(parseInt(value))}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Choose an employee to analyze" />
-              </SelectTrigger>
-              <SelectContent>
-                {employees.map(employee => (
-                  <SelectItem key={employee.id} value={employee.id.toString()}>
-                    {employee.name} - {employee.role} ({employee.department})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </CardContent>
-        </Card>
+        {/* Current Employee Profile */}
+        {currentEmployee && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <User className="h-5 w-5 text-accent" />
+                Your Career Growth Analysis
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-4">
+                <div>
+                  <h3 className="font-semibold text-lg">{currentEmployee.name}</h3>
+                  <p className="text-gray-600">{currentEmployee.role} • {currentEmployee.department}</p>
+                  <p className="text-sm text-gray-500">{currentEmployee.yearsOfExperience} years of experience</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Skill Recommendations */}
         {recommendations.length > 0 && (
@@ -228,7 +217,7 @@ export default function SkillsGapAnalysis() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <TrendingUp className="h-5 w-5 text-accent" />
-                  Skill Recommendations for {targetEmployee?.name}
+                  Skill Recommendations for {currentEmployee?.name}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -279,12 +268,12 @@ export default function SkillsGapAnalysis() {
         )}
 
         {/* Current Skills Overview */}
-        {targetEmployee && employeeSkills.length > 0 && (
+        {currentEmployee && employeeSkills.length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <CheckCircle className="h-5 w-5 text-accent" />
-                Current Skills Profile for {targetEmployee.name}
+                Your Current Skills Profile
               </CardTitle>
             </CardHeader>
             <CardContent>
