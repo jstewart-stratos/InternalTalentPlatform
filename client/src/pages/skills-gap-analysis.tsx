@@ -129,9 +129,10 @@ export default function SkillsGapAnalysis() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/saved-skill-recommendations"] });
+      queryClient.invalidateQueries({ queryKey: ['/api/learning-paths'] });
       toast({
         title: "Skill Recommendation Saved",
-        description: "View your learning path in My Learning Paths to track progress and access resources.",
+        description: "Learning resources have been added to your My Learning Paths.",
       });
     },
     onError: (error: any) => {
@@ -163,7 +164,7 @@ export default function SkillsGapAnalysis() {
     return savedRecommendations.some(rec => rec.skill === skillName);
   };
 
-  const handleSaveRecommendation = (recommendation: SkillRecommendation) => {
+  const handleSaveRecommendation = async (recommendation: SkillRecommendation) => {
     if (savedRecommendations.length >= 10) {
       toast({
         title: "Limit Reached",
@@ -182,7 +183,38 @@ export default function SkillsGapAnalysis() {
       return;
     }
 
-    const learningPath = learningPaths[recommendation.skill];
+    // Get or generate learning path first
+    let learningPath = learningPaths[recommendation.skill];
+    
+    if (!learningPath) {
+      try {
+        toast({
+          title: "Generating Learning Path",
+          description: "Creating personalized learning resources...",
+        });
+        
+        const response = await apiRequest('/api/learning-paths', 'POST', {
+          skill: recommendation.skill,
+          currentLevel: 'beginner',
+          targetLevel: 'intermediate',
+          context: 'financial'
+        });
+        learningPath = await response.json();
+        
+        // Update local state
+        setLearningPaths(prev => ({
+          ...prev,
+          [recommendation.skill]: learningPath
+        }));
+      } catch (error) {
+        console.error('Failed to generate learning path:', error);
+        toast({
+          title: "Learning Path Generation Failed",
+          description: "Saving skill without learning path. You can generate it later.",
+          variant: "destructive",
+        });
+      }
+    }
     
     saveSkillRecommendation.mutate({
       skill: recommendation.skill,
