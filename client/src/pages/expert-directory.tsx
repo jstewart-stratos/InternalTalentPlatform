@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Mail, MessageCircle, Phone, Users, Award, Clock, MapPin, User, ArrowRight } from "lucide-react";
+import { Search, Mail, MessageCircle, Phone, Users, Award, Clock, MapPin, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation, Link } from "wouter";
 import ProfileAvatar from "@/components/profile-avatar";
@@ -289,12 +289,14 @@ export default function ExpertDirectory() {
                         Contact Expert
                       </Button>
                     )}
-                    <Link
-                      href={`/profile/${expert.id}`}
-                      className="text-orange-600 hover:text-orange-700 text-sm font-medium flex items-center ml-auto transition-colors"
+                    <Button 
+                      size="sm" 
+                      className="ml-auto"
+                      onClick={() => setLocation(`/profile/${expert.id}`)}
                     >
-                      View Profile <ArrowRight className="ml-1 h-3 w-3" />
-                    </Link>
+                      <User className="h-4 w-4 mr-2" />
+                      View Profile
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
