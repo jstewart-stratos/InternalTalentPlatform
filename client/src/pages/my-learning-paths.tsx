@@ -126,8 +126,16 @@ export default function MyLearningPaths() {
       });
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
+      // Update local completed steps state immediately
+      setCompletedSteps(prev => ({
+        ...prev,
+        [`${variables.savedRecommendationId}`]: [...(prev[`${variables.savedRecommendationId}`] || []), variables.stepIndex]
+      }));
+      
+      // Invalidate queries to refresh data from server
       queryClient.invalidateQueries({ queryKey: ["/api/saved-skill-recommendations"] });
+      
       toast({
         title: "Step Completed!",
         description: "Your progress has been updated.",
@@ -178,10 +186,13 @@ export default function MyLearningPaths() {
             const response = await fetch(`/api/learning-steps/completions/${recommendation.id}`);
             if (response.ok) {
               const completions = await response.json();
-              completedStepsData[`${recommendation.id}`] = completions.map((c: any) => c.stepIndex);
+              completedStepsData[`${recommendation.id}`] = Array.isArray(completions) ? completions.map((c: any) => c.stepIndex) : [];
+            } else {
+              completedStepsData[`${recommendation.id}`] = [];
             }
           } catch (error) {
-            console.error(`Error loading completions for recommendation ${recommendation.id}:`, error);
+            // Set empty array for failed requests
+            completedStepsData[`${recommendation.id}`] = [];
           }
         }
         
@@ -336,10 +347,6 @@ export default function MyLearningPaths() {
                                             stepIndex: index,
                                             stepTitle: step.title
                                           });
-                                          setCompletedSteps(prev => ({
-                                            ...prev,
-                                            [`${recommendation.id}`]: [...(prev[`${recommendation.id}`] || []), index]
-                                          }));
                                         }}
                                         disabled={completeStep.isPending}
                                         className="text-xs h-6 px-2"
