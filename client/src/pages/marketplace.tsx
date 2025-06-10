@@ -17,7 +17,7 @@ export default function MarketplacePage() {
     queryFn: async () => {
       const params = new URLSearchParams();
       if (searchQuery) params.append("search", searchQuery);
-      if (selectedCategory) params.append("categoryId", selectedCategory);
+      if (selectedCategory && selectedCategory !== "all") params.append("categoryId", selectedCategory);
       
       const response = await fetch(`/api/professional-services?${params.toString()}`);
       if (!response.ok) {
@@ -85,7 +85,7 @@ export default function MarketplacePage() {
               <SelectValue placeholder="All Categories" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Categories</SelectItem>
+              <SelectItem value="all">All Categories</SelectItem>
               {categories.map((category: any) => (
                 <SelectItem key={category.id} value={category.id.toString()}>
                   {category.name}
