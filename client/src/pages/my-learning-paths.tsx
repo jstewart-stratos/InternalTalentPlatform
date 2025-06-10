@@ -416,26 +416,49 @@ export default function MyLearningPaths() {
                                       {isCompleted && <CheckCircle className="h-4 w-4 text-green-600" />}
                                       {step.title}
                                     </div>
-                                    {!isCompleted && recommendation.status !== 'completed' && (
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => {
-                                          completeStep.mutate({
-                                            savedRecommendationId: recommendation.id,
-                                            stepIndex: index,
-                                            stepTitle: step.title
-                                          });
-                                        }}
-                                        disabled={completeStep.isPending}
-                                        className="text-xs h-6 px-2"
-                                      >
-                                        {completeStep.isPending ? (
-                                          <Clock className="h-3 w-3 animate-spin" />
+                                    {recommendation.status !== 'completed' && (
+                                      <div className="flex gap-1">
+                                        {!isCompleted ? (
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => {
+                                              completeStep.mutate({
+                                                savedRecommendationId: recommendation.id,
+                                                stepIndex: index,
+                                                stepTitle: step.title
+                                              });
+                                            }}
+                                            disabled={completeStep.isPending}
+                                            className="text-xs h-6 px-2"
+                                          >
+                                            {completeStep.isPending ? (
+                                              <Clock className="h-3 w-3 animate-spin" />
+                                            ) : (
+                                              "Complete"
+                                            )}
+                                          </Button>
                                         ) : (
-                                          "Complete"
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => {
+                                              uncompleteStep.mutate({
+                                                savedRecommendationId: recommendation.id,
+                                                stepIndex: index
+                                              });
+                                            }}
+                                            disabled={uncompleteStep.isPending}
+                                            className="text-xs h-6 px-2 text-red-600 hover:text-red-700"
+                                          >
+                                            {uncompleteStep.isPending ? (
+                                              <Clock className="h-3 w-3 animate-spin" />
+                                            ) : (
+                                              "Uncomplete"
+                                            )}
+                                          </Button>
                                         )}
-                                      </Button>
+                                      </div>
                                     )}
                                   </div>
                                   <div className="text-xs text-gray-600 mb-2">{step.description}</div>
