@@ -272,3 +272,175 @@ export type InsertEmployeeSkill = z.infer<typeof insertEmployeeSkillSchema>;
 export type EmployeeSkill = typeof employeeSkills.$inferSelect;
 export type InsertSkillExpertise = z.infer<typeof insertSkillExpertiseSchema>;
 export type SkillExpertise = typeof skillExpertise.$inferSelect;
+
+// Professional Services Marketplace Tables
+
+export const serviceCategories = pgTable("service_categories", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  description: text("description"),
+  icon: text("icon"), // Icon name for UI
+  isActive: boolean("is_active").notNull().default(true),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const professionalServices = pgTable("professional_services", {
+  id: serial("id").primaryKey(),
+  providerId: integer("provider_id").notNull().references(() => employees.id),
+  categoryId: integer("category_id").notNull().references(() => serviceCategories.id),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  shortDescription: text("short_description"), // Brief summary for cards
+  
+  // Pricing structure
+  pricingType: text("pricing_type").notNull().default("hourly"), // hourly, fixed, consultation, package
+  hourlyRate: integer("hourly_rate"), // in cents
+  fixedPrice: integer("fixed_price"), // in cents
+  consultationRate: integer("consultation_rate"), // in cents for initial consultation
+  packageDetails: jsonb("package_details"), // {packages: [{name, price, description, duration}]}
+  
+  // Service details
+  duration: integer("duration"), // in minutes for fixed duration services
+  minDuration: integer("min_duration"), // minimum booking duration in minutes
+  maxDuration: integer("max_duration"), // maximum booking duration in minutes
+  deliveryTimeframe: text("delivery_timeframe"), // "24 hours", "3-5 business days", etc.
+  
+  // Availability and requirements
+  isRemote: boolean("is_remote").notNull().default(true),
+  isOnsite: boolean("is_onsite").notNull().default(false),
+  requiresPrequalification: boolean("requires_prequalification").default(false),
+  maxClientsPerMonth: integer("max_clients_per_month"),
+  
+  // Service status
+  isActive: boolean("is_active").notNull().default(true),
+  isPaused: boolean("is_paused").notNull().default(false),
+  pauseReason: text("pause_reason"),
+  
+  // Skills and expertise required/offered
+  requiredSkills: text("required_skills").array().default([]),
+  offeredSkills: text("offered_skills").array().default([]),
+  
+  // Metadata
+  viewCount: integer("view_count").default(0),
+  bookingCount: integer("booking_count").default(0),
+  averageRating: integer("average_rating"), // 1-5 stars * 100 (for precision)
+  totalReviews: integer("total_reviews").default(0),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const serviceBookings = pgTable("service_bookings", {
+  id: serial("id").primaryKey(),
+  serviceId: integer("service_id").notNull().references(() => professionalServices.id),
+  clientId: integer("client_id").notNull().references(() => employees.id),
+  providerId: integer("provider_id").notNull().references(() => employees.id),
+  
+  // Booking details
+  status: text("status").notNull().default("pending"), // pending, confirmed, in_progress, completed, cancelled, rejected
+  bookingType: text("booking_type").notNull(), // matches service pricing type
+  
+  // Scheduling
+  scheduledStartDate: timestamp("scheduled_start_date"),
+  scheduledEndDate: timestamp("scheduled_end_date"),
+  actualStartDate: timestamp("actual_start_date"),
+  actualEndDate: timestamp("actual_end_date"),
+  timezone: text("timezone").default("UTC"),
+  
+  // Pricing and payment
+  agreedRate: integer("agreed_rate").notNull(), // in cents
+  estimatedHours: integer("estimated_hours"), // for hourly services
+  actualHours: integer("actual_hours"),
+  totalAmount: integer("total_amount"), // in cents
+  currency: text("currency").notNull().default("USD"),
+  
+  // Communication
+  clientMessage: text("client_message"), // Initial request message
+  providerResponse: text("provider_response"), // Provider's response
+  requirements: text("requirements"), // Detailed requirements
+  deliverables: text("deliverables"), // Expected deliverables
+  
+  // Meeting details
+  meetingLocation: text("meeting_location"), // For onsite services
+  meetingLink: text("meeting_link"), // For remote services
+  meetingNotes: text("meeting_notes"),
+  
+  // Completion and feedback
+  isCompleted: boolean("is_completed").default(false),
+  completionNotes: text("completion_notes"),
+  clientRating: integer("client_rating"), // 1-5 stars
+  clientReview: text("client_review"),
+  providerRating: integer("provider_rating"), // Provider rates client
+  providerReview: text("provider_review"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const serviceReviews = pgTable("service_reviews", {
+  id: serial("id").primaryKey(),
+  serviceId: integer("service_id").notNull().references(() => professionalServices.id),
+  bookingId: integer("booking_id").references(() => serviceBookings.id),
+  reviewerId: integer("reviewer_id").notNull().references(() => employees.id),
+  providerId: integer("provider_id").notNull().references(() => employees.id),
+  
+  rating: integer("rating").notNull(), // 1-5 stars
+  title: text("title"),
+  review: text("review").notNull(),
+  pros: text("pros").array().default([]),
+  cons: text("cons").array().default([]),
+  wouldRecommend: boolean("would_recommend").default(true),
+  
+  isVerified: boolean("is_verified").default(false), // Verified as actual client
+  isHelpful: integer("is_helpful").default(0), // Helpful votes count
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const servicePortfolios = pgTable("service_portfolios", {
+  id: serial("id").primaryKey(),
+  serviceId: integer("service_id").notNull().references(() => professionalServices.id),
+  providerId: integer("provider_id").notNull().references(() => employees.id),
+  
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  projectType: text("project_type"), // "case_study", "sample_work", "certification", "testimonial"
+  
+  // Media and files
+  imageUrl: text("image_url"),
+  fileUrl: text("file_url"),
+  linkUrl: text("link_url"),
+  
+  // Project details
+  clientIndustry: text("client_industry"),
+  projectDuration: text("project_duration"),
+  technologiesUsed: text("technologies_used").array().default([]),
+  outcomes: text("outcomes").array().default([]),
+  
+  isPublic: boolean("is_public").default(true),
+  sortOrder: integer("sort_order").default(0),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Schema validation
+export const insertServiceCategorySchema = createInsertSchema(serviceCategories);
+export const insertProfessionalServiceSchema = createInsertSchema(professionalServices);
+export const insertServiceBookingSchema = createInsertSchema(serviceBookings);
+export const insertServiceReviewSchema = createInsertSchema(serviceReviews);
+export const insertServicePortfolioSchema = createInsertSchema(servicePortfolios);
+
+// Types
+export type InsertServiceCategory = z.infer<typeof insertServiceCategorySchema>;
+export type ServiceCategory = typeof serviceCategories.$inferSelect;
+export type InsertProfessionalService = z.infer<typeof insertProfessionalServiceSchema>;
+export type ProfessionalService = typeof professionalServices.$inferSelect;
+export type InsertServiceBooking = z.infer<typeof insertServiceBookingSchema>;
+export type ServiceBooking = typeof serviceBookings.$inferSelect;
+export type InsertServiceReview = z.infer<typeof insertServiceReviewSchema>;
+export type ServiceReview = typeof serviceReviews.$inferSelect;
+export type InsertServicePortfolio = z.infer<typeof insertServicePortfolioSchema>;
+export type ServicePortfolio = typeof servicePortfolios.$inferSelect;

@@ -1,4 +1,4 @@
-import { employees, skillEndorsements, skillSearches, projects, projectApplications, users, siteSettings, adminAuditLog, userPermissions, departments, expertiseRequests, skillExpertise, employeeSkills, type Employee, type InsertEmployee, type SkillEndorsement, type InsertSkillEndorsement, type Project, type InsertProject, type ProjectApplication, type InsertProjectApplication, type User, type UpsertUser, type SiteSetting, type InsertSiteSetting, type AuditLog, type InsertAuditLog, type UserPermission, type InsertUserPermission, type Department, type InsertDepartment, type ExpertiseRequest, type InsertExpertiseRequest, type SkillExpertise, type InsertSkillExpertise, type EmployeeSkill, type InsertEmployeeSkill } from "@shared/schema";
+import { employees, skillEndorsements, skillSearches, projects, projectApplications, users, siteSettings, adminAuditLog, userPermissions, departments, expertiseRequests, skillExpertise, employeeSkills, serviceCategories, professionalServices, serviceBookings, serviceReviews, servicePortfolios, type Employee, type InsertEmployee, type SkillEndorsement, type InsertSkillEndorsement, type Project, type InsertProject, type ProjectApplication, type InsertProjectApplication, type User, type UpsertUser, type SiteSetting, type InsertSiteSetting, type AuditLog, type InsertAuditLog, type UserPermission, type InsertUserPermission, type Department, type InsertDepartment, type ExpertiseRequest, type InsertExpertiseRequest, type SkillExpertise, type InsertSkillExpertise, type EmployeeSkill, type InsertEmployeeSkill, type ServiceCategory, type InsertServiceCategory, type ProfessionalService, type InsertProfessionalService, type ServiceBooking, type InsertServiceBooking, type ServiceReview, type InsertServiceReview, type ServicePortfolio, type InsertServicePortfolio } from "@shared/schema";
 import { db } from "./db";
 import { eq, or, and, ilike, sql, desc } from "drizzle-orm";
 
@@ -92,6 +92,40 @@ export interface IStorage {
   createSkillExpertise(expertise: InsertSkillExpertise): Promise<SkillExpertise>;
   getSkillExpertiseByEmployee(employeeId: number): Promise<SkillExpertise[]>;
   updateSkillExpertise(id: number, expertise: Partial<InsertSkillExpertise>): Promise<SkillExpertise | undefined>;
+
+  // Professional services marketplace methods
+  // Service categories
+  getAllServiceCategories(): Promise<ServiceCategory[]>;
+  createServiceCategory(category: InsertServiceCategory): Promise<ServiceCategory>;
+  updateServiceCategory(id: number, category: Partial<InsertServiceCategory>): Promise<ServiceCategory | undefined>;
+  
+  // Professional services
+  createProfessionalService(service: InsertProfessionalService): Promise<ProfessionalService>;
+  getProfessionalService(id: number): Promise<ProfessionalService | undefined>;
+  getProfessionalServicesByProvider(providerId: number): Promise<ProfessionalService[]>;
+  getAllProfessionalServices(): Promise<ProfessionalService[]>;
+  searchProfessionalServices(query?: string, categoryId?: number, skills?: string[]): Promise<ProfessionalService[]>;
+  updateProfessionalService(id: number, service: Partial<InsertProfessionalService>): Promise<ProfessionalService | undefined>;
+  deleteProfessionalService(id: number): Promise<boolean>;
+  
+  // Service bookings
+  createServiceBooking(booking: InsertServiceBooking): Promise<ServiceBooking>;
+  getServiceBooking(id: number): Promise<ServiceBooking | undefined>;
+  getServiceBookingsByClient(clientId: number): Promise<ServiceBooking[]>;
+  getServiceBookingsByProvider(providerId: number): Promise<ServiceBooking[]>;
+  updateServiceBooking(id: number, booking: Partial<InsertServiceBooking>): Promise<ServiceBooking | undefined>;
+  
+  // Service reviews
+  createServiceReview(review: InsertServiceReview): Promise<ServiceReview>;
+  getServiceReviews(serviceId: number): Promise<ServiceReview[]>;
+  getServiceReviewsByProvider(providerId: number): Promise<ServiceReview[]>;
+  
+  // Service portfolios
+  createServicePortfolio(portfolio: InsertServicePortfolio): Promise<ServicePortfolio>;
+  getServicePortfolios(serviceId: number): Promise<ServicePortfolio[]>;
+  getServicePortfoliosByProvider(providerId: number): Promise<ServicePortfolio[]>;
+  updateServicePortfolio(id: number, portfolio: Partial<InsertServicePortfolio>): Promise<ServicePortfolio | undefined>;
+  deleteServicePortfolio(id: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -750,6 +784,226 @@ export class DatabaseStorage implements IStorage {
       .where(eq(skillExpertise.id, id))
       .returning();
     return expertise;
+  }
+
+  // Professional services marketplace methods
+  // Service categories
+  async getAllServiceCategories(): Promise<ServiceCategory[]> {
+    return await db
+      .select()
+      .from(serviceCategories)
+      .where(eq(serviceCategories.isActive, true))
+      .orderBy(serviceCategories.sortOrder, serviceCategories.name);
+  }
+
+  async createServiceCategory(insertCategory: InsertServiceCategory): Promise<ServiceCategory> {
+    const [category] = await db
+      .insert(serviceCategories)
+      .values(insertCategory)
+      .returning();
+    return category;
+  }
+
+  async updateServiceCategory(id: number, insertCategory: Partial<InsertServiceCategory>): Promise<ServiceCategory | undefined> {
+    const [category] = await db
+      .update(serviceCategories)
+      .set(insertCategory)
+      .where(eq(serviceCategories.id, id))
+      .returning();
+    return category;
+  }
+
+  // Professional services
+  async createProfessionalService(insertService: InsertProfessionalService): Promise<ProfessionalService> {
+    const [service] = await db
+      .insert(professionalServices)
+      .values(insertService)
+      .returning();
+    return service;
+  }
+
+  async getProfessionalService(id: number): Promise<ProfessionalService | undefined> {
+    const [service] = await db
+      .select()
+      .from(professionalServices)
+      .where(eq(professionalServices.id, id));
+    return service;
+  }
+
+  async getProfessionalServicesByProvider(providerId: number): Promise<ProfessionalService[]> {
+    return await db
+      .select()
+      .from(professionalServices)
+      .where(eq(professionalServices.providerId, providerId))
+      .orderBy(desc(professionalServices.createdAt));
+  }
+
+  async getAllProfessionalServices(): Promise<ProfessionalService[]> {
+    return await db
+      .select()
+      .from(professionalServices)
+      .where(and(
+        eq(professionalServices.isActive, true),
+        eq(professionalServices.isPaused, false)
+      ))
+      .orderBy(desc(professionalServices.createdAt));
+  }
+
+  async searchProfessionalServices(query?: string, categoryId?: number, skills?: string[]): Promise<ProfessionalService[]> {
+    let whereCondition = and(
+      eq(professionalServices.isActive, true),
+      eq(professionalServices.isPaused, false)
+    );
+
+    if (query) {
+      whereCondition = and(
+        whereCondition,
+        or(
+          ilike(professionalServices.title, `%${query}%`),
+          ilike(professionalServices.description, `%${query}%`),
+          ilike(professionalServices.shortDescription, `%${query}%`)
+        )
+      );
+    }
+
+    if (categoryId) {
+      whereCondition = and(whereCondition, eq(professionalServices.categoryId, categoryId));
+    }
+
+    return await db
+      .select()
+      .from(professionalServices)
+      .where(whereCondition)
+      .orderBy(desc(professionalServices.averageRating), desc(professionalServices.bookingCount));
+  }
+
+  async updateProfessionalService(id: number, insertService: Partial<InsertProfessionalService>): Promise<ProfessionalService | undefined> {
+    const [service] = await db
+      .update(professionalServices)
+      .set({ ...insertService, updatedAt: new Date() })
+      .where(eq(professionalServices.id, id))
+      .returning();
+    return service;
+  }
+
+  async deleteProfessionalService(id: number): Promise<boolean> {
+    const result = await db
+      .delete(professionalServices)
+      .where(eq(professionalServices.id, id))
+      .returning({ id: professionalServices.id });
+    return result.length > 0;
+  }
+
+  // Service bookings
+  async createServiceBooking(insertBooking: InsertServiceBooking): Promise<ServiceBooking> {
+    const [booking] = await db
+      .insert(serviceBookings)
+      .values(insertBooking)
+      .returning();
+    return booking;
+  }
+
+  async getServiceBooking(id: number): Promise<ServiceBooking | undefined> {
+    const [booking] = await db
+      .select()
+      .from(serviceBookings)
+      .where(eq(serviceBookings.id, id));
+    return booking;
+  }
+
+  async getServiceBookingsByClient(clientId: number): Promise<ServiceBooking[]> {
+    return await db
+      .select()
+      .from(serviceBookings)
+      .where(eq(serviceBookings.clientId, clientId))
+      .orderBy(desc(serviceBookings.createdAt));
+  }
+
+  async getServiceBookingsByProvider(providerId: number): Promise<ServiceBooking[]> {
+    return await db
+      .select()
+      .from(serviceBookings)
+      .where(eq(serviceBookings.providerId, providerId))
+      .orderBy(desc(serviceBookings.createdAt));
+  }
+
+  async updateServiceBooking(id: number, insertBooking: Partial<InsertServiceBooking>): Promise<ServiceBooking | undefined> {
+    const [booking] = await db
+      .update(serviceBookings)
+      .set({ ...insertBooking, updatedAt: new Date() })
+      .where(eq(serviceBookings.id, id))
+      .returning();
+    return booking;
+  }
+
+  // Service reviews
+  async createServiceReview(insertReview: InsertServiceReview): Promise<ServiceReview> {
+    const [review] = await db
+      .insert(serviceReviews)
+      .values(insertReview)
+      .returning();
+    return review;
+  }
+
+  async getServiceReviews(serviceId: number): Promise<ServiceReview[]> {
+    return await db
+      .select()
+      .from(serviceReviews)
+      .where(eq(serviceReviews.serviceId, serviceId))
+      .orderBy(desc(serviceReviews.createdAt));
+  }
+
+  async getServiceReviewsByProvider(providerId: number): Promise<ServiceReview[]> {
+    return await db
+      .select()
+      .from(serviceReviews)
+      .where(eq(serviceReviews.providerId, providerId))
+      .orderBy(desc(serviceReviews.createdAt));
+  }
+
+  // Service portfolios
+  async createServicePortfolio(insertPortfolio: InsertServicePortfolio): Promise<ServicePortfolio> {
+    const [portfolio] = await db
+      .insert(servicePortfolios)
+      .values(insertPortfolio)
+      .returning();
+    return portfolio;
+  }
+
+  async getServicePortfolios(serviceId: number): Promise<ServicePortfolio[]> {
+    return await db
+      .select()
+      .from(servicePortfolios)
+      .where(and(
+        eq(servicePortfolios.serviceId, serviceId),
+        eq(servicePortfolios.isPublic, true)
+      ))
+      .orderBy(servicePortfolios.sortOrder, desc(servicePortfolios.createdAt));
+  }
+
+  async getServicePortfoliosByProvider(providerId: number): Promise<ServicePortfolio[]> {
+    return await db
+      .select()
+      .from(servicePortfolios)
+      .where(eq(servicePortfolios.providerId, providerId))
+      .orderBy(servicePortfolios.sortOrder, desc(servicePortfolios.createdAt));
+  }
+
+  async updateServicePortfolio(id: number, insertPortfolio: Partial<InsertServicePortfolio>): Promise<ServicePortfolio | undefined> {
+    const [portfolio] = await db
+      .update(servicePortfolios)
+      .set({ ...insertPortfolio, updatedAt: new Date() })
+      .where(eq(servicePortfolios.id, id))
+      .returning();
+    return portfolio;
+  }
+
+  async deleteServicePortfolio(id: number): Promise<boolean> {
+    const result = await db
+      .delete(servicePortfolios)
+      .where(eq(servicePortfolios.id, id))
+      .returning({ id: servicePortfolios.id });
+    return result.length > 0;
   }
 }
 
