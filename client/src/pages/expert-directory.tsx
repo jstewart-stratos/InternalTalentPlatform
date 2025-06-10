@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Mail, MessageCircle, Phone, Users, Award, Clock, MapPin, User } from "lucide-react";
+import { Search, Mail, MessageCircle, Phone, Users, Award, Clock, MapPin, User, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import ProfileAvatar from "@/components/profile-avatar";
 import type { Employee } from "@shared/schema";
 
@@ -278,16 +278,7 @@ export default function ExpertDirectory() {
                     )}
                   </div>
 
-                  <div className="flex space-x-2">
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => setLocation(`/profile/${expert.id}`)}
-                    >
-                      <User className="h-4 w-4 mr-2" />
-                      View Profile
-                    </Button>
+                  <div className="flex items-center justify-between">
                     {expert.maxMentees !== undefined && expert.maxMentees !== null && expert.maxMentees > 0 && (
                       <Button 
                         size="sm" 
@@ -297,6 +288,12 @@ export default function ExpertDirectory() {
                         Contact Expert
                       </Button>
                     )}
+                    <Link
+                      href={`/profile/${expert.id}`}
+                      className="text-primary hover:text-blue-700 text-sm font-medium flex items-center ml-auto"
+                    >
+                      View Profile <ArrowRight className="ml-1 h-3 w-3" />
+                    </Link>
                   </div>
                 </CardContent>
               </Card>
