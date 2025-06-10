@@ -78,7 +78,7 @@ export default function EmployeeCard({ employee }: EmployeeCardProps) {
         <div className="flex items-center justify-end">
           <Link
             href={`/profile/${employee.id}`}
-            className="text-primary hover:text-blue-700 text-sm font-medium flex items-center"
+            className="text-orange-600 hover:text-orange-700 text-sm font-medium flex items-center transition-colors"
           >
             View Profile <ArrowRight className="ml-1 h-3 w-3" />
           </Link>

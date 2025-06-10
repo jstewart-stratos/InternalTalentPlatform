@@ -291,7 +291,7 @@ export default function ExpertDirectory() {
                     )}
                     <Link
                       href={`/profile/${expert.id}`}
-                      className="text-primary hover:text-blue-700 text-sm font-medium flex items-center ml-auto"
+                      className="text-orange-600 hover:text-orange-700 text-sm font-medium flex items-center ml-auto transition-colors"
                     >
                       View Profile <ArrowRight className="ml-1 h-3 w-3" />
                     </Link>
