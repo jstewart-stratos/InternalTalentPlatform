@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { insertEmployeeSchema, insertSkillEndorsementSchema, insertProjectSchema, insertSiteSettingSchema, insertAuditLogSchema, insertUserPermissionSchema, insertDepartmentSchema, insertServiceCategorySchema, insertProfessionalServiceSchema, insertServiceBookingSchema, insertServiceReviewSchema, insertServicePortfolioSchema } from "@shared/schema";
 import { sendEmail } from "./sendgrid";
 import { getProjectRecommendationsForEmployee, getEmployeeRecommendationsForProject, getSkillGapAnalysis } from "./ai-recommendations";
+import OpenAI from "openai";
 import { getProjectRecommendationsForEmployee as getSkillBasedProjectRecs, getEmployeeRecommendationsForProject as getSkillBasedEmployeeRecs } from "./skill-matching";
 import { seedEmployeeSkills, getSkillLevelSummary } from "./seed-employee-skills";
 import { setupAuth, isAuthenticated } from "./replitAuth";
@@ -27,6 +28,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   };
 
   const authMiddleware = isDevelopment ? devAuthBypass : isAuthenticated;
+
+  // Initialize OpenAI
+  const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
   
   // Auth routes
   app.get('/api/auth/user', authMiddleware, async (req: any, res) => {
@@ -1900,6 +1906,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error getting skill level summary:", error);
       res.status(500).json({ error: "Failed to get skill level summary" });
+    }
+  });
+
+  // AI-Powered Learning Path Generation
+  app.post("/api/learning-paths", async (req, res) => {
+    try {
+      const { skill, currentLevel, targetLevel, context } = req.body;
+      
+      if (!skill) {
+        return res.status(400).json({ error: "Skill name is required" });
+      }
+
+      const prompt = `Generate a comprehensive learning path for acquiring "${skill}" skill in the financial services industry.
+
+Current level: ${currentLevel || 'beginner'}
+Target level: ${targetLevel || 'intermediate'}
+Context: ${context || 'Professional development for financial services employee'}
+
+Please provide a structured learning path with real, specific resources. Focus on legitimate courses, certifications, books, and practice platforms. Include estimated timeframes and difficulty progression.
+
+Respond with JSON in this exact format:
+{
+  "skill": "${skill}",
+  "totalDuration": "estimated time to complete",
+  "difficulty": "beginner/intermediate/advanced",
+  "steps": [
+    {
+      "title": "Step name",
+      "description": "What you'll learn",
+      "duration": "estimated time",
+      "resources": [
+        {
+          "title": "Resource name",
+          "type": "course/book/certification/practice",
+          "provider": "Platform or publisher",
+          "url": "https://example.com",
+          "cost": "free/paid/price",
+          "description": "Brief description"
+        }
+      ]
+    }
+  ],
+  "certifications": [
+    {
+      "name": "Certification name",
+      "provider": "Certification body",
+      "url": "https://example.com",
+      "cost": "price",
+      "timeToComplete": "duration"
+    }
+  ],
+  "practiceProjects": [
+    {
+      "title": "Project name",
+      "description": "What to build/practice",
+      "difficulty": "level"
+    }
+  ]
+}`;
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+        messages: [
+          {
+            role: "system",
+            content: "You are an expert learning advisor for financial services professionals. Provide practical, actionable learning paths with real resources and links. Focus on legitimate educational platforms, certifications, and industry-standard materials."
+          },
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.7,
+      });
+
+      const learningPath = JSON.parse(response.choices[0].message.content || '{}');
+      res.json(learningPath);
+
+    } catch (error) {
+      console.error('Error generating learning path:', error);
+      res.status(500).json({ 
+        error: "Failed to generate learning path",
+        details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
+      });
     }
   });
 

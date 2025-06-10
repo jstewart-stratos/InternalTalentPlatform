@@ -1,13 +1,53 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { TrendingUp, Target, Award, BookOpen, ArrowRight, Star, Users, CheckCircle } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { TrendingUp, Target, Award, BookOpen, ArrowRight, Star, Users, CheckCircle, ExternalLink, Book, Code, Clock, DollarSign } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/hooks/useAuth";
+import { apiRequest } from "@/lib/queryClient";
 import type { Employee, Project, EmployeeSkill } from "@shared/schema";
+
+interface LearningResource {
+  title: string;
+  type: string;
+  provider: string;
+  url: string;
+  cost: string;
+  description: string;
+}
+
+interface LearningStep {
+  title: string;
+  description: string;
+  duration: string;
+  resources: LearningResource[];
+}
+
+interface Certification {
+  name: string;
+  provider: string;
+  url: string;
+  cost: string;
+  timeToComplete: string;
+}
+
+interface PracticeProject {
+  title: string;
+  description: string;
+  difficulty: string;
+}
+
+interface LearningPath {
+  skill: string;
+  totalDuration: string;
+  difficulty: string;
+  steps: LearningStep[];
+  certifications: Certification[];
+  practiceProjects: PracticeProject[];
+}
 
 interface SkillRecommendation {
   skillName: string;
@@ -27,6 +67,8 @@ interface SkillRecommendation {
 export default function SkillsGapAnalysis() {
   const { user } = useAuth();
   const [selectedEmployee, setSelectedEmployee] = useState<string>("");
+  const [selectedSkillForLearning, setSelectedSkillForLearning] = useState<string | null>(null);
+  const [learningPaths, setLearningPaths] = useState<Map<string, LearningPath>>(new Map());
 
 
   const { data: currentEmployee } = useQuery<Employee>({
