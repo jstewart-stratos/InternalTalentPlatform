@@ -900,7 +900,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Learning step completion routes
-  app.get("/api/learning-steps/:recommendationId", isAuthenticated, async (req: any, res) => {
+  app.get("/api/learning-steps/completions/:recommendationId", isAuthenticated, async (req: any, res) => {
     try {
       const recommendationId = parseInt(req.params.recommendationId);
       const stepCompletions = await storage.getLearningStepCompletions(recommendationId);

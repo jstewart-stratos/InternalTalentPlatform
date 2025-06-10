@@ -126,7 +126,7 @@ export default function MyLearningPaths() {
       });
       return res.json();
     },
-    onSuccess: (data, variables) => {
+    onSuccess: async (data, variables) => {
       // Update local completed steps state immediately
       setCompletedSteps(prev => ({
         ...prev,
@@ -135,6 +135,24 @@ export default function MyLearningPaths() {
       
       // Invalidate queries to refresh data from server
       queryClient.invalidateQueries({ queryKey: ["/api/saved-skill-recommendations"] });
+      
+      // Reload completions for this specific recommendation
+      try {
+        const response = await fetch(`/api/learning-steps/completions/${variables.savedRecommendationId}`, {
+          credentials: 'include'
+        });
+        if (response.ok) {
+          const completions = await response.json();
+          const stepIndices = Array.isArray(completions) ? completions.map((c: any) => c.stepIndex) : [];
+          
+          setCompletedSteps(prev => ({
+            ...prev,
+            [`${variables.savedRecommendationId}`]: stepIndices
+          }));
+        }
+      } catch (error) {
+        console.error('Error reloading completions after step completion:', error);
+      }
       
       toast({
         title: "Step Completed!",
@@ -183,8 +201,9 @@ export default function MyLearningPaths() {
         
         for (const recommendation of savedRecommendations) {
           try {
-            const response = await fetch(`/api/learning-steps/completions/${recommendation.id}`);
-            console.log(`Response for recommendation ${recommendation.id}:`, response.status);
+            const response = await fetch(`/api/learning-steps/completions/${recommendation.id}`, {
+              credentials: 'include'
+            });
             if (response.ok) {
               const completions = await response.json();
               console.log(`Raw completions for recommendation ${recommendation.id}:`, completions);
@@ -193,7 +212,7 @@ export default function MyLearningPaths() {
               console.log(`Processed step indices for recommendation ${recommendation.id}:`, stepIndices);
             } else {
               completedStepsData[`${recommendation.id}`] = [];
-              console.log(`Failed response for recommendation ${recommendation.id}, setting empty array`);
+              console.log(`Failed response ${response.status} for recommendation ${recommendation.id}`);
             }
           } catch (error) {
             // Set empty array for failed requests
