@@ -26,6 +26,7 @@ export default function Navigation() {
     { path: "/", label: "Talent Directory", active: location === "/" || location === "/skills" || location === "/experts" },
     { path: "/projects", label: "Projects Hub", active: location === "/projects" },
     { path: "/skills-gap-analysis", label: "Career Growth", active: location === "/skills-gap-analysis" },
+    { path: "/my-learning-paths", label: "My Learning Paths", active: location === "/my-learning-paths" },
     { path: "/marketplace", label: "Marketplace", active: location === "/marketplace" },
     ...(isAdmin ? [
       { path: "/analytics", label: "Analytics", active: location === "/analytics" },
