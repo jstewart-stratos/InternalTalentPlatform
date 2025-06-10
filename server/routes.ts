@@ -2013,19 +2013,17 @@ Respond with JSON in this exact format:
 
   function generateCuratedLearningPath(skill: string, currentLevel?: string, targetLevel?: string, context?: string) {
     const skillLower = skill.toLowerCase();
-    const current = currentLevel || 'beginner';
-    const target = targetLevel || 'intermediate';
     
-    // Curated learning resources for common financial services skills
-    const skillResources: { [key: string]: any } = {
+    // Common financial services skills with curated resources
+    const skillPaths: { [key: string]: any } = {
       'python': {
         skill: "Python",
         totalDuration: "8-12 weeks",
         difficulty: "progressive",
         steps: [
           {
-            title: "Python Programming Fundamentals",
-            description: "Master Python syntax, data types, and programming basics",
+            title: "Python Fundamentals",
+            description: "Learn Python syntax and basic programming concepts",
             duration: "3-4 weeks",
             resources: [
               {
@@ -2033,316 +2031,110 @@ Respond with JSON in this exact format:
                 type: "course",
                 provider: "Coursera (University of Michigan)",
                 url: "https://www.coursera.org/specializations/python",
-                cost: "Free audit, $49/month for certificate",
-                description: "Comprehensive Python introduction with hands-on projects"
-              },
-              {
-                title: "Automate the Boring Stuff with Python",
-                type: "book",
-                provider: "No Starch Press",
-                url: "https://automatetheboringstuff.com/",
-                cost: "Free online, $25 paperback",
-                description: "Practical Python programming for beginners"
-              }
-            ]
-          },
-          {
-            title: "Financial Data Analysis with Python",
-            description: "Apply Python to financial modeling and data analysis",
-            duration: "4-5 weeks",
-            resources: [
-              {
-                title: "Python for Finance Specialization",
-                type: "course",
-                provider: "Coursera",
-                url: "https://www.coursera.org/specializations/python-programming-finance",
-                cost: "$49/month subscription",
-                description: "Python applications in finance and investment analysis"
-              },
-              {
-                title: "Python for Finance Cookbook",
-                type: "book",
-                provider: "Packt Publishing",
-                url: "https://www.packtpub.com/product/python-for-finance-cookbook/9781789618518",
-                cost: "$35.99",
-                description: "Practical recipes for financial analysis with Python"
+                cost: "Free audit, $49/month certificate",
+                description: "Comprehensive Python course for beginners"
               }
             ]
           }
         ],
         certifications: [
           {
-            name: "Python Institute PCEP Certification",
+            name: "Python Institute PCEP",
             provider: "Python Institute",
             url: "https://pythoninstitute.org/pcep",
             cost: "$59",
-            timeToComplete: "2-4 weeks preparation"
+            timeToComplete: "2-4 weeks"
           }
         ],
         practiceProjects: [
           {
-            title: "Portfolio Risk Analysis Tool",
-            description: "Build a Python application to calculate VaR and other risk metrics",
+            title: "Portfolio Risk Calculator",
+            description: "Build a Python tool for financial risk analysis",
             difficulty: "intermediate"
           }
         ]
       },
       'sql': {
         skill: "SQL",
-        totalDuration: "6-8 weeks",
+        totalDuration: "6-8 weeks", 
         difficulty: "progressive",
         steps: [
           {
-            title: "SQL Fundamentals for Financial Data",
+            title: "SQL Fundamentals",
             description: "Master database queries and data manipulation",
-            duration: "3 weeks",
+            duration: "3-4 weeks",
             resources: [
               {
                 title: "SQL for Data Science",
                 type: "course",
                 provider: "Coursera (UC Davis)",
                 url: "https://www.coursera.org/learn/sql-for-data-science",
-                cost: "Free audit, $49/month for certificate",
-                description: "SQL fundamentals with practical data science applications"
-              },
-              {
-                title: "Learning SQL",
-                type: "book",
-                provider: "O'Reilly Media",
-                url: "https://www.oreilly.com/library/view/learning-sql-3rd/9781492057604/",
-                cost: "$44.99",
-                description: "Comprehensive SQL reference and tutorial"
-              }
-            ]
-          },
-          {
-            title: "Advanced SQL for Financial Reporting",
-            description: "Complex queries, window functions, and performance optimization",
-            duration: "3-4 weeks",
-            resources: [
-              {
-                title: "Advanced SQL for Data Professionals",
-                type: "course",
-                provider: "LinkedIn Learning",
-                url: "https://www.linkedin.com/learning/advanced-sql-for-data-scientists",
-                cost: "$29.99/month subscription",
-                description: "Advanced SQL techniques for complex data analysis"
+                cost: "Free audit, $49/month certificate",
+                description: "Learn SQL with practical applications"
               }
             ]
           }
         ],
         certifications: [
           {
-            name: "Microsoft Azure Database Administrator",
+            name: "Microsoft SQL Server Certification",
             provider: "Microsoft",
-            url: "https://docs.microsoft.com/en-us/learn/certifications/azure-database-administrator-associate/",
+            url: "https://docs.microsoft.com/learn/certifications/azure-database-administrator-associate/",
             cost: "$165",
-            timeToComplete: "4-8 weeks preparation"
+            timeToComplete: "4-8 weeks"
           }
         ],
         practiceProjects: [
           {
-            title: "Financial Reporting Dashboard",
-            description: "Create complex SQL queries for executive financial reports",
-            difficulty: "intermediate"
-          }
-        ]
-      },
-      'risk management': {
-        skill: "Risk Management",
-        totalDuration: "12-16 weeks",
-        difficulty: "intermediate to advanced",
-        steps: [
-          {
-            title: "Financial Risk Fundamentals",
-            description: "Core concepts of market, credit, and operational risk",
-            duration: "4-5 weeks",
-            resources: [
-              {
-                title: "Financial Risk Management Specialization",
-                type: "course",
-                provider: "Coursera (New York Institute of Finance)",
-                url: "https://www.coursera.org/specializations/financialrisk",
-                cost: "$49/month subscription",
-                description: "Comprehensive risk management principles and practices"
-              },
-              {
-                title: "The Essentials of Risk Management",
-                type: "book",
-                provider: "McGraw-Hill",
-                url: "https://www.mheducation.com/highered/product/essentials-risk-management-crouhy-galai/M9781260462098.html",
-                cost: "$85",
-                description: "Industry standard risk management textbook"
-              }
-            ]
-          },
-          {
-            title: "Quantitative Risk Models",
-            description: "VaR, stress testing, and risk modeling techniques",
-            duration: "6-8 weeks",
-            resources: [
-              {
-                title: "Risk Management Professional Certificate",
-                type: "certification",
-                provider: "NYU Tandon School of Engineering",
-                url: "https://engineering.nyu.edu/academics/programs/risk-engineering/non-degree-programs",
-                cost: "$3,500",
-                description: "Professional certificate in financial risk management"
-              }
-            ]
-          }
-        ],
-        certifications: [
-          {
-            name: "Financial Risk Manager (FRM)",
-            provider: "Global Association of Risk Professionals",
-            url: "https://www.garp.org/frm",
-            cost: "$825 + $350 exam fees",
-            timeToComplete: "6-12 months preparation"
-          },
-          {
-            name: "Professional Risk Manager (PRM)",
-            provider: "Professional Risk Managers' International Association",
-            url: "https://www.prmia.org/Public/Certification/PRM_Certification.aspx",
-            cost: "$700 + exam fees",
-            timeToComplete: "4-8 months preparation"
-          }
-        ],
-        practiceProjects: [
-          {
-            title: "Credit Risk Assessment Model",
-            description: "Develop a comprehensive credit scoring and risk assessment framework",
-            difficulty: "advanced"
-          }
-        ]
-      },
-      'data analysis': {
-        skill: "Data Analysis",
-        totalDuration: "10-14 weeks",
-        difficulty: "intermediate",
-        steps: [
-          {
-            title: "Statistical Analysis Fundamentals",
-            description: "Statistics, probability, and data visualization",
-            duration: "4-5 weeks",
-            resources: [
-              {
-                title: "Data Analysis and Visualization Specialization",
-                type: "course",
-                provider: "Coursera (Duke University)",
-                url: "https://www.coursera.org/specializations/analytics",
-                cost: "$49/month subscription",
-                description: "Statistical analysis and data visualization techniques"
-              },
-              {
-                title: "Think Stats",
-                type: "book",
-                provider: "O'Reilly Media",
-                url: "https://greenteapress.com/wp/think-stats-2e/",
-                cost: "Free online, $29.99 paperback",
-                description: "Statistics and probability for programmers"
-              }
-            ]
-          },
-          {
-            title: "Financial Data Analysis",
-            description: "Apply data analysis to financial markets and instruments",
-            duration: "5-6 weeks",
-            resources: [
-              {
-                title: "Financial Markets Data Analysis",
-                type: "course",
-                provider: "edX (MIT)",
-                url: "https://www.edx.org/course/financial-analysis-and-decision-making",
-                cost: "Free audit, $99 for certificate",
-                description: "Data-driven financial analysis and decision making"
-              }
-            ]
-          }
-        ],
-        certifications: [
-          {
-            name: "Certified Analytics Professional (CAP)",
-            provider: "INFORMS",
-            url: "https://www.informs.org/Recognizing-Excellence/INFORMS-Prizes/Certified-Analytics-Professional",
-            cost: "$695",
-            timeToComplete: "6-12 months preparation"
-          }
-        ],
-        practiceProjects: [
-          {
-            title: "Market Trend Analysis Dashboard",
-            description: "Build an automated dashboard for financial market analysis",
+            title: "Financial Reports Dashboard",
+            description: "Create SQL queries for financial reporting",
             difficulty: "intermediate"
           }
         ]
       }
     };
 
-    // Default learning path for any skill not specifically covered
+    // Default path for any skill
     const defaultPath = {
       skill: skill,
-      totalDuration: "8-12 weeks",
-      difficulty: "progressive",
+      totalDuration: "6-10 weeks",
+      difficulty: "progressive", 
       steps: [
         {
-          title: `${skill} Professional Development`,
-          description: `Comprehensive training in ${skill} for financial services professionals`,
-          duration: "4-6 weeks",
+          title: `${skill} Fundamentals`,
+          description: `Learn core ${skill} concepts and applications`,
+          duration: "3-5 weeks",
           resources: [
             {
-              title: `${skill} Fundamentals Course`,
+              title: `${skill} Professional Course`,
               type: "course",
               provider: "LinkedIn Learning",
               url: `https://www.linkedin.com/learning/search?keywords=${encodeURIComponent(skill)}`,
-              cost: "$29.99/month subscription",
-              description: `Professional development course covering ${skill} essentials`
-            },
-            {
-              title: `${skill} Industry Best Practices`,
-              type: "course",
-              provider: "Coursera",
-              url: `https://www.coursera.org/search?query=${encodeURIComponent(skill + ' financial services')}`,
-              cost: "Free audit, certificate fee varies",
-              description: `Industry-specific ${skill} training and best practices`
-            }
-          ]
-        },
-        {
-          title: `Advanced ${skill} Applications`,
-          description: `Apply ${skill} expertise to complex financial scenarios`,
-          duration: "4-6 weeks",
-          resources: [
-            {
-              title: `${skill} Certification Preparation`,
-              type: "certification",
-              provider: "Professional Organizations",
-              url: `https://www.google.com/search?q="${encodeURIComponent(skill + ' professional certification financial services')}"`,
-              cost: "Varies by certification body",
-              description: `Preparation for professional certification in ${skill}`
+              cost: "$29.99/month",
+              description: `Professional ${skill} training course`
             }
           ]
         }
       ],
       certifications: [
         {
-          name: `${skill} Professional Certification`,
-          provider: "Industry Professional Bodies",
-          url: `https://www.google.com/search?q="${encodeURIComponent(skill + ' certification')}"`,
-          cost: "Varies by certification",
-          timeToComplete: "4-12 weeks preparation"
+          name: `${skill} Certification`,
+          provider: "Professional Bodies",
+          url: `https://www.google.com/search?q=${encodeURIComponent(skill + ' certification')}`,
+          cost: "Varies",
+          timeToComplete: "4-12 weeks"
         }
       ],
       practiceProjects: [
         {
           title: `${skill} Portfolio Project`,
-          description: `Comprehensive project demonstrating ${skill} mastery in financial services context`,
-          difficulty: target
+          description: `Demonstrate ${skill} expertise through practical application`,
+          difficulty: targetLevel || "intermediate"
         }
       ]
     };
 
-    return skillResources[skillLower] || defaultPath;
+    return skillPaths[skillLower] || defaultPath;
   }
 
   // =====================
