@@ -54,11 +54,11 @@ export default function SkillsGapAnalysis() {
     queryKey: ["/api/all-employee-skills"],
   });
 
-  const targetEmployeeId = selectedEmployee || currentEmployee?.id;
-  const targetEmployee = employees.find(emp => emp.id === parseInt(targetEmployeeId || "0"));
+  const targetEmployeeId = selectedEmployee === "current" || !selectedEmployee ? currentEmployee?.id : parseInt(selectedEmployee);
+  const targetEmployee = employees.find(emp => emp.id === targetEmployeeId);
 
   const { data: employeeSkills = [] } = useQuery<EmployeeSkill[]>({
-    queryKey: ["/api/employees", targetEmployeeId, "skills"],
+    queryKey: ["/api/employees", targetEmployeeId?.toString(), "skills"],
     enabled: !!targetEmployeeId,
   });
 
@@ -248,7 +248,7 @@ export default function SkillsGapAnalysis() {
               <SelectValue placeholder="Select employee (default: you)" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Current User ({currentEmployee?.name})</SelectItem>
+              <SelectItem value="current">Current User ({currentEmployee?.name})</SelectItem>
               {employees.map(emp => (
                 <SelectItem key={emp.id} value={emp.id.toString()}>{emp.name}</SelectItem>
               ))}
