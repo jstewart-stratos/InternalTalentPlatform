@@ -1,4 +1,4 @@
-import { employees, skillEndorsements, skillSearches, projects, projectApplications, users, siteSettings, adminAuditLog, userPermissions, departments, expertiseRequests, skillExpertise, employeeSkills, serviceCategories, professionalServices, serviceBookings, serviceReviews, servicePortfolios, savedSkillRecommendations, type Employee, type InsertEmployee, type SkillEndorsement, type InsertSkillEndorsement, type Project, type InsertProject, type ProjectApplication, type InsertProjectApplication, type User, type UpsertUser, type SiteSetting, type InsertSiteSetting, type AuditLog, type InsertAuditLog, type UserPermission, type InsertUserPermission, type Department, type InsertDepartment, type ExpertiseRequest, type InsertExpertiseRequest, type SkillExpertise, type InsertSkillExpertise, type EmployeeSkill, type InsertEmployeeSkill, type ServiceCategory, type InsertServiceCategory, type ProfessionalService, type InsertProfessionalService, type ServiceBooking, type InsertServiceBooking, type ServiceReview, type InsertServiceReview, type ServicePortfolio, type InsertServicePortfolio, type SavedSkillRecommendation, type InsertSavedSkillRecommendation } from "@shared/schema";
+import { employees, skillEndorsements, skillSearches, projects, projectApplications, users, siteSettings, adminAuditLog, userPermissions, departments, expertiseRequests, skillExpertise, employeeSkills, serviceCategories, professionalServices, serviceBookings, serviceReviews, servicePortfolios, savedSkillRecommendations, learningPathCache, type Employee, type InsertEmployee, type SkillEndorsement, type InsertSkillEndorsement, type Project, type InsertProject, type ProjectApplication, type InsertProjectApplication, type User, type UpsertUser, type SiteSetting, type InsertSiteSetting, type AuditLog, type InsertAuditLog, type UserPermission, type InsertUserPermission, type Department, type InsertDepartment, type ExpertiseRequest, type InsertExpertiseRequest, type SkillExpertise, type InsertSkillExpertise, type EmployeeSkill, type InsertEmployeeSkill, type ServiceCategory, type InsertServiceCategory, type ProfessionalService, type InsertProfessionalService, type ServiceBooking, type InsertServiceBooking, type ServiceReview, type InsertServiceReview, type ServicePortfolio, type InsertServicePortfolio, type SavedSkillRecommendation, type InsertSavedSkillRecommendation, type LearningPathCache, type InsertLearningPathCache } from "@shared/schema";
 import { db } from "./db";
 import { eq, or, and, ilike, sql, desc } from "drizzle-orm";
 
@@ -1120,6 +1120,50 @@ export class DatabaseStorage implements IStorage {
       .where(eq(savedSkillRecommendations.id, id))
       .returning();
     return completed;
+  }
+
+  // Learning path cache methods
+  async getCachedLearningPath(skill: string, context = "general", currentLevel = "beginner", targetLevel = "intermediate"): Promise<LearningPathCache | undefined> {
+    const [cached] = await db
+      .select()
+      .from(learningPathCache)
+      .where(
+        and(
+          eq(learningPathCache.skill, skill.toLowerCase()),
+          eq(learningPathCache.context, context),
+          eq(learningPathCache.currentLevel, currentLevel),
+          eq(learningPathCache.targetLevel, targetLevel)
+        )
+      )
+      .limit(1);
+    
+    if (cached) {
+      // Update usage stats
+      await this.updateLearningPathCacheUsage(cached.id);
+    }
+    
+    return cached;
+  }
+
+  async cacheLearningPath(cacheData: InsertLearningPathCache): Promise<LearningPathCache> {
+    const [cached] = await db
+      .insert(learningPathCache)
+      .values({
+        ...cacheData,
+        skill: cacheData.skill.toLowerCase()
+      })
+      .returning();
+    return cached;
+  }
+
+  async updateLearningPathCacheUsage(id: number): Promise<void> {
+    await db
+      .update(learningPathCache)
+      .set({ 
+        lastUsedAt: new Date(),
+        usageCount: sql`${learningPathCache.usageCount} + 1`
+      })
+      .where(eq(learningPathCache.id, id));
   }
 }
 

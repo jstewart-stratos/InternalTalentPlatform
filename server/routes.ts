@@ -2020,11 +2020,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Learning Path Generation with Curated Resources
   app.post("/api/learning-paths", async (req, res) => {
     try {
-      const { skill, currentLevel, targetLevel, context } = req.body;
+      const { skill, currentLevel = "beginner", targetLevel = "intermediate", context = "general" } = req.body;
       
       if (!skill) {
         return res.status(400).json({ error: "Skill name is required" });
       }
+
+      // Check cache first
+      const cachedPath = await storage.getCachedLearningPath(skill, context, currentLevel, targetLevel);
+      if (cachedPath) {
+        console.log(`Using cached learning path for: ${skill}`);
+        return res.json(cachedPath.learningPathData);
+      }
+
+      let learningPath;
+      let generatedBy = "curated";
 
       // Try OpenAI first if API key is available
       if (process.env.OPENAI_API_KEY) {
@@ -2097,16 +2107,37 @@ Respond with JSON in this exact format:
             temperature: 0.7,
           });
 
-          const learningPath = JSON.parse(response.choices[0].message.content || '{}');
-          return res.json(learningPath);
+          learningPath = JSON.parse(response.choices[0].message.content || '{}');
+          generatedBy = "openai";
+          console.log(`Generated new OpenAI learning path for: ${skill}`);
         } catch (aiError: any) {
           console.error('OpenAI API error, using curated resources:', aiError);
           // Fall through to curated resources
         }
       }
 
-      // Use curated learning resources
-      const learningPath = generateCuratedLearningPath(skill, currentLevel, targetLevel, context);
+      // Use curated learning resources if OpenAI failed or unavailable
+      if (!learningPath) {
+        learningPath = generateCuratedLearningPath(skill, currentLevel, targetLevel, context);
+        console.log(`Generated curated learning path for: ${skill}`);
+      }
+
+      // Cache the generated learning path
+      try {
+        await storage.cacheLearningPath({
+          skill,
+          context,
+          currentLevel,
+          targetLevel,
+          learningPathData: learningPath,
+          generatedBy
+        });
+        console.log(`Cached learning path for: ${skill}`);
+      } catch (cacheError) {
+        console.error('Failed to cache learning path:', cacheError);
+        // Continue without caching
+      }
+
       res.json(learningPath);
 
     } catch (error: any) {
