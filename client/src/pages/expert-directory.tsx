@@ -281,6 +281,7 @@ export default function ExpertDirectory() {
                   <div className="flex space-x-2">
                     <Button 
                       size="sm" 
+                      variant="outline"
                       className="flex-1"
                       onClick={() => setLocation(`/profile/${expert.id}`)}
                     >
