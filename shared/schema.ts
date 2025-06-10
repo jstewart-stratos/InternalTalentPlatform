@@ -72,7 +72,7 @@ export const projects = pgTable("projects", {
   title: text("title").notNull(),
   description: text("description").notNull(),
   ownerId: integer("owner_id").notNull().references(() => employees.id),
-  status: text("status", { enum: ["planning", "active", "paused", "completed"] }).default("planning").notNull(),
+  status: text("status", { enum: ["planning", "active", "paused", "completed", "closed"] }).default("planning").notNull(),
   priority: text("priority", { enum: ["low", "medium", "high", "critical"] }).default("medium").notNull(),
   deadline: timestamp("deadline"),
   requiredSkills: text("required_skills").array().default([]).notNull(),

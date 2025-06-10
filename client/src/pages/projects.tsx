@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Calendar, Clock, DollarSign, Users, AlertCircle, CheckCircle, Pause, Play, ArrowLeft, Mail, User, Filter, Search } from "lucide-react";
+import { Plus, Calendar, Clock, DollarSign, Users, AlertCircle, CheckCircle, Pause, Play, ArrowLeft, Mail, User, Filter, Search, Archive, Edit, Trash2, Eye, UserPlus } from "lucide-react";
 import { useUser } from "@/contexts/user-context";
 import EmployeeRecommendations from "@/components/employee-recommendations";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,7 @@ const statusColors = {
   active: "bg-green-100 text-green-800",
   paused: "bg-yellow-100 text-yellow-800",
   completed: "bg-gray-100 text-gray-800",
+  closed: "bg-gray-100 text-gray-600",
 };
 
 const priorityColors = {
@@ -50,6 +51,7 @@ const statusIcons = {
   active: Play,
   paused: Pause,
   completed: CheckCircle,
+  closed: Archive,
 };
 
 export default function Projects() {
@@ -80,7 +82,10 @@ export default function Projects() {
 
   // Filter and sort projects
   const filteredAndSortedProjects = useMemo(() => {
-    let filtered = projects;
+    // First filter out closed and completed projects from the main display
+    let filtered = projects.filter(project => 
+      project.status !== "closed" && project.status !== "completed"
+    );
 
     // Apply search filter
     if (searchQuery.trim()) {
