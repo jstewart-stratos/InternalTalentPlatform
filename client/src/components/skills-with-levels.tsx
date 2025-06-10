@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, X, Star, Users, Edit3, Check, X as XIcon, Sparkles, Lightbulb } from "lucide-react";
+import { Plus, X, Star, Users, Edit3, Check, X as XIcon, Sparkles, Lightbulb, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -34,6 +34,7 @@ export default function SkillsWithLevels({
   const [editingSkill, setEditingSkill] = useState<number | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedSuggestion, setSelectedSuggestion] = useState(-1);
+  const [showAllSkills, setShowAllSkills] = useState(false);
 
   const { data: skills = [], isLoading } = useQuery({
     queryKey: ["/api/employees", employeeId, "skills"],
@@ -426,7 +427,7 @@ export default function SkillsWithLevels({
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {skills.slice(0, 20).map((skill) => (
+        {(showAllSkills ? skills : skills.slice(0, 8)).map((skill) => (
           <SkillItem
             key={skill.id}
             skill={skill}
@@ -443,11 +444,25 @@ export default function SkillsWithLevels({
         ))}
       </div>
 
-      {skills.length > 20 && (
-        <div className="text-center py-4">
-          <Badge variant="outline" className="text-gray-600">
-            Showing 20 of {skills.length} skills
-          </Badge>
+      {skills.length > 8 && (
+        <div className="text-center py-2">
+          <Button
+            variant="ghost"
+            onClick={() => setShowAllSkills(!showAllSkills)}
+            className="text-sm text-gray-600 hover:text-gray-800"
+          >
+            {showAllSkills ? (
+              <>
+                <ChevronUp className="h-4 w-4 mr-1" />
+                Show Less Skills
+              </>
+            ) : (
+              <>
+                <ChevronDown className="h-4 w-4 mr-1" />
+                Show All {skills.length} Skills
+              </>
+            )}
+          </Button>
         </div>
       )}
 
