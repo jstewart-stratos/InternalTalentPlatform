@@ -14,7 +14,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, DollarSign, Star, Clock, MapPin, Users, Calendar, Shield, Award, MessageSquare } from "lucide-react";
+import { ArrowLeft, DollarSign, Star, Clock, MapPin, Users, Calendar, Shield, Award, MessageSquare, UserCircle } from "lucide-react";
 
 const bookingFormSchema = z.object({
   clientMessage: z.string().min(10, "Please provide details about your requirements"),
