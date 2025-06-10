@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, User, CheckCircle, BookOpen, Clock, ExternalLink, Save, Heart } from 'lucide-react';
+import { TrendingUp, User, CheckCircle, BookOpen, Clock, ExternalLink, Save, Heart, X } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 
@@ -85,6 +85,7 @@ interface LearningPath {
 
 export default function SkillsGapAnalysis() {
   const [learningPaths, setLearningPaths] = useState<{ [skill: string]: LearningPath }>({});
+  const [dismissedSkills, setDismissedSkills] = useState<string[]>([]);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -164,6 +165,14 @@ export default function SkillsGapAnalysis() {
     return savedRecommendations.some(rec => rec.skill === skillName);
   };
 
+  const handleDismissSkill = (skillName: string) => {
+    setDismissedSkills(prev => [...prev, skillName]);
+    toast({
+      title: "Skill Dismissed",
+      description: "This recommendation has been removed from your list.",
+    });
+  };
+
   const handleSaveRecommendation = async (recommendation: SkillRecommendation) => {
     if (savedRecommendations.length >= 10) {
       toast({
@@ -230,6 +239,10 @@ export default function SkillsGapAnalysis() {
   
   if (currentEmployee && projects.length > 0) {
     const employeeSkillNames = employeeSkills.map(skill => skill.skillName.toLowerCase());
+    const savedSkillNames = savedRecommendations.map(rec => rec.skill.toLowerCase());
+    const dismissedSkillNames = dismissedSkills.map(skill => skill.toLowerCase());
+    const excludedSkills = [...employeeSkillNames, ...savedSkillNames, ...dismissedSkillNames];
+    
     const allProjectSkills = projects.flatMap(project => project.requiredSkills);
     const skillDemand: { [skill: string]: number } = {};
     
@@ -238,9 +251,9 @@ export default function SkillsGapAnalysis() {
       skillDemand[normalizedSkill] = (skillDemand[normalizedSkill] || 0) + 1;
     });
 
-    // Find skills that are in demand but not possessed by employee
+    // Find skills that are in demand but not possessed/saved/dismissed by employee
     for (const [skill, demand] of Object.entries(skillDemand)) {
-      if (!employeeSkillNames.includes(skill)) {
+      if (!excludedSkills.includes(skill)) {
         recommendations.push({
           skill: skill.charAt(0).toUpperCase() + skill.slice(1),
           priority: demand >= 3 ? 'high' : demand >= 2 ? 'medium' : 'low',
@@ -251,10 +264,17 @@ export default function SkillsGapAnalysis() {
       }
     }
 
-    // Add some growth recommendations for existing skills
-    const growthSkills = ['Data Science', 'Machine Learning', 'Cloud Computing', 'DevOps', 'Blockchain', 'Cybersecurity', 'API Development', 'Digital Transformation'];
+    // Add more growth recommendations to fill gaps from saved/dismissed skills
+    const growthSkills = [
+      'Data Science', 'Machine Learning', 'Cloud Computing', 'DevOps', 'Blockchain', 
+      'Cybersecurity', 'API Development', 'Digital Transformation', 'Microservices',
+      'Risk Analytics', 'Regulatory Technology', 'Mobile Development', 'UX Design',
+      'Agile Methodology', 'Product Management', 'Business Intelligence', 'AI Ethics',
+      'Financial Modeling', 'Compliance Management', 'Data Visualization'
+    ];
+    
     growthSkills.forEach(skill => {
-      if (!employeeSkillNames.includes(skill.toLowerCase()) && recommendations.length < 10) {
+      if (!excludedSkills.includes(skill.toLowerCase()) && recommendations.length < 10) {
         recommendations.push({
           skill,
           priority: 'medium',
@@ -265,7 +285,16 @@ export default function SkillsGapAnalysis() {
       }
     });
 
-    // Limit to exactly 10 recommendations to match save limit
+    // Sort by priority and project demand to show most relevant first
+    recommendations.sort((a, b) => {
+      const priorityOrder = { high: 3, medium: 2, low: 1 };
+      if (priorityOrder[a.priority] !== priorityOrder[b.priority]) {
+        return priorityOrder[b.priority] - priorityOrder[a.priority];
+      }
+      return b.projectDemand - a.projectDemand;
+    });
+
+    // Limit to exactly 10 recommendations
     recommendations.splice(10);
   }
 
@@ -364,7 +393,7 @@ export default function SkillsGapAnalysis() {
                         Required by {rec.projectDemand} active project(s)
                       </p>
                     )}
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
                       <Button
                         size="sm"
                         onClick={() => generateLearningPath.mutate({ 
@@ -415,6 +444,16 @@ export default function SkillsGapAnalysis() {
                             Save
                           </>
                         )}
+                      </Button>
+
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleDismissSkill(rec.skill)}
+                        className="text-gray-500 hover:text-red-600"
+                      >
+                        <X className="h-4 w-4 mr-1" />
+                        Dismiss
                       </Button>
                     </div>
                     
