@@ -1,4 +1,4 @@
-import { employees, skillEndorsements, skillSearches, projects, projectApplications, users, siteSettings, adminAuditLog, userPermissions, departments, expertiseRequests, skillExpertise, employeeSkills, serviceCategories, professionalServices, serviceBookings, serviceReviews, servicePortfolios, savedSkillRecommendations, learningPathCache, type Employee, type InsertEmployee, type SkillEndorsement, type InsertSkillEndorsement, type Project, type InsertProject, type ProjectApplication, type InsertProjectApplication, type User, type UpsertUser, type SiteSetting, type InsertSiteSetting, type AuditLog, type InsertAuditLog, type UserPermission, type InsertUserPermission, type Department, type InsertDepartment, type ExpertiseRequest, type InsertExpertiseRequest, type SkillExpertise, type InsertSkillExpertise, type EmployeeSkill, type InsertEmployeeSkill, type ServiceCategory, type InsertServiceCategory, type ProfessionalService, type InsertProfessionalService, type ServiceBooking, type InsertServiceBooking, type ServiceReview, type InsertServiceReview, type ServicePortfolio, type InsertServicePortfolio, type SavedSkillRecommendation, type InsertSavedSkillRecommendation, type LearningPathCache, type InsertLearningPathCache } from "@shared/schema";
+import { employees, skillEndorsements, skillSearches, projects, projectApplications, users, siteSettings, adminAuditLog, userPermissions, departments, expertiseRequests, skillExpertise, employeeSkills, serviceCategories, professionalServices, serviceBookings, serviceReviews, servicePortfolios, savedSkillRecommendations, learningPathCache, learningStepCompletions, type Employee, type InsertEmployee, type SkillEndorsement, type InsertSkillEndorsement, type Project, type InsertProject, type ProjectApplication, type InsertProjectApplication, type User, type UpsertUser, type SiteSetting, type InsertSiteSetting, type AuditLog, type InsertAuditLog, type UserPermission, type InsertUserPermission, type Department, type InsertDepartment, type ExpertiseRequest, type InsertExpertiseRequest, type SkillExpertise, type InsertSkillExpertise, type EmployeeSkill, type InsertEmployeeSkill, type ServiceCategory, type InsertServiceCategory, type ProfessionalService, type InsertProfessionalService, type ServiceBooking, type InsertServiceBooking, type ServiceReview, type InsertServiceReview, type ServicePortfolio, type InsertServicePortfolio, type SavedSkillRecommendation, type InsertSavedSkillRecommendation, type LearningPathCache, type InsertLearningPathCache } from "@shared/schema";
 import { db } from "./db";
 import { eq, or, and, ilike, sql, desc } from "drizzle-orm";
 
@@ -778,6 +778,51 @@ export class DatabaseStorage implements IStorage {
       .where(eq(departments.id, id))
       .returning({ id: departments.id });
     return result.length > 0;
+  }
+
+  // Learning step completion methods
+  async completeLearningStep(stepData: {
+    savedRecommendationId: number;
+    stepIndex: number;
+    stepTitle: string;
+    notes?: string;
+    resourcesCompleted?: string[];
+  }) {
+    const [completion] = await db
+      .insert(learningStepCompletions)
+      .values(stepData)
+      .returning();
+    return completion;
+  }
+
+  async getLearningStepCompletions(savedRecommendationId: number) {
+    return await db
+      .select()
+      .from(learningStepCompletions)
+      .where(eq(learningStepCompletions.savedRecommendationId, savedRecommendationId))
+      .orderBy(learningStepCompletions.stepIndex);
+  }
+
+  async getSavedSkillRecommendation(id: number) {
+    const [recommendation] = await db
+      .select()
+      .from(savedSkillRecommendations)
+      .where(eq(savedSkillRecommendations.id, id));
+    return recommendation || undefined;
+  }
+
+  async updateSavedSkillRecommendationProgress(id: number, progressPercentage: number) {
+    const [updated] = await db
+      .update(savedSkillRecommendations)
+      .set({ 
+        progressPercentage,
+        status: progressPercentage >= 100 ? 'completed' : progressPercentage > 0 ? 'in_progress' : 'saved',
+        lastAccessedAt: new Date(),
+        completedAt: progressPercentage >= 100 ? new Date() : null
+      })
+      .where(eq(savedSkillRecommendations.id, id))
+      .returning();
+    return updated;
   }
 
   // Expert directory methods

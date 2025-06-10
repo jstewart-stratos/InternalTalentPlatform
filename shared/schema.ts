@@ -276,6 +276,19 @@ export const learningPathCache = pgTable("learning_path_cache", {
   index("learning_path_cache_context_idx").on(table.context),
 ]);
 
+// Learning step completions table for tracking individual step progress
+export const learningStepCompletions = pgTable("learning_step_completions", {
+  id: serial("id").primaryKey(),
+  savedRecommendationId: integer("saved_recommendation_id").references(() => savedSkillRecommendations.id).notNull(),
+  stepIndex: integer("step_index").notNull(),
+  stepTitle: text("step_title").notNull(),
+  completedAt: timestamp("completed_at").defaultNow().notNull(),
+  notes: text("notes"), // User notes about their learning
+  resourcesCompleted: text("resources_completed").array().default([]), // URLs of completed resources
+}, (table) => [
+  index("learning_step_completions_recommendation_idx").on(table.savedRecommendationId),
+]);
+
 // User authentication schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   createdAt: true,
@@ -286,6 +299,11 @@ export const insertSavedSkillRecommendationSchema = createInsertSchema(savedSkil
   id: true,
   savedAt: true,
   lastAccessedAt: true,
+  completedAt: true,
+});
+
+export const insertLearningStepCompletionSchema = createInsertSchema(learningStepCompletions).omit({
+  id: true,
   completedAt: true,
 });
 

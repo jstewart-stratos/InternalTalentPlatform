@@ -899,6 +899,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Learning step completion routes
+  app.get("/api/learning-steps/:recommendationId", isAuthenticated, async (req: any, res) => {
+    try {
+      const recommendationId = parseInt(req.params.recommendationId);
+      const stepCompletions = await storage.getLearningStepCompletions(recommendationId);
+      res.json(stepCompletions);
+    } catch (error) {
+      console.error("Error fetching learning step completions:", error);
+      res.status(500).json({ error: "Failed to fetch learning step completions" });
+    }
+  });
+
+  app.post("/api/learning-steps/complete", isAuthenticated, async (req: any, res) => {
+    try {
+      const { savedRecommendationId, stepIndex, stepTitle, notes, resourcesCompleted } = req.body;
+      
+      const completion = await storage.completeLearningStep({
+        savedRecommendationId,
+        stepIndex,
+        stepTitle,
+        notes,
+        resourcesCompleted
+      });
+
+      // Calculate updated progress based on completed steps
+      const recommendation = await storage.getSavedSkillRecommendation(savedRecommendationId);
+      if (recommendation?.learningPathData?.steps) {
+        const totalSteps = recommendation.learningPathData.steps.length;
+        const completedSteps = await storage.getLearningStepCompletions(savedRecommendationId);
+        const progressPercentage = Math.round((completedSteps.length / totalSteps) * 100);
+        
+        await storage.updateSavedSkillRecommendationProgress(savedRecommendationId, progressPercentage);
+      }
+
+      res.json(completion);
+    } catch (error) {
+      console.error("Error completing learning step:", error);
+      res.status(500).json({ error: "Failed to complete learning step" });
+    }
+  });
+
+  app.post("/api/learning-paths/advanced-material", isAuthenticated, async (req: any, res) => {
+    try {
+      const { skill, currentLevel = 'intermediate', targetLevel = 'advanced' } = req.body;
+      
+      // Check cache first
+      const cachedPath = await storage.getCachedLearningPath(skill, 'advanced', currentLevel, targetLevel);
+      if (cachedPath) {
+        console.log(`Using cached advanced learning path for: ${skill}`);
+        return res.json(cachedPath.learningPathData);
+      }
+
+      // Generate advanced learning path using AI
+      const advancedPath = await generateCuratedLearningPath(skill, currentLevel, targetLevel, 'advanced');
+      
+      // Cache the generated path
+      await storage.cacheLearningPath(skill, 'advanced', currentLevel, targetLevel, advancedPath);
+      console.log(`Generated and cached advanced learning path for: ${skill}`);
+      
+      res.json(advancedPath);
+    } catch (error) {
+      console.error("Error generating advanced learning material:", error);
+      res.status(500).json({ error: "Failed to generate advanced learning material" });
+    }
+  });
+
   // Admin middleware to check user role
   const requireAdminRole = async (req: any, res: any, next: any) => {
     try {
