@@ -242,15 +242,41 @@ export const insertDepartmentSchema = createInsertSchema(departments).omit({
   updatedAt: true,
 });
 
+// Saved skill recommendations table
+export const savedSkillRecommendations = pgTable("saved_skill_recommendations", {
+  id: serial("id").primaryKey(),
+  employeeId: integer("employee_id").references(() => employees.id).notNull(),
+  skill: text("skill").notNull(),
+  priority: text("priority").notNull(), // high, medium, low
+  reason: text("reason").notNull(),
+  projectDemand: integer("project_demand").default(0),
+  status: text("status").default("pending"), // pending, in_progress, completed, archived
+  learningPathGenerated: boolean("learning_path_generated").default(false),
+  learningPathData: jsonb("learning_path_data"), // Store the full learning path JSON
+  progressPercentage: integer("progress_percentage").default(0),
+  savedAt: timestamp("saved_at").defaultNow().notNull(),
+  lastAccessedAt: timestamp("last_accessed_at"),
+  completedAt: timestamp("completed_at"),
+});
+
 // User authentication schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   createdAt: true,
   updatedAt: true,
 });
 
+export const insertSavedSkillRecommendationSchema = createInsertSchema(savedSkillRecommendations).omit({
+  id: true,
+  savedAt: true,
+  lastAccessedAt: true,
+  completedAt: true,
+});
+
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 export type InsertEmployee = z.infer<typeof insertEmployeeSchema>;
+export type SavedSkillRecommendation = typeof savedSkillRecommendations.$inferSelect;
+export type InsertSavedSkillRecommendation = z.infer<typeof insertSavedSkillRecommendationSchema>;
 export type Employee = typeof employees.$inferSelect;
 export type InsertSkillEndorsement = z.infer<typeof insertSkillEndorsementSchema>;
 export type SkillEndorsement = typeof skillEndorsements.$inferSelect;

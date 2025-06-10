@@ -1,4 +1,4 @@
-import { employees, skillEndorsements, skillSearches, projects, projectApplications, users, siteSettings, adminAuditLog, userPermissions, departments, expertiseRequests, skillExpertise, employeeSkills, serviceCategories, professionalServices, serviceBookings, serviceReviews, servicePortfolios, type Employee, type InsertEmployee, type SkillEndorsement, type InsertSkillEndorsement, type Project, type InsertProject, type ProjectApplication, type InsertProjectApplication, type User, type UpsertUser, type SiteSetting, type InsertSiteSetting, type AuditLog, type InsertAuditLog, type UserPermission, type InsertUserPermission, type Department, type InsertDepartment, type ExpertiseRequest, type InsertExpertiseRequest, type SkillExpertise, type InsertSkillExpertise, type EmployeeSkill, type InsertEmployeeSkill, type ServiceCategory, type InsertServiceCategory, type ProfessionalService, type InsertProfessionalService, type ServiceBooking, type InsertServiceBooking, type ServiceReview, type InsertServiceReview, type ServicePortfolio, type InsertServicePortfolio } from "@shared/schema";
+import { employees, skillEndorsements, skillSearches, projects, projectApplications, users, siteSettings, adminAuditLog, userPermissions, departments, expertiseRequests, skillExpertise, employeeSkills, serviceCategories, professionalServices, serviceBookings, serviceReviews, servicePortfolios, savedSkillRecommendations, type Employee, type InsertEmployee, type SkillEndorsement, type InsertSkillEndorsement, type Project, type InsertProject, type ProjectApplication, type InsertProjectApplication, type User, type UpsertUser, type SiteSetting, type InsertSiteSetting, type AuditLog, type InsertAuditLog, type UserPermission, type InsertUserPermission, type Department, type InsertDepartment, type ExpertiseRequest, type InsertExpertiseRequest, type SkillExpertise, type InsertSkillExpertise, type EmployeeSkill, type InsertEmployeeSkill, type ServiceCategory, type InsertServiceCategory, type ProfessionalService, type InsertProfessionalService, type ServiceBooking, type InsertServiceBooking, type ServiceReview, type InsertServiceReview, type ServicePortfolio, type InsertServicePortfolio, type SavedSkillRecommendation, type InsertSavedSkillRecommendation } from "@shared/schema";
 import { db } from "./db";
 import { eq, or, and, ilike, sql, desc } from "drizzle-orm";
 
@@ -118,6 +118,14 @@ export interface IStorage {
   
   // Service bookings
   createServiceBooking(booking: InsertServiceBooking): Promise<ServiceBooking>;
+
+  // Saved skill recommendations methods
+  saveSkillRecommendation(recommendation: InsertSavedSkillRecommendation): Promise<SavedSkillRecommendation>;
+  getSavedSkillRecommendations(employeeId: number): Promise<SavedSkillRecommendation[]>;
+  updateSavedSkillRecommendation(id: number, updates: Partial<InsertSavedSkillRecommendation>): Promise<SavedSkillRecommendation | undefined>;
+  deleteSavedSkillRecommendation(id: number): Promise<boolean>;
+  updateLearningProgress(id: number, progressPercentage: number): Promise<SavedSkillRecommendation | undefined>;
+  markSkillRecommendationComplete(id: number): Promise<SavedSkillRecommendation | undefined>;
   getServiceBooking(id: number): Promise<ServiceBooking | undefined>;
   getServiceBookingsByClient(clientId: number): Promise<ServiceBooking[]>;
   getServiceBookingsByProvider(providerId: number): Promise<ServiceBooking[]>;
@@ -1046,6 +1054,67 @@ export class DatabaseStorage implements IStorage {
       .where(eq(servicePortfolios.id, id))
       .returning({ id: servicePortfolios.id });
     return result.length > 0;
+  }
+
+  // Saved skill recommendations methods
+  async saveSkillRecommendation(recommendation: InsertSavedSkillRecommendation): Promise<SavedSkillRecommendation> {
+    const [saved] = await db
+      .insert(savedSkillRecommendations)
+      .values(recommendation)
+      .returning();
+    return saved;
+  }
+
+  async getSavedSkillRecommendations(employeeId: number): Promise<SavedSkillRecommendation[]> {
+    return await db
+      .select()
+      .from(savedSkillRecommendations)
+      .where(eq(savedSkillRecommendations.employeeId, employeeId))
+      .orderBy(desc(savedSkillRecommendations.savedAt));
+  }
+
+  async updateSavedSkillRecommendation(id: number, updates: Partial<InsertSavedSkillRecommendation>): Promise<SavedSkillRecommendation | undefined> {
+    const [updated] = await db
+      .update(savedSkillRecommendations)
+      .set({ ...updates, lastAccessedAt: new Date() })
+      .where(eq(savedSkillRecommendations.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteSavedSkillRecommendation(id: number): Promise<boolean> {
+    const result = await db
+      .delete(savedSkillRecommendations)
+      .where(eq(savedSkillRecommendations.id, id))
+      .returning({ id: savedSkillRecommendations.id });
+    return result.length > 0;
+  }
+
+  async updateLearningProgress(id: number, progressPercentage: number): Promise<SavedSkillRecommendation | undefined> {
+    const [updated] = await db
+      .update(savedSkillRecommendations)
+      .set({ 
+        progressPercentage, 
+        lastAccessedAt: new Date(),
+        status: progressPercentage >= 100 ? 'completed' : 'in_progress'
+      })
+      .where(eq(savedSkillRecommendations.id, id))
+      .returning();
+    return updated;
+  }
+
+  async markSkillRecommendationComplete(id: number): Promise<SavedSkillRecommendation | undefined> {
+    const [completed] = await db
+      .update(savedSkillRecommendations)
+      .set({ 
+        status: 'completed', 
+        progressPercentage: 100,
+        completedAt: new Date(),
+        lastAccessedAt: new Date()
+      })
+      .where(eq(savedSkillRecommendations.id, id))
+      .returning();
+    return completed;
   }
 }
 
