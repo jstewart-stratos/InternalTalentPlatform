@@ -1,185 +1,224 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { TrendingUp, TrendingDown, Users, Target, AlertTriangle, CheckCircle, BarChart3, PieChart } from "lucide-react";
+import { TrendingUp, Target, Award, BookOpen, ArrowRight, Star, Users, CheckCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { Employee, Project } from "@shared/schema";
+import { useAuth } from "@/hooks/useAuth";
+import type { Employee, Project, EmployeeSkill } from "@shared/schema";
 
-interface SkillGapData {
-  skill: string;
+interface SkillRecommendation {
+  skillName: string;
   category: string;
-  currentEmployees: number;
-  requiredByProjects: number;
-  gapScore: number;
   priority: 'critical' | 'high' | 'medium' | 'low';
-  departments: string[];
-  projectedDemand: number;
+  reasoning: string;
+  projectOpportunities: number;
+  averageSalaryImpact: string;
+  learningPath: string[];
+  timeToAcquire: string;
+  relatedSkills: string[];
+  demandScore: number;
 }
 
-interface DepartmentSkillData {
-  department: string;
-  totalEmployees: number;
-  skillCoverage: number;
-  topSkills: Array<{ skill: string; count: number }>;
-  skillGaps: Array<{ skill: string; gap: number }>;
+interface CareerPath {
+  title: string;
+  description: string;
+  requiredSkills: string[];
+  missingSkills: string[];
+  completionPercentage: number;
+  estimatedTimeframe: string;
+  salaryRange: string;
 }
 
 export default function SkillsGapAnalysis() {
-  const [selectedDepartment, setSelectedDepartment] = useState<string>("all");
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [timeframe, setTimeframe] = useState<string>("current");
+  const { user } = useAuth();
+  const [selectedEmployee, setSelectedEmployee] = useState<string>("");
+  const [selectedCareerPath, setSelectedCareerPath] = useState<string>("all");
 
-  const { data: employees = [] } = useQuery({
+  const { data: currentEmployee } = useQuery<Employee>({
+    queryKey: ["/api/employees/current"],
+    enabled: !!user,
+  });
+
+  const { data: employees = [] } = useQuery<Employee[]>({
     queryKey: ["/api/employees"],
-    queryFn: async () => {
-      const response = await fetch("/api/employees");
-      if (!response.ok) throw new Error("Failed to fetch employees");
-      return response.json() as Promise<Employee[]>;
-    },
   });
 
-  const { data: projects = [] } = useQuery({
+  const { data: projects = [] } = useQuery<Project[]>({
     queryKey: ["/api/projects"],
-    queryFn: async () => {
-      const response = await fetch("/api/projects");
-      if (!response.ok) throw new Error("Failed to fetch projects");
-      return response.json() as Promise<Project[]>;
-    },
   });
 
-  const { data: departments = [] } = useQuery({
-    queryKey: ["/api/departments"],
-    queryFn: async () => {
-      const response = await fetch("/api/departments");
-      if (!response.ok) throw new Error("Failed to fetch departments");
-      return response.json() as Promise<string[]>;
-    },
+  const { data: allEmployeeSkills = [] } = useQuery<EmployeeSkill[]>({
+    queryKey: ["/api/all-employee-skills"],
   });
 
-  // Calculate skills gap analysis
-  const skillsGapAnalysis = (): SkillGapData[] => {
-    // Get all skills from employees
-    const employeeSkills = new Map<string, Set<string>>();
-    employees.forEach(emp => {
-      if (emp.skills) {
-        emp.skills.forEach(skill => {
-          if (!employeeSkills.has(skill)) {
-            employeeSkills.set(skill, new Set());
-          }
-          employeeSkills.get(skill)?.add(emp.department);
-        });
-      }
-    });
+  const targetEmployeeId = selectedEmployee || currentEmployee?.id;
+  const targetEmployee = employees.find(emp => emp.id === parseInt(targetEmployeeId || "0"));
 
-    // Get required skills from projects
-    const projectSkills = new Map<string, number>();
+  const { data: employeeSkills = [] } = useQuery<EmployeeSkill[]>({
+    queryKey: ["/api/employees", targetEmployeeId, "skills"],
+    enabled: !!targetEmployeeId,
+  });
+
+  // Get skill recommendations for the selected employee
+  const getSkillRecommendations = (): SkillRecommendation[] => {
+    if (!targetEmployee || !employeeSkills.length) return [];
+
+    const currentSkills = new Set(employeeSkills.map(s => s.skillName));
+    const skillDemand = new Map<string, number>();
+    const skillProjects = new Map<string, number>();
+
+    // Calculate skill demand from all projects
     projects.forEach(project => {
-      if (project.requiredSkills) {
-        project.requiredSkills.forEach(skill => {
-          projectSkills.set(skill, (projectSkills.get(skill) || 0) + 1);
-        });
-      }
-    });
-
-    // Calculate gaps
-    const allSkills = new Set([...Array.from(employeeSkills.keys()), ...Array.from(projectSkills.keys())]);
-    const gapData: SkillGapData[] = [];
-
-    Array.from(allSkills).forEach(skill => {
-      const currentEmployees = employees.filter(emp => emp.skills?.includes(skill)).length;
-      const requiredByProjects = projectSkills.get(skill) || 0;
-      const gap = Math.max(0, requiredByProjects - currentEmployees);
-      const gapScore = currentEmployees > 0 ? gap / currentEmployees : requiredByProjects;
-      
-      let priority: 'critical' | 'high' | 'medium' | 'low' = 'low';
-      if (gapScore >= 2) priority = 'critical';
-      else if (gapScore >= 1) priority = 'high';
-      else if (gapScore >= 0.5) priority = 'medium';
-
-      gapData.push({
-        skill,
-        category: getCategoryForSkill(skill),
-        currentEmployees,
-        requiredByProjects,
-        gapScore,
-        priority,
-        departments: Array.from(employeeSkills.get(skill) || []),
-        projectedDemand: requiredByProjects + Math.floor(requiredByProjects * 0.2), // 20% growth projection
+      project.requiredSkills?.forEach(skill => {
+        skillDemand.set(skill, (skillDemand.get(skill) || 0) + 1);
+        skillProjects.set(skill, (skillProjects.get(skill) || 0) + 1);
       });
     });
 
-    return gapData.sort((a, b) => b.gapScore - a.gapScore);
+    // Calculate skill supply (how many employees have each skill)
+    const skillSupply = new Map<string, number>();
+    allEmployeeSkills.forEach(skill => {
+      skillSupply.set(skill.skillName, (skillSupply.get(skill.skillName) || 0) + 1);
+    });
+
+    const recommendations: SkillRecommendation[] = [];
+
+    // Generate recommendations based on career paths and project opportunities
+    const careerPaths = getCareerPaths();
+    
+    careerPaths.forEach(path => {
+      path.missingSkills.forEach(skill => {
+        if (!currentSkills.has(skill)) {
+          const demand = skillDemand.get(skill) || 0;
+          const supply = skillSupply.get(skill) || 0;
+          const demandScore = supply > 0 ? demand / supply : demand;
+          
+          let priority: 'critical' | 'high' | 'medium' | 'low' = 'low';
+          if (demandScore >= 2) priority = 'critical';
+          else if (demandScore >= 1) priority = 'high';
+          else if (demandScore >= 0.5) priority = 'medium';
+
+          recommendations.push({
+            skillName: skill,
+            category: getCategoryForSkill(skill),
+            priority,
+            reasoning: `Required for ${path.title} career path. High demand with ${demand} projects requiring this skill.`,
+            projectOpportunities: skillProjects.get(skill) || 0,
+            averageSalaryImpact: priority === 'critical' ? '+15-25%' : priority === 'high' ? '+10-20%' : '+5-15%',
+            learningPath: getLearningPath(skill),
+            timeToAcquire: getTimeToAcquire(skill),
+            relatedSkills: getRelatedSkills(skill, currentSkills),
+            demandScore
+          });
+        }
+      });
+    });
+
+    // Remove duplicates and sort by priority and demand
+    const uniqueRecommendations = Array.from(
+      new Map(recommendations.map(r => [r.skillName, r])).values()
+    );
+
+    return uniqueRecommendations
+      .sort((a, b) => {
+        const priorityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
+        if (priorityOrder[a.priority] !== priorityOrder[b.priority]) {
+          return priorityOrder[b.priority] - priorityOrder[a.priority];
+        }
+        return b.demandScore - a.demandScore;
+      })
+      .slice(0, 10);
+  };
+
+  const getCareerPaths = (): CareerPath[] => {
+    if (!targetEmployee || !employeeSkills.length) return [];
+
+    const currentSkills = new Set(employeeSkills.map(s => s.skillName));
+    
+    const paths = [
+      {
+        title: "Senior Financial Analyst",
+        description: "Lead complex financial modeling and analysis projects",
+        requiredSkills: ["Financial Modeling", "Excel", "Python", "SQL", "Tableau", "Risk Management", "Portfolio Management"],
+        salaryRange: "$80,000 - $120,000",
+        estimatedTimeframe: "12-18 months"
+      },
+      {
+        title: "Data Scientist",
+        description: "Apply machine learning to financial data and predictions",
+        requiredSkills: ["Python", "R", "Machine Learning", "SQL", "Statistics", "Tableau", "TensorFlow"],
+        salaryRange: "$95,000 - $140,000",
+        estimatedTimeframe: "18-24 months"
+      },
+      {
+        title: "Product Manager",
+        description: "Drive product strategy and development in fintech",
+        requiredSkills: ["Product Management", "Agile", "SQL", "User Research", "A/B Testing", "Wireframing"],
+        salaryRange: "$90,000 - $130,000",
+        estimatedTimeframe: "15-20 months"
+      },
+      {
+        title: "Cybersecurity Specialist",
+        description: "Protect financial systems and ensure compliance",
+        requiredSkills: ["Network Security", "Risk Assessment", "Compliance", "Penetration Testing", "CISSP"],
+        salaryRange: "$85,000 - $125,000",
+        estimatedTimeframe: "20-30 months"
+      }
+    ];
+
+    return paths.map(path => {
+      const missingSkills = path.requiredSkills.filter(skill => !currentSkills.has(skill));
+      const completionPercentage = Math.round(((path.requiredSkills.length - missingSkills.length) / path.requiredSkills.length) * 100);
+
+      return {
+        ...path,
+        missingSkills,
+        completionPercentage
+      };
+    }).sort((a, b) => b.completionPercentage - a.completionPercentage);
   };
 
   const getCategoryForSkill = (skill: string): string => {
     const skillLower = skill.toLowerCase();
-    if (skillLower.includes('react') || skillLower.includes('vue') || skillLower.includes('angular') || skillLower.includes('javascript') || skillLower.includes('typescript')) {
-      return 'Frontend Development';
-    }
-    if (skillLower.includes('node') || skillLower.includes('python') || skillLower.includes('java') || skillLower.includes('api')) {
-      return 'Backend Development';
-    }
-    if (skillLower.includes('sql') || skillLower.includes('database') || skillLower.includes('mongodb')) {
-      return 'Database';
-    }
-    if (skillLower.includes('aws') || skillLower.includes('azure') || skillLower.includes('docker') || skillLower.includes('kubernetes')) {
-      return 'DevOps/Cloud';
-    }
-    if (skillLower.includes('design') || skillLower.includes('ui') || skillLower.includes('ux')) {
-      return 'Design';
-    }
-    return 'Other';
+    if (skillLower.includes('python') || skillLower.includes('sql') || skillLower.includes('r')) return 'Programming';
+    if (skillLower.includes('financial') || skillLower.includes('risk') || skillLower.includes('portfolio')) return 'Finance';
+    if (skillLower.includes('tableau') || skillLower.includes('power bi') || skillLower.includes('excel')) return 'Analytics';
+    if (skillLower.includes('security') || skillLower.includes('compliance')) return 'Security';
+    if (skillLower.includes('product') || skillLower.includes('agile')) return 'Management';
+    return 'Technical';
   };
 
-  const getDepartmentAnalysis = (): DepartmentSkillData[] => {
-    return departments.map(dept => {
-      const deptEmployees = employees.filter(emp => emp.department === dept);
-      const allSkills = new Map<string, number>();
-      
-      deptEmployees.forEach(emp => {
-        emp.skills?.forEach(skill => {
-          allSkills.set(skill, (allSkills.get(skill) || 0) + 1);
-        });
-      });
+  const getLearningPath = (skill: string): string[] => {
+    const paths: Record<string, string[]> = {
+      'Python': ['Python Basics', 'Data Structures', 'Pandas & NumPy', 'Advanced Python'],
+      'Machine Learning': ['Statistics Fundamentals', 'Python/R', 'ML Algorithms', 'Deep Learning'],
+      'SQL': ['SQL Basics', 'Advanced Queries', 'Database Design', 'Performance Optimization'],
+      'Tableau': ['Tableau Basics', 'Data Visualization', 'Advanced Analytics', 'Dashboard Design']
+    };
+    return paths[skill] || ['Fundamentals', 'Intermediate', 'Advanced', 'Specialization'];
+  };
 
-      const topSkills = Array.from(allSkills.entries())
-        .map(([skill, count]) => ({ skill, count }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 5);
+  const getTimeToAcquire = (skill: string): string => {
+    const technical = ['Python', 'Machine Learning', 'SQL', 'R'];
+    const analytical = ['Tableau', 'Excel', 'Financial Modeling'];
+    
+    if (technical.includes(skill)) return '3-6 months';
+    if (analytical.includes(skill)) return '2-4 months';
+    return '1-3 months';
+  };
 
-      // Calculate department-specific gaps
-      const deptProjects = projects.filter(project => 
-        deptEmployees.some(emp => emp.id === project.ownerId)
-      );
-      
-      const requiredSkills = new Map<string, number>();
-      deptProjects.forEach(project => {
-        project.requiredSkills?.forEach(skill => {
-          requiredSkills.set(skill, (requiredSkills.get(skill) || 0) + 1);
-        });
-      });
-
-      const skillGaps = Array.from(requiredSkills.entries())
-        .map(([skill, required]) => ({
-          skill,
-          gap: Math.max(0, required - (allSkills.get(skill) || 0))
-        }))
-        .filter(item => item.gap > 0)
-        .sort((a, b) => b.gap - a.gap)
-        .slice(0, 5);
-
-      return {
-        department: dept,
-        totalEmployees: deptEmployees.length,
-        skillCoverage: allSkills.size,
-        topSkills,
-        skillGaps
-      };
-    });
+  const getRelatedSkills = (skill: string, currentSkills: Set<string>): string[] => {
+    const relations: Record<string, string[]> = {
+      'Python': ['SQL', 'Machine Learning', 'Data Science'],
+      'SQL': ['Python', 'Tableau', 'Database Design'],
+      'Machine Learning': ['Python', 'Statistics', 'TensorFlow'],
+      'Tableau': ['SQL', 'Excel', 'Data Visualization']
+    };
+    
+    return (relations[skill] || []).filter(s => !currentSkills.has(s)).slice(0, 3);
   };
 
   const priorityColors = {
@@ -189,297 +228,192 @@ export default function SkillsGapAnalysis() {
     low: "bg-green-100 text-green-800 border-green-200",
   };
 
-  const priorityIcons = {
-    critical: AlertTriangle,
-    high: TrendingUp,
-    medium: Target,
-    low: CheckCircle,
-  };
-
-  const gapData = skillsGapAnalysis();
-  const departmentData = getDepartmentAnalysis();
-
-  // Filter data based on selections
-  const filteredGapData = gapData.filter(item => {
-    const deptMatch = selectedDepartment === "all" || item.departments.includes(selectedDepartment);
-    const categoryMatch = selectedCategory === "all" || item.category === selectedCategory;
-    return deptMatch && categoryMatch;
-  });
-
-  const categories = Array.from(new Set(gapData.map(item => item.category)));
+  const recommendations = getSkillRecommendations();
+  const careerPaths = getCareerPaths();
+  const filteredPaths = selectedCareerPath === "all" ? careerPaths : 
+    careerPaths.filter(path => path.title.toLowerCase().includes(selectedCareerPath.toLowerCase()));
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Skills Gap Analysis</h1>
-            <p className="text-gray-600 mt-2">
-              Identify skill gaps and optimize talent allocation across your organization
-            </p>
-          </div>
-          <div className="flex gap-4">
-            <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Select department" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Departments</SelectItem>
-                {departments.map(dept => (
-                  <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Select category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {categories.map(category => (
-                  <SelectItem key={category} value={category}>{category}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Skills Gap Analysis & Career Growth</h1>
+          <p className="text-gray-600">Personalized skill recommendations based on career goals and project opportunities</p>
         </div>
 
-        {/* Key Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600">Critical Gaps</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center space-x-2">
-                <AlertTriangle className="h-8 w-8 text-red-500" />
-                <div>
-                  <div className="text-2xl font-bold">
-                    {filteredGapData.filter(item => item.priority === 'critical').length}
-                  </div>
-                  <p className="text-sm text-gray-600">Skills at risk</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Employee Selection */}
+        <div className="flex gap-4 mb-6">
+          <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
+            <SelectTrigger className="w-64">
+              <SelectValue placeholder="Select employee (default: you)" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Current User ({currentEmployee?.name})</SelectItem>
+              {employees.map(emp => (
+                <SelectItem key={emp.id} value={emp.id.toString()}>{emp.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600">Total Skills</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center space-x-2">
-                <Target className="h-8 w-8 text-blue-500" />
-                <div>
-                  <div className="text-2xl font-bold">{filteredGapData.length}</div>
-                  <p className="text-sm text-gray-600">Tracked skills</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600">Coverage Rate</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center space-x-2">
-                <CheckCircle className="h-8 w-8 text-green-500" />
-                <div>
-                  <div className="text-2xl font-bold">
-                    {Math.round((filteredGapData.filter(item => item.currentEmployees > 0).length / filteredGapData.length) * 100)}%
-                  </div>
-                  <p className="text-sm text-gray-600">Skills covered</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600">Project Demand</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center space-x-2">
-                <TrendingUp className="h-8 w-8 text-accent" />
-                <div>
-                  <div className="text-2xl font-bold">
-                    {filteredGapData.reduce((sum, item) => sum + item.requiredByProjects, 0)}
-                  </div>
-                  <p className="text-sm text-gray-600">Skill requirements</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <Select value={selectedCareerPath} onValueChange={setSelectedCareerPath}>
+            <SelectTrigger className="w-64">
+              <SelectValue placeholder="Filter by career path" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Career Paths</SelectItem>
+              <SelectItem value="analyst">Financial Analyst</SelectItem>
+              <SelectItem value="scientist">Data Scientist</SelectItem>
+              <SelectItem value="manager">Product Manager</SelectItem>
+              <SelectItem value="security">Cybersecurity</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
-        {/* Analysis Tabs */}
-        <Tabs defaultValue="gaps" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="gaps">Skills Gaps</TabsTrigger>
-            <TabsTrigger value="departments">Department Analysis</TabsTrigger>
-            <TabsTrigger value="trends">Trends & Projections</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="gaps" className="space-y-6">
+        {targetEmployee && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Skill Recommendations */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5 text-accent" />
-                  Critical Skills Gaps
+                  <Target className="h-5 w-5 text-accent" />
+                  Recommended Skills for {targetEmployee.name}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {filteredGapData.slice(0, 10).map((item) => {
-                    const PriorityIcon = priorityIcons[item.priority];
-                    const coveragePercentage = item.requiredByProjects > 0 
-                      ? Math.min(100, (item.currentEmployees / item.requiredByProjects) * 100)
-                      : 100;
-
-                    return (
-                      <div key={item.skill} className="border rounded-lg p-4 space-y-3">
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <h3 className="font-semibold text-lg">{item.skill}</h3>
-                              <Badge className={priorityColors[item.priority]}>
-                                <PriorityIcon className="h-3 w-3 mr-1" />
-                                {item.priority}
-                              </Badge>
-                              <Badge variant="outline">{item.category}</Badge>
-                            </div>
-                            <div className="flex gap-6 text-sm text-gray-600">
-                              <span><Users className="h-4 w-4 inline mr-1" />{item.currentEmployees} employees</span>
-                              <span><Target className="h-4 w-4 inline mr-1" />{item.requiredByProjects} projects need this</span>
-                              <span>Gap Score: {item.gapScore.toFixed(1)}</span>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-2xl font-bold text-accent">{Math.round(coveragePercentage)}%</div>
-                            <div className="text-sm text-gray-600">Coverage</div>
-                          </div>
+                  {recommendations.slice(0, 5).map((rec, index) => (
+                    <div key={rec.skillName} className="p-4 border rounded-lg">
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <h3 className="font-semibold">{rec.skillName}</h3>
+                          <Badge variant="outline" className={`text-xs ${priorityColors[rec.priority]}`}>
+                            {rec.priority} priority
+                          </Badge>
                         </div>
-                        
-                        <div className="space-y-2">
-                          <div className="flex justify-between text-sm">
-                            <span>Skill Coverage</span>
-                            <span>{item.currentEmployees} / {item.requiredByProjects} needed</span>
-                          </div>
-                          <Progress value={coveragePercentage} className="h-2" />
+                        <div className="text-right text-sm text-gray-600">
+                          <div>{rec.projectOpportunities} projects</div>
+                          <div className="text-green-600 font-medium">{rec.averageSalaryImpact}</div>
                         </div>
-
-                        {item.departments.length > 0 && (
-                          <div>
-                            <span className="text-sm text-gray-600">Present in: </span>
-                            {item.departments.map(dept => (
-                              <Badge key={dept} variant="secondary" className="mr-1">
-                                {dept}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
                       </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="departments" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {departmentData.map((dept) => (
-                <Card key={dept.department}>
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      <span>{dept.department}</span>
-                      <Badge variant="outline">{dept.totalEmployees} employees</Badge>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <h4 className="font-semibold mb-2">Top Skills</h4>
-                      <div className="space-y-2">
-                        {dept.topSkills.map((skill) => (
-                          <div key={skill.skill} className="flex justify-between items-center">
-                            <span className="text-sm">{skill.skill}</span>
-                            <Badge variant="secondary">{skill.count}</Badge>
-                          </div>
-                        ))}
+                      
+                      <p className="text-sm text-gray-600 mb-3">{rec.reasoning}</p>
+                      
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                          <span className="font-medium">Category:</span> {rec.category}
+                        </div>
+                        <div>
+                          <span className="font-medium">Time to acquire:</span> {rec.timeToAcquire}
+                        </div>
                       </div>
-                    </div>
-                    
-                    {dept.skillGaps.length > 0 && (
-                      <div>
-                        <h4 className="font-semibold mb-2 text-red-600">Critical Gaps</h4>
-                        <div className="space-y-2">
-                          {dept.skillGaps.map((gap) => (
-                            <div key={gap.skill} className="flex justify-between items-center">
-                              <span className="text-sm">{gap.skill}</span>
-                              <Badge variant="destructive">-{gap.gap}</Badge>
-                            </div>
+
+                      {rec.relatedSkills.length > 0 && (
+                        <div className="mt-2">
+                          <span className="text-xs font-medium">Related skills: </span>
+                          <span className="text-xs text-gray-600">{rec.relatedSkills.join(', ')}</span>
+                        </div>
+                      )}
+
+                      <div className="mt-3">
+                        <div className="text-xs font-medium mb-1">Learning Path:</div>
+                        <div className="flex gap-1">
+                          {rec.learningPath.map((step, i) => (
+                            <span key={i} className="text-xs bg-gray-100 px-2 py-1 rounded">
+                              {step}
+                            </span>
                           ))}
                         </div>
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
 
-          <TabsContent value="trends" className="space-y-6">
+            {/* Career Paths */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <TrendingUp className="h-5 w-5 text-accent" />
-                  Projected Skill Demand
+                  Career Path Progress
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {filteredGapData
-                    .filter(item => item.projectedDemand > item.currentEmployees)
-                    .slice(0, 8)
-                    .map((item) => (
-                      <div key={item.skill} className="border rounded-lg p-4">
-                        <div className="flex justify-between items-center mb-2">
-                          <h3 className="font-semibold">{item.skill}</h3>
-                          <Badge variant="outline">{item.category}</Badge>
+                  {filteredPaths.slice(0, 4).map((path, index) => (
+                    <div key={path.title} className="p-4 border rounded-lg">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <h3 className="font-semibold">{path.title}</h3>
+                          <p className="text-sm text-gray-600">{path.description}</p>
                         </div>
-                        <div className="grid grid-cols-3 gap-4 text-sm">
-                          <div>
-                            <div className="text-gray-600">Current</div>
-                            <div className="font-semibold">{item.currentEmployees}</div>
-                          </div>
-                          <div>
-                            <div className="text-gray-600">Current Demand</div>
-                            <div className="font-semibold">{item.requiredByProjects}</div>
-                          </div>
-                          <div>
-                            <div className="text-gray-600">Projected Demand</div>
-                            <div className="font-semibold text-accent">{item.projectedDemand}</div>
-                          </div>
-                        </div>
-                        <div className="mt-3">
-                          <div className="flex justify-between text-xs text-gray-600 mb-1">
-                            <span>Growth Projection</span>
-                            <span>+{((item.projectedDemand / Math.max(1, item.requiredByProjects) - 1) * 100).toFixed(0)}%</span>
-                          </div>
-                          <Progress 
-                            value={(item.currentEmployees / item.projectedDemand) * 100} 
-                            className="h-2" 
-                          />
+                        <div className="text-right text-sm">
+                          <div className="font-medium text-green-600">{path.salaryRange}</div>
+                          <div className="text-gray-600">{path.estimatedTimeframe}</div>
                         </div>
                       </div>
-                    ))}
+
+                      <div className="mb-3">
+                        <div className="flex justify-between text-sm mb-1">
+                          <span>Progress</span>
+                          <span>{path.completionPercentage}%</span>
+                        </div>
+                        <Progress value={path.completionPercentage} className="h-2" />
+                      </div>
+
+                      {path.missingSkills.length > 0 && (
+                        <div>
+                          <div className="text-sm font-medium mb-2">Missing Skills:</div>
+                          <div className="flex flex-wrap gap-1">
+                            {path.missingSkills.slice(0, 4).map(skill => (
+                              <Badge key={skill} variant="outline" className="text-xs">
+                                {skill}
+                              </Badge>
+                            ))}
+                            {path.missingSkills.length > 4 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{path.missingSkills.length - 4} more
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
+          </div>
+        )}
+
+        {/* Current Skills Overview */}
+        {targetEmployee && employeeSkills.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CheckCircle className="h-5 w-5 text-accent" />
+                Current Skills Profile for {targetEmployee.name}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {employeeSkills.map(skill => (
+                  <div key={skill.id} className="p-3 border rounded-lg">
+                    <div className="flex justify-between items-start mb-2">
+                      <h4 className="font-medium">{skill.skillName}</h4>
+                      <Badge variant="outline" className="text-xs">
+                        {skill.experienceLevel}
+                      </Badge>
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      {skill.yearsOfExperience} years experience
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

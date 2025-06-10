@@ -25,9 +25,10 @@ export default function Navigation() {
   const navItems = [
     { path: "/", label: "Talent Directory", active: location === "/" || location === "/skills" || location === "/experts" },
     { path: "/projects", label: "Projects Hub", active: location === "/projects" },
+    { path: "/skills-gap-analysis", label: "Career Growth", active: location === "/skills-gap-analysis" },
     { path: "/marketplace", label: "Marketplace", active: location === "/marketplace" },
     ...(isAdmin ? [
-      { path: "/analytics", label: "Analytics", active: location === "/analytics" || location === "/skills-gap-analysis" },
+      { path: "/analytics", label: "Analytics", active: location === "/analytics" },
       { path: "/admin", label: "Admin", active: location === "/admin" },
     ] : []),
   ];

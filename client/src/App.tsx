@@ -19,6 +19,7 @@ import ExpertDirectory from "@/pages/expert-directory";
 import Services from "@/pages/services";
 import Marketplace from "@/pages/marketplace";
 import ServiceDetails from "@/pages/service-details";
+import SkillsGapAnalysis from "@/pages/skills-gap-analysis";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -53,6 +54,7 @@ function Router() {
       <Route path="/analytics" component={Analytics} />
       <Route path="/admin" component={Admin} />
       <Route path="/skills" component={Skills} />
+      <Route path="/skills-gap-analysis" component={SkillsGapAnalysis} />
       <Route path="/projects" component={Projects} />
       <Route path="/my-projects" component={MyProjects} />
       <Route path="/services" component={Services} />
