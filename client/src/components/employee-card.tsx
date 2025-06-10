@@ -1,6 +1,6 @@
-import { ArrowRight } from "lucide-react";
-import { Link } from "wouter";
+import { User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import ProfileAvatar from "@/components/profile-avatar";
 import type { Employee } from "@shared/schema";
 
@@ -75,14 +75,14 @@ export default function EmployeeCard({ employee }: EmployeeCardProps) {
           </div>
           <p className="text-sm text-gray-600 line-clamp-3">{employee.bio}</p>
         </div>
-        <div className="flex items-center justify-end">
-          <Link
-            href={`/profile/${employee.id}`}
-            className="text-orange-600 hover:text-orange-700 text-sm font-medium flex items-center transition-colors"
-          >
-            View Profile <ArrowRight className="ml-1 h-3 w-3" />
-          </Link>
-        </div>
+        <Button 
+          size="sm" 
+          className="w-full"
+          onClick={() => window.location.href = `/profile/${employee.id}`}
+        >
+          <User className="h-4 w-4 mr-2" />
+          View Profile
+        </Button>
       </div>
     </div>
   );
