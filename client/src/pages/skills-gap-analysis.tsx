@@ -214,59 +214,120 @@ export default function SkillsGapAnalysis() {
 
         {/* Skill Recommendations */}
         {recommendations.length > 0 && (
-          <div>
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5 text-accent" />
-                  Skill Recommendations for {currentEmployee?.name}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {recommendations.map((rec, index) => (
-                    <div key={index} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-                      <div className="flex justify-between items-start mb-3">
-                        <h3 className="font-semibold text-lg">{rec.skill}</h3>
-                        <Badge className={`${priorityColors[rec.priority]} border`}>
-                          {rec.priority} priority
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-gray-600 mb-3">{rec.reason}</p>
-                      {rec.projectDemand > 0 && (
-                        <p className="text-xs text-gray-500 mb-3">
-                          Required by {rec.projectDemand} active project(s)
-                        </p>
-                      )}
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          onClick={() => generateLearningPath.mutate({ 
-                            skill: rec.skill,
-                            currentLevel: 'beginner',
-                            targetLevel: 'intermediate'
-                          })}
-                          disabled={generateLearningPath.isPending}
-                        >
-                          {generateLearningPath.isPending ? (
-                            <>
-                              <Clock className="h-4 w-4 mr-2 animate-spin" />
-                              Generating...
-                            </>
-                          ) : (
-                            <>
-                              <BookOpen className="h-4 w-4 mr-2" />
-                              Get Learning Resources
-                            </>
-                          )}
-                        </Button>
-                      </div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-accent" />
+                Skill Recommendations for {currentEmployee?.name}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {recommendations.map((rec, index) => (
+                  <div key={index} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                    <div className="flex justify-between items-start mb-3">
+                      <h3 className="font-semibold text-lg">{rec.skill}</h3>
+                      <Badge className={`${priorityColors[rec.priority]} border`}>
+                        {rec.priority} priority
+                      </Badge>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                    <p className="text-sm text-gray-600 mb-3">{rec.reason}</p>
+                    {rec.projectDemand > 0 && (
+                      <p className="text-xs text-gray-500 mb-3">
+                        Required by {rec.projectDemand} active project(s)
+                      </p>
+                    )}
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => generateLearningPath.mutate({ 
+                          skill: rec.skill,
+                          currentLevel: 'beginner',
+                          targetLevel: 'intermediate'
+                        })}
+                        disabled={generateLearningPath.isPending}
+                      >
+                        {generateLearningPath.isPending ? (
+                          <>
+                            <Clock className="h-4 w-4 mr-2 animate-spin" />
+                            Generating...
+                          </>
+                        ) : learningPaths[rec.skill] ? (
+                          <>
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            View Learning Path
+                          </>
+                        ) : (
+                          <>
+                            <BookOpen className="h-4 w-4 mr-2" />
+                            Get Learning Resources
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                    
+                    {/* Inline Learning Path Display */}
+                    {learningPaths[rec.skill] && (
+                      <div className="mt-4 border-t pt-4">
+                        <div className="bg-blue-50 rounded-lg p-4">
+                          <h4 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                            <BookOpen className="h-4 w-4" />
+                            Learning Path for {rec.skill}
+                          </h4>
+                          <div className="flex gap-2 mb-3">
+                            <Badge variant="outline" className="text-xs">
+                              {learningPaths[rec.skill].totalDuration}
+                            </Badge>
+                            <Badge variant="outline" className="text-xs capitalize">
+                              {learningPaths[rec.skill].difficulty}
+                            </Badge>
+                          </div>
+                          
+                          {/* First Learning Step Preview */}
+                          {learningPaths[rec.skill].steps.length > 0 && (
+                            <div className="mb-3">
+                              <h5 className="font-medium text-sm mb-2">Start with:</h5>
+                              <div className="bg-white rounded p-3 border">
+                                <div className="font-medium text-sm">{learningPaths[rec.skill].steps[0].title}</div>
+                                <div className="text-xs text-gray-600 mb-2">{learningPaths[rec.skill].steps[0].description}</div>
+                                {learningPaths[rec.skill].steps[0].resources.length > 0 && (
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs font-medium">First Resource:</span>
+                                    <a 
+                                      href={learningPaths[rec.skill].steps[0].resources[0].url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+                                    >
+                                      {learningPaths[rec.skill].steps[0].resources[0].title}
+                                      <ExternalLink className="h-3 w-3" />
+                                    </a>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                          
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              // Scroll to full learning path
+                              const element = document.getElementById(`learning-path-${rec.skill}`);
+                              element?.scrollIntoView({ behavior: 'smooth' });
+                            }}
+                            className="text-blue-600 border-blue-200 hover:bg-blue-100"
+                          >
+                            View Complete Learning Path
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {/* Current Skills Overview */}
@@ -298,25 +359,28 @@ export default function SkillsGapAnalysis() {
           </Card>
         )}
 
-        {/* Learning Paths Display */}
-        {Object.entries(learningPaths).map(([skill, learningPath]) => (
-          <Card key={skill} className="mt-6">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BookOpen className="h-5 w-5 text-accent" />
-                Learning Path for {learningPath.skill}
-              </CardTitle>
-              <div className="flex gap-2 text-sm text-gray-600">
-                <Badge variant="outline" className="flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  {learningPath.totalDuration}
-                </Badge>
-                <Badge variant="outline" className="capitalize">
-                  {learningPath.difficulty}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
+        {/* Detailed Learning Paths Display */}
+        {Object.entries(learningPaths).length > 0 && (
+          <div className="space-y-6">
+            <h3 className="text-xl font-semibold text-gray-900">Complete Learning Paths</h3>
+            {Object.entries(learningPaths).map(([skill, learningPath]) => (
+              <Card key={skill} id={`learning-path-${skill}`} className="border-2 border-blue-200">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BookOpen className="h-5 w-5 text-accent" />
+                    Complete Learning Path: {learningPath.skill}
+                  </CardTitle>
+                  <div className="flex gap-2 text-sm text-gray-600">
+                    <Badge variant="outline" className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {learningPath.totalDuration}
+                    </Badge>
+                    <Badge variant="outline" className="capitalize">
+                      {learningPath.difficulty}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
               <div className="space-y-6">
                 {/* Learning Steps */}
                 <div>
@@ -448,6 +512,7 @@ export default function SkillsGapAnalysis() {
             </CardContent>
           </Card>
         ))}
+        </div>
       </div>
     </div>
   );
