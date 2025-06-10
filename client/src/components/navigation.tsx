@@ -25,6 +25,7 @@ export default function Navigation() {
   const navItems = [
     { path: "/", label: "Talent Directory", active: location === "/" || location === "/skills" || location === "/experts" },
     { path: "/projects", label: "Projects Hub", active: location === "/projects" },
+    { path: "/services", label: "Services", active: location === "/services" },
     ...(isAdmin ? [
       { path: "/analytics", label: "Analytics", active: location === "/analytics" || location === "/skills-gap-analysis" },
       { path: "/admin", label: "Admin", active: location === "/admin" },
