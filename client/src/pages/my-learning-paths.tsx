@@ -11,10 +11,10 @@ import { useToast } from '@/hooks/use-toast';
 interface SavedSkillRecommendation {
   id: number;
   employeeId: number;
-  skillName: string;
+  skill: string;
   priority: string;
   reason: string;
-  learningPath: any;
+  learningPathData: any;
   status: 'saved' | 'in_progress' | 'completed';
   progressPercentage: number;
   savedAt: string;
@@ -191,7 +191,7 @@ export default function MyLearningPaths() {
                 <Card key={recommendation.id} className="hover:shadow-md transition-shadow">
                   <CardHeader>
                     <div className="flex justify-between items-start">
-                      <CardTitle className="text-lg">{recommendation.skillName}</CardTitle>
+                      <CardTitle className="text-lg">{recommendation.skill}</CardTitle>
                       <div className="flex gap-2">
                         <Badge className={`${priorityColors[recommendation.priority as keyof typeof priorityColors]} border`}>
                           {recommendation.priority}
@@ -215,7 +215,7 @@ export default function MyLearningPaths() {
                     </div>
 
                     {/* Learning Path Display */}
-                    {recommendation.learningPath && (
+                    {recommendation.learningPathData && (
                       <div className="bg-blue-50 rounded-lg p-4">
                         <h4 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
                           <BookOpen className="h-4 w-4" />
@@ -223,17 +223,17 @@ export default function MyLearningPaths() {
                         </h4>
                         <div className="flex gap-2 mb-3">
                           <Badge variant="outline" className="text-xs">
-                            {recommendation.learningPath.totalDuration}
+                            {recommendation.learningPathData.totalDuration}
                           </Badge>
                           <Badge variant="outline" className="text-xs capitalize">
-                            {recommendation.learningPath.difficulty}
+                            {recommendation.learningPathData.difficulty}
                           </Badge>
                         </div>
                         
-                        {recommendation.learningPath.steps?.length > 0 && (
+                        {recommendation.learningPathData.steps?.length > 0 && (
                           <div className="space-y-2">
                             <h5 className="font-medium text-sm">Learning Steps:</h5>
-                            {recommendation.learningPath.steps.slice(0, 2).map((step: any, index: number) => (
+                            {recommendation.learningPathData.steps.slice(0, 2).map((step: any, index: number) => (
                               <div key={index} className="bg-white rounded p-3 border">
                                 <div className="font-medium text-sm">{step.title}</div>
                                 <div className="text-xs text-gray-600 mb-2">{step.description}</div>

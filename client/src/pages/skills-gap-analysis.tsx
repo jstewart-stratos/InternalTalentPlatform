@@ -41,10 +41,10 @@ interface SkillRecommendation {
 interface SavedSkillRecommendation {
   id: number;
   employeeId: number;
-  skillName: string;
+  skill: string;
   priority: string;
   reason: string;
-  learningPath: any;
+  learningPathData: any;
   status: 'saved' | 'in_progress' | 'completed';
   progressPercentage: number;
   savedAt: string;
@@ -118,10 +118,10 @@ export default function SkillsGapAnalysis() {
   // Save skill recommendation mutation
   const saveSkillRecommendation = useMutation({
     mutationFn: async (recommendationData: {
-      skillName: string;
+      skill: string;
       priority: string;
       reason: string;
-      learningPath?: any;
+      learningPathData?: any;
     }): Promise<SavedSkillRecommendation> => {
       const res = await apiRequest('/api/saved-skill-recommendations', 'POST', recommendationData);
       return res.json();
@@ -159,7 +159,7 @@ export default function SkillsGapAnalysis() {
 
   // Helper functions
   const isSkillAlreadySaved = (skillName: string) => {
-    return savedRecommendations.some(rec => rec.skillName === skillName);
+    return savedRecommendations.some(rec => rec.skill === skillName);
   };
 
   const handleSaveRecommendation = (recommendation: SkillRecommendation) => {
@@ -184,10 +184,10 @@ export default function SkillsGapAnalysis() {
     const learningPath = learningPaths[recommendation.skill];
     
     saveSkillRecommendation.mutate({
-      skillName: recommendation.skill,
+      skill: recommendation.skill,
       priority: recommendation.priority,
       reason: recommendation.reason,
-      learningPath: learningPath || null,
+      learningPathData: learningPath || null,
     });
   };
 
