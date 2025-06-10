@@ -58,15 +58,7 @@ export async function seedUsers() {
 }
 
 function determineUserRole(employee: any): string {
-  const title = employee.title.toLowerCase();
-  
-  // Assign admin role to senior leadership only
-  if (title.includes('director') || 
-      title.includes('manager') || 
-      title.includes('lead')) {
-    return 'admin';
-  }
-  
-  // Default role for all others
+  // All users get the default "user" role
+  // Admin roles must be manually assigned
   return 'user';
 }
