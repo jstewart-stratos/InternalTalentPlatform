@@ -243,6 +243,7 @@ export default function SkillsGapAnalysis() {
   
   // Debug log to check learning paths state
   console.log('Learning paths state:', learningPaths.size, Array.from(learningPaths.keys()));
+  console.log('Learning paths data:', Array.from(learningPaths.entries()));
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
