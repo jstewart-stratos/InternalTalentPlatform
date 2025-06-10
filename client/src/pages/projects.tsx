@@ -21,7 +21,7 @@ import SkillTaggingSystem from "@/components/skill-tagging-system";
 const createProjectSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().min(1, "Description is required"),
-  status: z.enum(["planning", "active", "paused", "completed"]).default("planning"),
+  status: z.enum(["planning", "active", "paused", "completed", "closed"]).default("planning"),
   priority: z.enum(["low", "medium", "high", "critical"]).default("medium"),
   deadline: z.string().optional(),
   requiredSkills: z.array(z.string()).default([]),
@@ -222,6 +222,17 @@ export default function Projects() {
     },
   });
 
+  const closeProjectMutation = useMutation({
+    mutationFn: async (projectId: number) => {
+      const response = await apiRequest(`/api/projects/${projectId}`, "PATCH", { status: "closed" });
+      return response;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      setSelectedProject(null);
+    },
+  });
+
   const onSubmit = (data: CreateProjectForm) => {
     const { currentUser } = useUser();
     
@@ -301,6 +312,12 @@ export default function Projects() {
     return currentUser?.id === project.ownerId;
   };
 
+  const handleCloseProject = (projectId: number) => {
+    if (window.confirm("Are you sure you want to close this project? This action cannot be undone and the project will be removed from the projects hub.")) {
+      closeProjectMutation.mutate(projectId);
+    }
+  };
+
   const formatDate = (date: string | Date | null) => {
     if (!date) return "No deadline";
     return new Date(date).toLocaleDateString();
@@ -360,8 +377,20 @@ export default function Projects() {
                       size="sm"
                       onClick={() => openEditDialog(selectedProject)}
                     >
+                      <Edit className="h-4 w-4 mr-1" />
                       Edit Project
                     </Button>
+                    {(selectedProject.status === "completed") && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleCloseProject(selectedProject.id)}
+                        className="text-gray-600 hover:text-gray-800"
+                      >
+                        <Archive className="h-4 w-4 mr-1" />
+                        Close Project
+                      </Button>
+                    )}
                   </div>
                 )}
               </div>
@@ -534,6 +563,7 @@ export default function Projects() {
                               <SelectItem value="active">Active</SelectItem>
                               <SelectItem value="paused">Paused</SelectItem>
                               <SelectItem value="completed">Completed</SelectItem>
+                              <SelectItem value="closed">Closed</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -873,6 +903,7 @@ export default function Projects() {
                             <SelectItem value="active">Active</SelectItem>
                             <SelectItem value="paused">Paused</SelectItem>
                             <SelectItem value="completed">Completed</SelectItem>
+                            <SelectItem value="closed">Closed</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
