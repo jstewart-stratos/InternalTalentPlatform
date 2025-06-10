@@ -16,59 +16,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Development auth bypass
   const isDevelopment = process.env.NODE_ENV === 'development';
   
-  // Auth routes
-  if (isDevelopment) {
-    app.get('/api/auth/user', async (req, res) => {
-      // Development mode - return a mock authenticated user
-      const mockUser = {
-        id: "41327254",
-        email: "jstewart@stratoswp.com",
-        firstName: "Jacob",
-        lastName: "Stewart",
-        profileImageUrl: null,
-        hasEmployeeProfile: true,
-        employeeProfile: {
-          id: 94,
-          name: "Jacob Stewart",
-          email: "jstewart@stratoswp.com",
-          department: "Risk Management"
-        }
+  // Development middleware that bypasses authentication
+  const devAuthBypass = (req: any, res: any, next: any) => {
+    if (isDevelopment) {
+      req.user = {
+        claims: { sub: "41327254" }
       };
-      res.json(mockUser);
-    });
-  } else {
-    app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
-      try {
-        const userId = req.user.claims.sub;
-        const user = await storage.getUser(userId);
-        
-        // Update last login
-        if (user) {
-          await storage.updateUserLastLogin(userId);
-        }
-        
-        // Check if user has an employee profile
-        const employeeProfile = await storage.getEmployeeByEmail(user?.email || '');
-        
-        res.json({
-          ...user,
-          hasEmployeeProfile: !!employeeProfile,
-          employeeProfile
-        });
-      } catch (error) {
-        console.error("Error fetching user:", error);
-        res.status(500).json({ message: "Failed to fetch user" });
+    }
+    next();
+  };
+
+  const authMiddleware = isDevelopment ? devAuthBypass : isAuthenticated;
+  
+  // Auth routes
+  app.get('/api/auth/user', authMiddleware, async (req: any, res) => {
+    try {
+      if (isDevelopment) {
+        // Development mode - return a mock authenticated user
+        const mockUser = {
+          id: "41327254",
+          email: "jstewart@stratoswp.com",
+          firstName: "Jacob",
+          lastName: "Stewart",
+          profileImageUrl: null,
+          hasEmployeeProfile: true,
+          employeeProfile: {
+            id: 94,
+            name: "Jacob Stewart",
+            email: "jstewart@stratoswp.com",
+            department: "Risk Management"
+          }
+        };
+        res.json(mockUser);
+        return;
       }
-    });
-  }
+
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      // Update last login
+      if (user) {
+        await storage.updateUserLastLogin(userId);
+      }
+      
+      // Check if user has an employee profile
+      const employeeProfile = await storage.getEmployeeByEmail(user?.email || '');
+      
+      res.json({
+        ...user,
+        hasEmployeeProfile: !!employeeProfile,
+        employeeProfile
+      });
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
 
   // Get current user's employee profile
-  app.get('/api/employees/current', isDevelopment ? async (req, res) => {
-    // Development mode - return mock employee profile
-    const employee = await storage.getEmployee(94);
-    res.json(employee);
-  } : isAuthenticated, isDevelopment ? undefined : async (req: any, res) => {
+  app.get('/api/employees/current', authMiddleware, async (req: any, res) => {
     try {
+      if (isDevelopment) {
+        // Development mode - return mock employee profile
+        const employee = await storage.getEmployee(94);
+        res.json(employee);
+        return;
+      }
+
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       if (!user) {
