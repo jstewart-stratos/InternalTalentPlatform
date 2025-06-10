@@ -64,28 +64,6 @@ export default function MyLearningPaths() {
     },
   });
 
-  // Update progress mutation
-  const updateProgress = useMutation({
-    mutationFn: async ({ id, progressPercentage }: { id: number; progressPercentage: number }): Promise<SavedSkillRecommendation> => {
-      const res = await apiRequest(`/api/saved-skill-recommendations/${id}/progress`, 'PUT', { progressPercentage });
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/saved-skill-recommendations"] });
-      toast({
-        title: "Progress Updated",
-        description: "Your learning progress has been updated.",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update progress",
-        variant: "destructive",
-      });
-    },
-  });
-
   // Mark complete mutation
   const markComplete = useMutation({
     mutationFn: async (id: number): Promise<SavedSkillRecommendation> => {
@@ -281,9 +259,7 @@ export default function MyLearningPaths() {
     }
   }, [savedRecommendations]);
 
-  const handleProgressUpdate = (id: number, newProgress: number) => {
-    updateProgress.mutate({ id, progressPercentage: newProgress });
-  };
+
 
   if (isLoading) {
     return (
@@ -489,28 +465,16 @@ export default function MyLearningPaths() {
                     {/* Action Buttons */}
                     <div className="flex justify-between items-center pt-4 border-t">
                       <div className="flex gap-2 flex-wrap">
-                        {recommendation.status !== 'completed' && (
-                          <>
-                            <Button
-                              size="sm"
-                              onClick={() => handleProgressUpdate(recommendation.id, Math.min(100, recommendation.progressPercentage + 25))}
-                              disabled={updateProgress.isPending}
-                            >
-                              <Play className="h-4 w-4 mr-2" />
-                              +25% Progress
-                            </Button>
-                            {recommendation.progressPercentage >= 75 && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => markComplete.mutate(recommendation.id)}
-                                disabled={markComplete.isPending}
-                              >
-                                <CheckCircle className="h-4 w-4 mr-2" />
-                                Mark Complete
-                              </Button>
-                            )}
-                          </>
+                        {recommendation.status !== 'completed' && recommendation.progressPercentage >= 75 && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => markComplete.mutate(recommendation.id)}
+                            disabled={markComplete.isPending}
+                          >
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            Mark Complete
+                          </Button>
                         )}
                         {recommendation.progressPercentage >= 50 && (
                           <Button
