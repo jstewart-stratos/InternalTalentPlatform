@@ -1823,6 +1823,414 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // =====================
+  // PROFESSIONAL SERVICES MARKETPLACE ENDPOINTS
+  // =====================
+
+  // Service Categories Management
+  app.get("/api/service-categories", async (req, res) => {
+    try {
+      const categories = await storage.getAllServiceCategories();
+      res.json(categories);
+    } catch (error) {
+      console.error("Error fetching service categories:", error);
+      res.status(500).json({ error: "Failed to fetch service categories" });
+    }
+  });
+
+  app.post("/api/service-categories", isAuthenticated, async (req: any, res) => {
+    try {
+      // Check if user is admin
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const validatedData = insertServiceCategorySchema.parse(req.body);
+      const category = await storage.createServiceCategory(validatedData);
+      res.status(201).json(category);
+    } catch (error) {
+      console.error("Error creating service category:", error);
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: "Invalid category data", details: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to create service category" });
+      }
+    }
+  });
+
+  // Professional Services Management
+  app.get("/api/professional-services", async (req, res) => {
+    try {
+      const { search, categoryId, skills } = req.query;
+      const parsedCategoryId = categoryId ? parseInt(categoryId as string) : undefined;
+      const parsedSkills = skills ? (skills as string).split(',') : undefined;
+      
+      const services = await storage.searchProfessionalServices(
+        search as string, 
+        parsedCategoryId, 
+        parsedSkills
+      );
+      res.json(services);
+    } catch (error) {
+      console.error("Error fetching professional services:", error);
+      res.status(500).json({ error: "Failed to fetch professional services" });
+    }
+  });
+
+  app.get("/api/professional-services/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const service = await storage.getProfessionalService(id);
+      
+      if (!service) {
+        return res.status(404).json({ error: "Service not found" });
+      }
+      
+      res.json(service);
+    } catch (error) {
+      console.error("Error fetching professional service:", error);
+      res.status(500).json({ error: "Failed to fetch professional service" });
+    }
+  });
+
+  app.post("/api/professional-services", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const employee = await storage.getEmployeeByUserId(userId);
+      
+      if (!employee) {
+        return res.status(404).json({ error: "Employee profile not found" });
+      }
+
+      const validatedData = insertProfessionalServiceSchema.parse({
+        ...req.body,
+        providerId: employee.id
+      });
+      
+      const service = await storage.createProfessionalService(validatedData);
+      res.status(201).json(service);
+    } catch (error) {
+      console.error("Error creating professional service:", error);
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: "Invalid service data", details: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to create professional service" });
+      }
+    }
+  });
+
+  app.patch("/api/professional-services/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const userId = req.user.claims.sub;
+      const employee = await storage.getEmployeeByUserId(userId);
+      
+      if (!employee) {
+        return res.status(404).json({ error: "Employee profile not found" });
+      }
+
+      // Check if service exists and belongs to the user
+      const existingService = await storage.getProfessionalService(id);
+      if (!existingService) {
+        return res.status(404).json({ error: "Service not found" });
+      }
+      
+      if (existingService.providerId !== employee.id) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const updateData = { ...req.body };
+      delete updateData.providerId; // Prevent changing provider
+      
+      const service = await storage.updateProfessionalService(id, updateData);
+      res.json(service);
+    } catch (error) {
+      console.error("Error updating professional service:", error);
+      res.status(500).json({ error: "Failed to update professional service" });
+    }
+  });
+
+  app.delete("/api/professional-services/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const userId = req.user.claims.sub;
+      const employee = await storage.getEmployeeByUserId(userId);
+      
+      if (!employee) {
+        return res.status(404).json({ error: "Employee profile not found" });
+      }
+
+      // Check if service exists and belongs to the user
+      const existingService = await storage.getProfessionalService(id);
+      if (!existingService) {
+        return res.status(404).json({ error: "Service not found" });
+      }
+      
+      if (existingService.providerId !== employee.id) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const success = await storage.deleteProfessionalService(id);
+      if (success) {
+        res.json({ message: "Service deleted successfully" });
+      } else {
+        res.status(500).json({ error: "Failed to delete service" });
+      }
+    } catch (error) {
+      console.error("Error deleting professional service:", error);
+      res.status(500).json({ error: "Failed to delete professional service" });
+    }
+  });
+
+  // Get user's own services
+  app.get("/api/my-services", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const employee = await storage.getEmployeeByUserId(userId);
+      
+      if (!employee) {
+        return res.status(404).json({ error: "Employee profile not found" });
+      }
+
+      const services = await storage.getProfessionalServicesByProvider(employee.id);
+      res.json(services);
+    } catch (error) {
+      console.error("Error fetching user services:", error);
+      res.status(500).json({ error: "Failed to fetch user services" });
+    }
+  });
+
+  // Service Bookings Management
+  app.post("/api/service-bookings", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const employee = await storage.getEmployeeByUserId(userId);
+      
+      if (!employee) {
+        return res.status(404).json({ error: "Employee profile not found" });
+      }
+
+      const validatedData = insertServiceBookingSchema.parse({
+        ...req.body,
+        clientId: employee.id
+      });
+      
+      const booking = await storage.createServiceBooking(validatedData);
+      res.status(201).json(booking);
+    } catch (error) {
+      console.error("Error creating service booking:", error);
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: "Invalid booking data", details: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to create service booking" });
+      }
+    }
+  });
+
+  app.get("/api/my-bookings", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const employee = await storage.getEmployeeByUserId(userId);
+      
+      if (!employee) {
+        return res.status(404).json({ error: "Employee profile not found" });
+      }
+
+      const { type } = req.query;
+      let bookings;
+      
+      if (type === 'client') {
+        bookings = await storage.getServiceBookingsByClient(employee.id);
+      } else if (type === 'provider') {
+        bookings = await storage.getServiceBookingsByProvider(employee.id);
+      } else {
+        // Get both client and provider bookings
+        const [clientBookings, providerBookings] = await Promise.all([
+          storage.getServiceBookingsByClient(employee.id),
+          storage.getServiceBookingsByProvider(employee.id)
+        ]);
+        bookings = {
+          clientBookings,
+          providerBookings
+        };
+      }
+      
+      res.json(bookings);
+    } catch (error) {
+      console.error("Error fetching user bookings:", error);
+      res.status(500).json({ error: "Failed to fetch user bookings" });
+    }
+  });
+
+  app.patch("/api/service-bookings/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const userId = req.user.claims.sub;
+      const employee = await storage.getEmployeeByUserId(userId);
+      
+      if (!employee) {
+        return res.status(404).json({ error: "Employee profile not found" });
+      }
+
+      // Check if booking exists and user has access (client or provider)
+      const existingBooking = await storage.getServiceBooking(id);
+      if (!existingBooking) {
+        return res.status(404).json({ error: "Booking not found" });
+      }
+      
+      if (existingBooking.clientId !== employee.id && existingBooking.providerId !== employee.id) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const updateData = { ...req.body };
+      // Prevent changing core booking details
+      delete updateData.clientId;
+      delete updateData.providerId;
+      delete updateData.serviceId;
+      
+      const booking = await storage.updateServiceBooking(id, updateData);
+      res.json(booking);
+    } catch (error) {
+      console.error("Error updating service booking:", error);
+      res.status(500).json({ error: "Failed to update service booking" });
+    }
+  });
+
+  // Service Reviews Management
+  app.post("/api/service-reviews", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const employee = await storage.getEmployeeByUserId(userId);
+      
+      if (!employee) {
+        return res.status(404).json({ error: "Employee profile not found" });
+      }
+
+      const validatedData = insertServiceReviewSchema.parse({
+        ...req.body,
+        reviewerId: employee.id
+      });
+      
+      const review = await storage.createServiceReview(validatedData);
+      res.status(201).json(review);
+    } catch (error) {
+      console.error("Error creating service review:", error);
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: "Invalid review data", details: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to create service review" });
+      }
+    }
+  });
+
+  app.get("/api/professional-services/:serviceId/reviews", async (req, res) => {
+    try {
+      const serviceId = parseInt(req.params.serviceId);
+      const reviews = await storage.getServiceReviews(serviceId);
+      res.json(reviews);
+    } catch (error) {
+      console.error("Error fetching service reviews:", error);
+      res.status(500).json({ error: "Failed to fetch service reviews" });
+    }
+  });
+
+  // Service Portfolios Management
+  app.post("/api/service-portfolios", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const employee = await storage.getEmployeeByUserId(userId);
+      
+      if (!employee) {
+        return res.status(404).json({ error: "Employee profile not found" });
+      }
+
+      const validatedData = insertServicePortfolioSchema.parse({
+        ...req.body,
+        providerId: employee.id
+      });
+      
+      const portfolio = await storage.createServicePortfolio(validatedData);
+      res.status(201).json(portfolio);
+    } catch (error) {
+      console.error("Error creating service portfolio:", error);
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: "Invalid portfolio data", details: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to create service portfolio" });
+      }
+    }
+  });
+
+  app.get("/api/professional-services/:serviceId/portfolios", async (req, res) => {
+    try {
+      const serviceId = parseInt(req.params.serviceId);
+      const portfolios = await storage.getServicePortfolios(serviceId);
+      res.json(portfolios);
+    } catch (error) {
+      console.error("Error fetching service portfolios:", error);
+      res.status(500).json({ error: "Failed to fetch service portfolios" });
+    }
+  });
+
+  app.get("/api/my-portfolios", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const employee = await storage.getEmployeeByUserId(userId);
+      
+      if (!employee) {
+        return res.status(404).json({ error: "Employee profile not found" });
+      }
+
+      const portfolios = await storage.getServicePortfoliosByProvider(employee.id);
+      res.json(portfolios);
+    } catch (error) {
+      console.error("Error fetching user portfolios:", error);
+      res.status(500).json({ error: "Failed to fetch user portfolios" });
+    }
+  });
+
+  app.patch("/api/service-portfolios/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const userId = req.user.claims.sub;
+      const employee = await storage.getEmployeeByUserId(userId);
+      
+      if (!employee) {
+        return res.status(404).json({ error: "Employee profile not found" });
+      }
+
+      const updateData = { ...req.body };
+      delete updateData.providerId; // Prevent changing provider
+      
+      const portfolio = await storage.updateServicePortfolio(id, updateData);
+      if (!portfolio) {
+        return res.status(404).json({ error: "Portfolio not found" });
+      }
+      
+      res.json(portfolio);
+    } catch (error) {
+      console.error("Error updating service portfolio:", error);
+      res.status(500).json({ error: "Failed to update service portfolio" });
+    }
+  });
+
+  app.delete("/api/service-portfolios/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteServicePortfolio(id);
+      
+      if (success) {
+        res.json({ message: "Portfolio deleted successfully" });
+      } else {
+        res.status(404).json({ error: "Portfolio not found" });
+      }
+    } catch (error) {
+      console.error("Error deleting service portfolio:", error);
+      res.status(500).json({ error: "Failed to delete service portfolio" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

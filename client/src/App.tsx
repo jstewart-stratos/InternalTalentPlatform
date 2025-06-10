@@ -16,6 +16,7 @@ import Skills from "@/pages/skills";
 import Projects from "@/pages/projects";
 import MyProjects from "@/pages/my-projects";
 import ExpertDirectory from "@/pages/expert-directory";
+import Services from "@/pages/services";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -52,7 +53,7 @@ function Router() {
       <Route path="/skills" component={Skills} />
       <Route path="/projects" component={Projects} />
       <Route path="/my-projects" component={MyProjects} />
-
+      <Route path="/services" component={Services} />
       <Route path="/experts" component={ExpertDirectory} />
       <Route component={NotFound} />
     </Switch>
