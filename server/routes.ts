@@ -2261,6 +2261,14 @@ Respond with JSON in this exact format:
                 url: "https://www.coursera.org/specializations/python",
                 cost: "Free audit, $49/month certificate",
                 description: "Comprehensive Python course for beginners"
+              },
+              {
+                title: "Learn Python Programming",
+                type: "course",
+                provider: "edX",
+                url: "https://www.edx.org/search?q=python",
+                cost: "Free audit, $99 certificate",
+                description: "University-level Python programming courses"
               }
             ]
           }
@@ -2299,13 +2307,21 @@ Respond with JSON in this exact format:
                 url: "https://www.coursera.org/learn/sql-for-data-science",
                 cost: "Free audit, $49/month certificate",
                 description: "Learn SQL with practical applications"
+              },
+              {
+                title: "SQL Essential Training",
+                type: "course",
+                provider: "LinkedIn Learning",
+                url: "https://www.linkedin.com/learning/search?keywords=sql",
+                cost: "$29.99/month",
+                description: "Professional SQL training courses"
               }
             ]
           }
         ],
         certifications: [
           {
-            name: "Microsoft SQL Server Certification",
+            name: "Microsoft Azure Database Administrator",
             provider: "Microsoft",
             url: "https://docs.microsoft.com/learn/certifications/azure-database-administrator-associate/",
             cost: "$165",
@@ -2316,6 +2332,52 @@ Respond with JSON in this exact format:
           {
             title: "Financial Reports Dashboard",
             description: "Create SQL queries for financial reporting",
+            difficulty: "intermediate"
+          }
+        ]
+      },
+      'javascript': {
+        skill: "JavaScript",
+        totalDuration: "10-14 weeks",
+        difficulty: "progressive",
+        steps: [
+          {
+            title: "JavaScript Fundamentals",
+            description: "Learn modern JavaScript programming",
+            duration: "4-6 weeks",
+            resources: [
+              {
+                title: "JavaScript Algorithms and Data Structures",
+                type: "course",
+                provider: "freeCodeCamp",
+                url: "https://www.freecodecamp.org/learn/javascript-algorithms-and-data-structures/",
+                cost: "Free",
+                description: "Comprehensive JavaScript course with projects"
+              },
+              {
+                title: "The Complete JavaScript Course",
+                type: "course",
+                provider: "Udemy",
+                url: "https://www.udemy.com/courses/search/?q=javascript",
+                cost: "$50-200",
+                description: "Professional JavaScript development course"
+              }
+            ]
+          }
+        ],
+        certifications: [
+          {
+            name: "JavaScript Developer Certification",
+            provider: "W3Schools",
+            url: "https://www.w3schools.com/cert/cert_javascript.asp",
+            cost: "$95",
+            timeToComplete: "2-4 weeks"
+          }
+        ],
+        practiceProjects: [
+          {
+            title: "Financial Calculator Web App",
+            description: "Build a modern web application for financial calculations",
             difficulty: "intermediate"
           }
         ]
