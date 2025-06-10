@@ -157,6 +157,40 @@ export default function SkillsGapAnalysis() {
     }
   });
 
+  // Helper functions
+  const isSkillAlreadySaved = (skillName: string) => {
+    return savedRecommendations.some(rec => rec.skillName === skillName);
+  };
+
+  const handleSaveRecommendation = (recommendation: SkillRecommendation) => {
+    if (savedRecommendations.length >= 10) {
+      toast({
+        title: "Limit Reached",
+        description: "You can only save up to 10 skill recommendations. Please remove some existing ones first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (isSkillAlreadySaved(recommendation.skill)) {
+      toast({
+        title: "Already Saved",
+        description: "This skill recommendation is already in your saved list.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const learningPath = learningPaths[recommendation.skill];
+    
+    saveSkillRecommendation.mutate({
+      skillName: recommendation.skill,
+      priority: recommendation.priority,
+      reason: recommendation.reason,
+      learningPath: learningPath || null,
+    });
+  };
+
   // Generate skill recommendations based on employee skills and projects
   const recommendations: SkillRecommendation[] = [];
   
@@ -184,9 +218,9 @@ export default function SkillsGapAnalysis() {
     }
 
     // Add some growth recommendations for existing skills
-    const growthSkills = ['Data Science', 'Machine Learning', 'Cloud Computing', 'DevOps'];
+    const growthSkills = ['Data Science', 'Machine Learning', 'Cloud Computing', 'DevOps', 'Blockchain', 'Cybersecurity', 'API Development', 'Digital Transformation'];
     growthSkills.forEach(skill => {
-      if (!employeeSkillNames.includes(skill.toLowerCase()) && recommendations.length < 6) {
+      if (!employeeSkillNames.includes(skill.toLowerCase()) && recommendations.length < 10) {
         recommendations.push({
           skill,
           priority: 'medium',
@@ -196,6 +230,9 @@ export default function SkillsGapAnalysis() {
         });
       }
     });
+
+    // Limit to exactly 10 recommendations to match save limit
+    recommendations.splice(10);
   }
 
   return (
@@ -266,9 +303,15 @@ export default function SkillsGapAnalysis() {
         {recommendations.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-accent" />
-                Skill Recommendations for {currentEmployee?.name}
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 text-accent" />
+                  Skill Recommendations for {currentEmployee?.name}
+                </div>
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <Heart className="h-4 w-4" />
+                  <span>Saved: {savedRecommendations.length}/10</span>
+                </div>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -311,6 +354,31 @@ export default function SkillsGapAnalysis() {
                           <>
                             <BookOpen className="h-4 w-4 mr-2" />
                             Get Learning Resources
+                          </>
+                        )}
+                      </Button>
+                      
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleSaveRecommendation(rec)}
+                        disabled={
+                          saveSkillRecommendation.isPending || 
+                          isSkillAlreadySaved(rec.skill) ||
+                          savedRecommendations.length >= 10
+                        }
+                      >
+                        {saveSkillRecommendation.isPending ? (
+                          <Clock className="h-4 w-4 animate-spin" />
+                        ) : isSkillAlreadySaved(rec.skill) ? (
+                          <>
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            Saved
+                          </>
+                        ) : (
+                          <>
+                            <Save className="h-4 w-4 mr-2" />
+                            Save
                           </>
                         )}
                       </Button>
