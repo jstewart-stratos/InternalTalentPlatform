@@ -1,20 +1,10 @@
-import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { 
-  User, 
-  TrendingUp, 
-  BookOpen, 
-  Clock, 
-  Code, 
-  Book, 
-  Award, 
-  ExternalLink,
-  CheckCircle
-} from "lucide-react";
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { TrendingUp, User, CheckCircle, BookOpen, Clock, ExternalLink } from 'lucide-react';
+import { apiRequest } from '@/lib/queryClient';
 
 interface Employee {
   id: number;
@@ -82,7 +72,13 @@ export default function SkillsGapAnalysis() {
   const [learningPaths, setLearningPaths] = useState<{ [skill: string]: LearningPath }>({});
   const queryClient = useQueryClient();
 
-  // Fetch current user's employee profile
+  const priorityColors = {
+    high: 'bg-red-100 text-red-800',
+    medium: 'bg-yellow-100 text-yellow-800',
+    low: 'bg-green-100 text-green-800'
+  };
+
+  // Fetch current employee
   const { data: currentEmployee } = useQuery<Employee>({
     queryKey: ["/api/employees/current"],
   });
@@ -93,93 +89,66 @@ export default function SkillsGapAnalysis() {
   });
 
   // Fetch skills for current employee
-  const { data: employeeSkills = [], isLoading: skillsLoading, error: skillsError } = useQuery<EmployeeSkill[]>({
+  const { data: employeeSkills = [], isLoading: skillsLoading } = useQuery<EmployeeSkill[]>({
     queryKey: [`/api/employees/${currentEmployee?.id}/skills`],
     enabled: !!currentEmployee?.id,
   });
 
-
-
   // Generate learning path mutation
   const generateLearningPath = useMutation({
     mutationFn: async (skillData: { skill: string; currentLevel?: string; targetLevel?: string; context?: string }): Promise<LearningPath> => {
-      const response = await fetch("/api/learning-paths", {
-        method: "POST",
-        body: JSON.stringify(skillData),
-        headers: { "Content-Type": "application/json" },
-      });
-      if (!response.ok) throw new Error('Failed to generate learning path');
-      return response.json();
+      const res = await apiRequest('/api/learning-paths', 'POST', skillData);
+      return res.json();
     },
     onSuccess: (data: LearningPath, variables) => {
-      console.log('Learning path generated:', data);
       setLearningPaths(prev => ({
         ...prev,
         [variables.skill]: data
       }));
-    },
-    onError: (error) => {
-      console.error('Error generating learning path:', error);
-    },
+      queryClient.invalidateQueries({ queryKey: ['/api/learning-paths'] });
+    }
   });
 
-  // Get skill recommendations for the current employee
-  const getSkillRecommendations = (): SkillRecommendation[] => {
-    if (!currentEmployee || !employeeSkills.length) return [];
-
-    const currentSkills = new Set(employeeSkills.map(s => s.skillName));
+  // Generate skill recommendations based on employee skills and projects
+  const recommendations: SkillRecommendation[] = [];
+  
+  if (currentEmployee && projects.length > 0) {
+    const employeeSkillNames = employeeSkills.map(skill => skill.skillName.toLowerCase());
+    const allProjectSkills = projects.flatMap(project => project.requiredSkills);
     const skillDemand: { [skill: string]: number } = {};
-
-    // Count skill demand across projects
-    projects.forEach(project => {
-      project.requiredSkills.forEach(skill => {
-        skillDemand[skill] = (skillDemand[skill] || 0) + 1;
-      });
+    
+    allProjectSkills.forEach(skill => {
+      const normalizedSkill = skill.toLowerCase();
+      skillDemand[normalizedSkill] = (skillDemand[normalizedSkill] || 0) + 1;
     });
 
-    // Generate recommendations
-    const recommendations: SkillRecommendation[] = [];
-    
-    // High-demand skills not currently possessed
-    Object.entries(skillDemand).forEach(([skill, demand]) => {
-      if (!currentSkills.has(skill) && demand >= 2) {
+    // Find skills that are in demand but not possessed by employee
+    for (const [skill, demand] of Object.entries(skillDemand)) {
+      if (!employeeSkillNames.includes(skill)) {
         recommendations.push({
-          skill,
-          priority: 'high',
-          reason: `High demand skill (${demand} projects require this)`,
+          skill: skill.charAt(0).toUpperCase() + skill.slice(1),
+          priority: demand >= 3 ? 'high' : demand >= 2 ? 'medium' : 'low',
+          reason: `This skill is required for ${demand} active project(s) and would enhance your project eligibility.`,
           projectDemand: demand,
-          currentGap: true,
+          currentGap: true
         });
       }
-    });
+    }
 
-    // Skills for career advancement
-    const advancementSkills = ['Python', 'Data Analysis', 'Risk Management', 'SQL', 'AI/ML'];
-    advancementSkills.forEach(skill => {
-      if (!currentSkills.has(skill)) {
+    // Add some growth recommendations for existing skills
+    const growthSkills = ['Data Science', 'Machine Learning', 'Cloud Computing', 'DevOps'];
+    growthSkills.forEach(skill => {
+      if (!employeeSkillNames.includes(skill.toLowerCase()) && recommendations.length < 6) {
         recommendations.push({
           skill,
           priority: 'medium',
-          reason: 'Critical for career advancement in financial services',
-          projectDemand: skillDemand[skill] || 0,
-          currentGap: true,
+          reason: 'Emerging skill that would expand your career opportunities in the financial services industry.',
+          projectDemand: 0,
+          currentGap: false
         });
       }
     });
-
-    return recommendations.slice(0, 8); // Limit to top 8 recommendations
-  };
-
-  const priorityColors = {
-    high: "bg-red-100 text-red-800 border-red-200",
-    medium: "bg-yellow-100 text-yellow-800 border-yellow-200",
-    low: "bg-green-100 text-green-800 border-green-200",
-  };
-
-  const recommendations = getSkillRecommendations();
-  
-  console.log('Learning paths state:', Object.keys(learningPaths).length, Object.keys(learningPaths));
-  console.log('Learning paths data:', learningPaths);
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -201,12 +170,45 @@ export default function SkillsGapAnalysis() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center gap-4">
-                <div>
-                  <h3 className="font-semibold text-lg">{currentEmployee.name}</h3>
-                  <p className="text-gray-600">{currentEmployee.role} • {currentEmployee.department}</p>
-                  <p className="text-sm text-gray-500">{currentEmployee.yearsOfExperience} years of experience</p>
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <h3 className="font-semibold text-lg mb-2">{currentEmployee.name}</h3>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="font-medium">Department:</span> {currentEmployee.department}
+                  </div>
+                  <div>
+                    <span className="font-medium">Role:</span> {currentEmployee.role}
+                  </div>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Current Skills Overview */}
+        {currentEmployee && employeeSkills.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CheckCircle className="h-5 w-5 text-accent" />
+                Your Current Skills Profile
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {employeeSkills.map(skill => (
+                  <div key={skill.id} className="p-3 border rounded-lg">
+                    <div className="flex justify-between items-start mb-2">
+                      <h4 className="font-medium">{skill.skillName}</h4>
+                      <Badge variant="outline" className="text-xs">
+                        {skill.experienceLevel}
+                      </Badge>
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      {skill.yearsOfExperience} years experience
+                    </div>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>
@@ -330,36 +332,7 @@ export default function SkillsGapAnalysis() {
           </Card>
         )}
 
-        {/* Current Skills Overview */}
-        {currentEmployee && employeeSkills.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CheckCircle className="h-5 w-5 text-accent" />
-                Your Current Skills Profile
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {employeeSkills.map(skill => (
-                  <div key={skill.id} className="p-3 border rounded-lg">
-                    <div className="flex justify-between items-start mb-2">
-                      <h4 className="font-medium">{skill.skillName}</h4>
-                      <Badge variant="outline" className="text-xs">
-                        {skill.experienceLevel}
-                      </Badge>
-                    </div>
-                    <div className="text-sm text-gray-600">
-                      {skill.yearsOfExperience} years experience
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Detailed Learning Paths Display */}
+        {/* Complete Learning Paths Display */}
         {Object.entries(learningPaths).length > 0 && (
           <div className="space-y-6">
             <h3 className="text-xl font-semibold text-gray-900">Complete Learning Paths</h3>
@@ -381,138 +354,104 @@ export default function SkillsGapAnalysis() {
                   </div>
                 </CardHeader>
                 <CardContent>
-              <div className="space-y-6">
-                {/* Learning Steps */}
-                <div>
-                  <h4 className="font-semibold mb-3">Learning Steps</h4>
-                  <div className="space-y-4">
-                    {learningPath.steps.map((step, index) => (
-                      <div key={index} className="border rounded-lg p-4">
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="w-6 h-6 bg-accent text-white rounded-full flex items-center justify-center text-xs font-bold">
-                            {index + 1}
-                          </div>
-                          <h5 className="font-medium">{step.title}</h5>
-                          <Badge variant="outline" className="ml-auto">
-                            {step.duration}
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-gray-600 mb-3">{step.description}</p>
-                        
-                        {/* Resources */}
-                        <div className="space-y-2">
-                          <div className="text-sm font-medium">Resources:</div>
-                          {step.resources.map((resource, resourceIndex) => (
-                            <div key={resourceIndex} className="bg-gray-50 p-3 rounded border">
-                              <div className="flex items-start justify-between">
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    {resource.type === 'course' && <Code className="h-4 w-4 text-blue-500" />}
-                                    {resource.type === 'book' && <Book className="h-4 w-4 text-green-500" />}
-                                    {resource.type === 'certification' && <Award className="h-4 w-4 text-purple-500" />}
-                                    <span className="font-medium text-sm">{resource.title}</span>
-                                    <Badge variant="outline" className="text-xs capitalize">
-                                      {resource.type}
-                                    </Badge>
-                                  </div>
-                                  <div className="text-xs text-gray-600 mb-1">
-                                    by {resource.provider}
-                                  </div>
-                                  <div className="text-xs text-gray-700 mb-2">
-                                    {resource.description}
-                                  </div>
-                                  <div className="flex items-center gap-4">
-                                    <span className="text-xs font-medium text-green-600">
-                                      {resource.cost}
-                                    </span>
-                                    <a 
-                                      href={resource.url} 
-                                      target="_blank" 
-                                      rel="noopener noreferrer"
-                                      className="text-xs text-accent hover:underline flex items-center gap-1"
-                                    >
-                                      <ExternalLink className="h-3 w-3" />
-                                      View Resource
-                                    </a>
-                                  </div>
+                  <div className="space-y-6">
+                    {/* Learning Steps */}
+                    <div>
+                      <h4 className="font-semibold mb-3">Learning Steps</h4>
+                      <div className="space-y-4">
+                        {learningPath.steps.map((step, index) => (
+                          <div key={index} className="border rounded-lg p-4">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">
+                                {index + 1}
+                              </span>
+                              <h5 className="font-medium">{step.title}</h5>
+                              <Badge variant="outline" className="text-xs">{step.duration}</Badge>
+                            </div>
+                            <p className="text-sm text-gray-600 mb-3">{step.description}</p>
+                            {step.resources.length > 0 && (
+                              <div className="space-y-2">
+                                <h6 className="text-sm font-medium">Resources:</h6>
+                                <div className="grid grid-cols-1 gap-2">
+                                  {step.resources.map((resource, resIndex) => (
+                                    <div key={resIndex} className="bg-gray-50 p-3 rounded border">
+                                      <div className="flex justify-between items-start mb-1">
+                                        <a 
+                                          href={resource.url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="font-medium text-sm text-blue-600 hover:underline flex items-center gap-1"
+                                        >
+                                          {resource.title}
+                                          <ExternalLink className="h-3 w-3" />
+                                        </a>
+                                        <span className="text-xs text-green-600 font-medium">{resource.cost}</span>
+                                      </div>
+                                      <div className="text-xs text-gray-600 mb-1">{resource.description}</div>
+                                      <div className="flex gap-2">
+                                        <Badge variant="outline" className="text-xs">{resource.type}</Badge>
+                                        <Badge variant="outline" className="text-xs">{resource.provider}</Badge>
+                                      </div>
+                                    </div>
+                                  ))}
                                 </div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Certifications */}
+                    {learningPath.certifications.length > 0 && (
+                      <div>
+                        <h4 className="font-semibold mb-3">Recommended Certifications</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {learningPath.certifications.map((cert, index) => (
+                            <div key={index} className="border rounded-lg p-4">
+                              <a 
+                                href={cert.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="font-medium text-blue-600 hover:underline flex items-center gap-1 mb-2"
+                              >
+                                {cert.name}
+                                <ExternalLink className="h-3 w-3" />
+                              </a>
+                              <div className="text-sm text-gray-600 mb-2">Provider: {cert.provider}</div>
+                              <div className="flex justify-between items-center">
+                                <span className="text-sm text-gray-600">{cert.timeToComplete}</span>
+                                <span className="text-sm font-medium text-green-600">{cert.cost}</span>
                               </div>
                             </div>
                           ))}
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
+                    )}
 
-                {/* Certifications */}
-                {learningPath.certifications && learningPath.certifications.length > 0 && (
-                  <div>
-                    <h4 className="font-semibold mb-3 flex items-center gap-2">
-                      <Award className="h-4 w-4" />
-                      Professional Certifications
-                    </h4>
-                    <div className="grid gap-3">
-                      {learningPath.certifications.map((cert, index) => (
-                        <div key={index} className="border rounded-lg p-4 bg-purple-50">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <h5 className="font-medium text-purple-900">{cert.name}</h5>
-                              <p className="text-sm text-purple-700">by {cert.provider}</p>
-                              <div className="flex items-center gap-4 mt-2">
-                                <span className="text-sm font-medium text-purple-600">
-                                  {cert.cost}
-                                </span>
-                                <span className="text-sm text-purple-600">
-                                  {cert.timeToComplete}
-                                </span>
-                                <a 
-                                  href={cert.url} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer"
-                                  className="text-sm text-purple-800 hover:underline flex items-center gap-1"
-                                >
-                                  <ExternalLink className="h-3 w-3" />
-                                  Learn More
-                                </a>
+                    {/* Practice Projects */}
+                    {learningPath.practiceProjects.length > 0 && (
+                      <div>
+                        <h4 className="font-semibold mb-3">Practice Projects</h4>
+                        <div className="space-y-3">
+                          {learningPath.practiceProjects.map((project, index) => (
+                            <div key={index} className="border rounded-lg p-4">
+                              <div className="flex justify-between items-start mb-2">
+                                <h5 className="font-medium">{project.title}</h5>
+                                <Badge variant="outline" className="text-xs capitalize">{project.difficulty}</Badge>
                               </div>
+                              <p className="text-sm text-gray-600">{project.description}</p>
                             </div>
-                          </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
+                      </div>
+                    )}
                   </div>
-                )}
-
-                {/* Practice Projects */}
-                {learningPath.practiceProjects.length > 0 && (
-                  <div>
-                    <h4 className="font-semibold mb-3 flex items-center gap-2">
-                      <Code className="h-4 w-4" />
-                      Practice Projects
-                    </h4>
-                    <div className="grid gap-3">
-                      {learningPath.practiceProjects.map((project, index) => (
-                        <div key={index} className="border rounded-lg p-4 bg-blue-50">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <h5 className="font-medium text-blue-900">{project.title}</h5>
-                              <p className="text-sm text-blue-700 mt-1">{project.description}</p>
-                              <Badge className="bg-blue-100 text-blue-800 mt-2 capitalize">
-                                {project.difficulty}
-                              </Badge>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-        </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
