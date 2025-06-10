@@ -438,7 +438,7 @@ export class DatabaseStorage implements IStorage {
       employeeId: skill.employeeId,
       skillName: skill.skillName,
       experienceLevel: skill.experienceLevel,
-      yearsOfExperience: skill.yearsOfExperience,
+      yearsOfExperience: skill.yearsOfExperience || 0,
       employee: {
         name: skill.employeeName,
         department: skill.employeeTitle // Using title as department

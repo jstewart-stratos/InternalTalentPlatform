@@ -119,16 +119,12 @@ export default function Analytics() {
 
   // Skills gap analysis functions
   const skillsGapAnalysis = (): SkillGapData[] => {
-    const employeeSkills = new Map<string, Set<string>>();
-    employees.forEach(emp => {
-      if (emp.skills) {
-        emp.skills.forEach(skill => {
-          if (!employeeSkills.has(skill)) {
-            employeeSkills.set(skill, new Set());
-          }
-          employeeSkills.get(skill)?.add(emp.department);
-        });
+    const employeeSkillMap = new Map<string, Set<string>>();
+    allEmployeeSkills.forEach(skillRecord => {
+      if (!employeeSkillMap.has(skillRecord.skillName)) {
+        employeeSkillMap.set(skillRecord.skillName, new Set());
       }
+      employeeSkillMap.get(skillRecord.skillName)?.add(skillRecord.employee.department);
     });
 
     const projectSkills = new Map<string, number>();
@@ -140,11 +136,11 @@ export default function Analytics() {
       }
     });
 
-    const allSkills = new Set([...Array.from(employeeSkills.keys()), ...Array.from(projectSkills.keys())]);
+    const allSkills = new Set([...Array.from(employeeSkillMap.keys()), ...Array.from(projectSkills.keys())]);
     const gapData: SkillGapData[] = [];
 
     Array.from(allSkills).forEach(skill => {
-      const currentEmployees = employees.filter(emp => emp.skills?.includes(skill)).length;
+      const currentEmployees = allEmployeeSkills.filter(s => s.skillName === skill).length;
       const requiredByProjects = projectSkills.get(skill) || 0;
       const gap = Math.max(0, requiredByProjects - currentEmployees);
       const gapScore = currentEmployees > 0 ? gap / currentEmployees : requiredByProjects;
@@ -161,7 +157,7 @@ export default function Analytics() {
         requiredByProjects,
         gapScore,
         priority,
-        departments: Array.from(employeeSkills.get(skill) || []),
+        departments: Array.from(employeeSkillMap.get(skill) || []),
         projectedDemand: requiredByProjects + Math.floor(requiredByProjects * 0.2),
       });
     });
@@ -191,13 +187,12 @@ export default function Analytics() {
 
   const getDepartmentAnalysis = (): DepartmentSkillData[] => {
     return departments.map(dept => {
-      const deptEmployees = employees.filter(emp => emp.department === dept);
+      const deptEmployees = employees.filter(emp => emp.title === dept);
+      const deptSkills = allEmployeeSkills.filter(skill => skill.employee.department === dept);
       const allSkills = new Map<string, number>();
       
-      deptEmployees.forEach(emp => {
-        emp.skills?.forEach(skill => {
-          allSkills.set(skill, (allSkills.get(skill) || 0) + 1);
-        });
+      deptSkills.forEach(skillRecord => {
+        allSkills.set(skillRecord.skillName, (allSkills.get(skillRecord.skillName) || 0) + 1);
       });
 
       const topSkills = Array.from(allSkills.entries())
