@@ -108,7 +108,11 @@ export default function SkillsGapAnalysis() {
       return response.json();
     },
     onSuccess: (data: LearningPath, variables) => {
+      console.log('Learning path generated:', data);
       setLearningPaths(prev => new Map(prev.set(variables.skill, data)));
+    },
+    onError: (error) => {
+      console.error('Error generating learning path:', error);
     },
   });
 
@@ -236,6 +240,9 @@ export default function SkillsGapAnalysis() {
   };
 
   const recommendations = getSkillRecommendations();
+  
+  // Debug log to check learning paths state
+  console.log('Learning paths state:', learningPaths.size, Array.from(learningPaths.keys()));
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
