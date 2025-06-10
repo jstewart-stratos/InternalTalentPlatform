@@ -93,10 +93,12 @@ export default function SkillsGapAnalysis() {
   });
 
   // Fetch skills for current employee
-  const { data: employeeSkills = [] } = useQuery<EmployeeSkill[]>({
-    queryKey: ["/api/employees", currentEmployee?.id, "skills"],
+  const { data: employeeSkills = [], isLoading: skillsLoading, error: skillsError } = useQuery<EmployeeSkill[]>({
+    queryKey: [`/api/employees/${currentEmployee?.id}/skills`],
     enabled: !!currentEmployee?.id,
   });
+
+
 
   // Generate learning path mutation
   const generateLearningPath = useMutation({
