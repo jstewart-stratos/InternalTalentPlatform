@@ -186,7 +186,9 @@ export default function MyLearningPaths() {
             const response = await fetch(`/api/learning-steps/completions/${recommendation.id}`);
             if (response.ok) {
               const completions = await response.json();
-              completedStepsData[`${recommendation.id}`] = Array.isArray(completions) ? completions.map((c: any) => c.stepIndex) : [];
+              const stepIndices = Array.isArray(completions) ? completions.map((c: any) => c.stepIndex) : [];
+              completedStepsData[`${recommendation.id}`] = stepIndices;
+              console.log(`Loaded completions for recommendation ${recommendation.id}:`, stepIndices);
             } else {
               completedStepsData[`${recommendation.id}`] = [];
             }
@@ -329,7 +331,9 @@ export default function MyLearningPaths() {
                           <div className="space-y-2">
                             <h5 className="font-medium text-sm">Learning Steps:</h5>
                             {recommendation.learningPathData.steps.map((step: any, index: number) => {
-                              const isCompleted = completedSteps[`${recommendation.id}`]?.includes(index) || false;
+                              const completedStepsForRec = completedSteps[`${recommendation.id}`] || [];
+                              const isCompleted = completedStepsForRec.includes(index);
+                              console.log(`Step ${index} for rec ${recommendation.id}: completed steps = [${completedStepsForRec.join(',')}], isCompleted = ${isCompleted}`);
                               return (
                                 <div key={index} className={`bg-white rounded p-3 border ${isCompleted ? 'border-green-200 bg-green-50' : ''}`}>
                                   <div className="flex justify-between items-start mb-2">
