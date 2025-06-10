@@ -285,13 +285,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const employeeId = parseInt(req.params.id);
       const userId = req.user?.claims?.sub;
       
+      console.log('Add skill request:', {
+        employeeId,
+        userId,
+        hasUser: !!req.user,
+        hasClaims: !!req.user?.claims,
+        body: req.body
+      });
+      
       // Verify user can only add skills to their own profile
       const employee = await storage.getEmployee(employeeId);
       if (!employee) {
+        console.log('Employee not found for ID:', employeeId);
         return res.status(404).json({ error: "Employee not found" });
       }
       
       const currentEmployee = await storage.getEmployeeByUserId(userId);
+      console.log('Current employee lookup:', {
+        userId,
+        foundEmployee: currentEmployee?.id,
+        targetEmployeeId: employeeId,
+        match: currentEmployee?.id === employeeId
+      });
+      
       if (!currentEmployee || currentEmployee.id !== employeeId) {
         return res.status(403).json({ error: "Cannot add skills to another user's profile" });
       }
