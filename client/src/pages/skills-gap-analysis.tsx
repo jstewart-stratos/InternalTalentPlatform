@@ -80,7 +80,7 @@ interface LearningPath {
 
 export default function SkillsGapAnalysis() {
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | null>(null);
-  const [learningPaths, setLearningPaths] = useState<Map<string, LearningPath>>(new Map());
+  const [learningPaths, setLearningPaths] = useState<{ [skill: string]: LearningPath }>({});
   const queryClient = useQueryClient();
 
   // Fetch employees
@@ -119,7 +119,10 @@ export default function SkillsGapAnalysis() {
     },
     onSuccess: (data: LearningPath, variables) => {
       console.log('Learning path generated:', data);
-      setLearningPaths(prev => new Map(prev.set(variables.skill, data)));
+      setLearningPaths(prev => ({
+        ...prev,
+        [variables.skill]: data
+      }));
     },
     onError: (error) => {
       console.error('Error generating learning path:', error);
@@ -181,8 +184,8 @@ export default function SkillsGapAnalysis() {
 
   const recommendations = getSkillRecommendations();
   
-  console.log('Learning paths state:', learningPaths.size, Array.from(learningPaths.keys()));
-  console.log('Learning paths data:', Array.from(learningPaths.entries()));
+  console.log('Learning paths state:', Object.keys(learningPaths).length, Object.keys(learningPaths));
+  console.log('Learning paths data:', learningPaths);
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -305,7 +308,7 @@ export default function SkillsGapAnalysis() {
         )}
 
         {/* Learning Paths Display */}
-        {Array.from(learningPaths.entries()).map(([skill, learningPath]) => (
+        {Object.entries(learningPaths).map(([skill, learningPath]) => (
           <Card key={skill} className="mt-6">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
