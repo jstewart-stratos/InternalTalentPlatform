@@ -168,6 +168,63 @@ export default function MyLearningPaths() {
     },
   });
 
+  // Uncomplete learning step mutation
+  const uncompleteStep = useMutation({
+    mutationFn: async ({ 
+      savedRecommendationId, 
+      stepIndex 
+    }: { 
+      savedRecommendationId: number; 
+      stepIndex: number; 
+    }) => {
+      const res = await apiRequest('/api/learning-steps/complete', 'DELETE', {
+        savedRecommendationId,
+        stepIndex
+      });
+      return res.json();
+    },
+    onSuccess: async (data, variables) => {
+      // Update local completed steps state immediately
+      setCompletedSteps(prev => ({
+        ...prev,
+        [`${variables.savedRecommendationId}`]: (prev[`${variables.savedRecommendationId}`] || []).filter(index => index !== variables.stepIndex)
+      }));
+      
+      // Invalidate queries to refresh data from server
+      queryClient.invalidateQueries({ queryKey: ["/api/saved-skill-recommendations"] });
+      
+      // Reload completions for this specific recommendation
+      try {
+        const response = await fetch(`/api/learning-steps/completions/${variables.savedRecommendationId}`, {
+          credentials: 'include'
+        });
+        if (response.ok) {
+          const completions = await response.json();
+          const stepIndices = Array.isArray(completions) ? completions.map((c: any) => c.stepIndex) : [];
+          
+          setCompletedSteps(prev => ({
+            ...prev,
+            [`${variables.savedRecommendationId}`]: stepIndices
+          }));
+        }
+      } catch (error) {
+        console.error('Error reloading completions after step uncomplete:', error);
+      }
+      
+      toast({
+        title: "Step Uncompleted",
+        description: "The step has been marked as incomplete.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to uncomplete step",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Request advanced materials mutation
   const requestAdvancedMaterial = useMutation({
     mutationFn: async ({ skill }: { skill: string }) => {

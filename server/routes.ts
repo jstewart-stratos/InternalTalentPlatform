@@ -940,6 +940,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/learning-steps/complete", isAuthenticated, async (req: any, res) => {
+    try {
+      const { savedRecommendationId, stepIndex } = req.body;
+      
+      await storage.uncompleteLearningStep(savedRecommendationId, stepIndex);
+
+      // Calculate updated progress based on remaining completed steps
+      const recommendation = await storage.getSavedSkillRecommendation(savedRecommendationId);
+      if (recommendation?.learningPathData?.steps) {
+        const totalSteps = recommendation.learningPathData.steps.length;
+        const completedSteps = await storage.getLearningStepCompletions(savedRecommendationId);
+        const progressPercentage = Math.round((completedSteps.length / totalSteps) * 100);
+        
+        await storage.updateSavedSkillRecommendationProgress(savedRecommendationId, progressPercentage);
+      }
+      
+      res.json({ success: true, message: "Step marked as incomplete" });
+    } catch (error) {
+      console.error("Error uncompleting learning step:", error);
+      res.status(500).json({ error: "Failed to mark step as incomplete" });
+    }
+  });
+
   app.post("/api/learning-paths/advanced-material", isAuthenticated, async (req: any, res) => {
     try {
       const { skill, currentLevel = 'intermediate', targetLevel = 'advanced' } = req.body;

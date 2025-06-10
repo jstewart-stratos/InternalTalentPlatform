@@ -141,6 +141,7 @@ export interface IStorage {
     resourcesCompleted?: string[];
   }): Promise<any>;
   getLearningStepCompletions(savedRecommendationId: number): Promise<any[]>;
+  uncompleteLearningStep(savedRecommendationId: number, stepIndex: number): Promise<boolean>;
   getSavedSkillRecommendation(id: number): Promise<SavedSkillRecommendation | undefined>;
   updateSavedSkillRecommendationProgress(id: number, progressPercentage: number): Promise<any>;
   getServiceBooking(id: number): Promise<ServiceBooking | undefined>;
@@ -834,6 +835,24 @@ export class DatabaseStorage implements IStorage {
       .from(learningStepCompletions)
       .where(eq(learningStepCompletions.savedRecommendationId, savedRecommendationId))
       .orderBy(learningStepCompletions.stepIndex);
+  }
+
+  async uncompleteLearningStep(savedRecommendationId: number, stepIndex: number) {
+    try {
+      const result = await db
+        .delete(learningStepCompletions)
+        .where(
+          and(
+            eq(learningStepCompletions.savedRecommendationId, savedRecommendationId),
+            eq(learningStepCompletions.stepIndex, stepIndex)
+          )
+        );
+      
+      return result.rowCount !== null && result.rowCount > 0;
+    } catch (error) {
+      console.error("Error in uncompleteLearningStep:", error);
+      throw error;
+    }
   }
 
   async getSavedSkillRecommendation(id: number) {
