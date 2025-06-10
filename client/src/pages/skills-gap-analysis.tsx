@@ -3,8 +3,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, User, CheckCircle, BookOpen, Clock, ExternalLink } from 'lucide-react';
+import { TrendingUp, User, CheckCircle, BookOpen, Clock, ExternalLink, Save, Heart } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
 
 interface Employee {
   id: number;
@@ -35,6 +36,20 @@ interface SkillRecommendation {
   reason: string;
   projectDemand: number;
   currentGap: boolean;
+}
+
+interface SavedSkillRecommendation {
+  id: number;
+  employeeId: number;
+  skillName: string;
+  priority: string;
+  reason: string;
+  learningPath: any;
+  status: 'saved' | 'in_progress' | 'completed';
+  progressPercentage: number;
+  savedAt: string;
+  lastAccessedAt?: string;
+  completedAt?: string;
 }
 
 interface LearningPath {
@@ -71,6 +86,7 @@ interface LearningPath {
 export default function SkillsGapAnalysis() {
   const [learningPaths, setLearningPaths] = useState<{ [skill: string]: LearningPath }>({});
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const priorityColors = {
     high: 'bg-red-100 text-red-800',
@@ -92,6 +108,38 @@ export default function SkillsGapAnalysis() {
   const { data: employeeSkills = [], isLoading: skillsLoading } = useQuery<EmployeeSkill[]>({
     queryKey: [`/api/employees/${currentEmployee?.id}/skills`],
     enabled: !!currentEmployee?.id,
+  });
+
+  // Fetch saved skill recommendations
+  const { data: savedRecommendations = [] } = useQuery<SavedSkillRecommendation[]>({
+    queryKey: ["/api/saved-skill-recommendations"],
+  });
+
+  // Save skill recommendation mutation
+  const saveSkillRecommendation = useMutation({
+    mutationFn: async (recommendationData: {
+      skillName: string;
+      priority: string;
+      reason: string;
+      learningPath?: any;
+    }): Promise<SavedSkillRecommendation> => {
+      const res = await apiRequest('/api/saved-skill-recommendations', 'POST', recommendationData);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/saved-skill-recommendations"] });
+      toast({
+        title: "Skill Recommendation Saved",
+        description: "Learning path has been added to your saved recommendations.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save skill recommendation",
+        variant: "destructive",
+      });
+    },
   });
 
   // Generate learning path mutation

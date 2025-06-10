@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertEmployeeSchema, insertSkillEndorsementSchema, insertProjectSchema, insertSiteSettingSchema, insertAuditLogSchema, insertUserPermissionSchema, insertDepartmentSchema, insertServiceCategorySchema, insertProfessionalServiceSchema, insertServiceBookingSchema, insertServiceReviewSchema, insertServicePortfolioSchema } from "@shared/schema";
+import { insertEmployeeSchema, insertSkillEndorsementSchema, insertProjectSchema, insertSiteSettingSchema, insertAuditLogSchema, insertUserPermissionSchema, insertDepartmentSchema, insertServiceCategorySchema, insertProfessionalServiceSchema, insertServiceBookingSchema, insertServiceReviewSchema, insertServicePortfolioSchema, insertSavedSkillRecommendationSchema } from "@shared/schema";
 import { sendEmail } from "./sendgrid";
 import { getProjectRecommendationsForEmployee, getEmployeeRecommendationsForProject, getSkillGapAnalysis } from "./ai-recommendations";
 import OpenAI from "openai";
@@ -1889,6 +1889,114 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error seeding skill levels:", error);
       res.status(500).json({ error: "Failed to seed skill levels" });
+    }
+  });
+
+  // Saved skill recommendations routes
+  app.post("/api/saved-skill-recommendations", authMiddleware, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const employee = await storage.getEmployeeByUserId(userId);
+      
+      if (!employee) {
+        return res.status(404).json({ error: "Employee profile not found" });
+      }
+
+      const validatedData = insertSavedSkillRecommendationSchema.parse({
+        ...req.body,
+        employeeId: employee.id
+      });
+
+      const savedRecommendation = await storage.saveSkillRecommendation(validatedData);
+      res.json(savedRecommendation);
+    } catch (error) {
+      console.error("Error saving skill recommendation:", error);
+      res.status(500).json({ error: "Failed to save skill recommendation" });
+    }
+  });
+
+  app.get("/api/saved-skill-recommendations", authMiddleware, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const employee = await storage.getEmployeeByUserId(userId);
+      
+      if (!employee) {
+        return res.status(404).json({ error: "Employee profile not found" });
+      }
+
+      const savedRecommendations = await storage.getSavedSkillRecommendations(employee.id);
+      res.json(savedRecommendations);
+    } catch (error) {
+      console.error("Error fetching saved skill recommendations:", error);
+      res.status(500).json({ error: "Failed to fetch saved skill recommendations" });
+    }
+  });
+
+  app.put("/api/saved-skill-recommendations/:id", authMiddleware, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const updates = req.body;
+
+      const updatedRecommendation = await storage.updateSavedSkillRecommendation(parseInt(id), updates);
+      
+      if (!updatedRecommendation) {
+        return res.status(404).json({ error: "Saved skill recommendation not found" });
+      }
+
+      res.json(updatedRecommendation);
+    } catch (error) {
+      console.error("Error updating saved skill recommendation:", error);
+      res.status(500).json({ error: "Failed to update saved skill recommendation" });
+    }
+  });
+
+  app.delete("/api/saved-skill-recommendations/:id", authMiddleware, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const success = await storage.deleteSavedSkillRecommendation(parseInt(id));
+      
+      if (!success) {
+        return res.status(404).json({ error: "Saved skill recommendation not found" });
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting saved skill recommendation:", error);
+      res.status(500).json({ error: "Failed to delete saved skill recommendation" });
+    }
+  });
+
+  app.put("/api/saved-skill-recommendations/:id/progress", authMiddleware, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { progressPercentage } = req.body;
+
+      const updatedRecommendation = await storage.updateLearningProgress(parseInt(id), progressPercentage);
+      
+      if (!updatedRecommendation) {
+        return res.status(404).json({ error: "Saved skill recommendation not found" });
+      }
+
+      res.json(updatedRecommendation);
+    } catch (error) {
+      console.error("Error updating learning progress:", error);
+      res.status(500).json({ error: "Failed to update learning progress" });
+    }
+  });
+
+  app.put("/api/saved-skill-recommendations/:id/complete", authMiddleware, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const completedRecommendation = await storage.markSkillRecommendationComplete(parseInt(id));
+      
+      if (!completedRecommendation) {
+        return res.status(404).json({ error: "Saved skill recommendation not found" });
+      }
+
+      res.json(completedRecommendation);
+    } catch (error) {
+      console.error("Error marking skill recommendation complete:", error);
+      res.status(500).json({ error: "Failed to mark skill recommendation complete" });
     }
   });
 
