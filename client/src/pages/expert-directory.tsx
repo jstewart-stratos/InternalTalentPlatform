@@ -278,6 +278,7 @@ export default function ExpertDirectory() {
                     )}
                   </div>
 
+                  {/* Action buttons section */}
                   <div className="flex items-center justify-between">
                     {expert.maxMentees !== undefined && expert.maxMentees !== null && expert.maxMentees > 0 && (
                       <Button 
