@@ -358,11 +358,7 @@ export default function ServiceDetailsPage() {
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
-                      <Link href={`/profile/${provider.id}`}>
-                        <h3 className="font-semibold text-orange-600 hover:text-orange-700 cursor-pointer">
-                          {provider.name}
-                        </h3>
-                      </Link>
+                      <h3 className="font-semibold">{provider.name}</h3>
                       <p className="text-sm text-gray-600 dark:text-gray-400">{provider.title}</p>
                       <p className="text-xs text-gray-500 mt-1">
                         {provider.yearsExperience} years experience
@@ -372,6 +368,12 @@ export default function ServiceDetailsPage() {
                           {provider.bio}
                         </p>
                       )}
+                      <Link href={`/profile/${provider.id}`}>
+                        <Button variant="outline" size="sm" className="mt-3">
+                          <UserCircle className="h-4 w-4 mr-2" />
+                          View Profile
+                        </Button>
+                      </Link>
                     </div>
                   </div>
                 </CardContent>
