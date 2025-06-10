@@ -358,7 +358,11 @@ export default function ServiceDetailsPage() {
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
-                      <h3 className="font-semibold">{provider.name}</h3>
+                      <Link href={`/profile/${provider.id}`}>
+                        <h3 className="font-semibold text-orange-600 hover:text-orange-700 cursor-pointer">
+                          {provider.name}
+                        </h3>
+                      </Link>
                       <p className="text-sm text-gray-600 dark:text-gray-400">{provider.title}</p>
                       <p className="text-xs text-gray-500 mt-1">
                         {provider.yearsExperience} years experience
