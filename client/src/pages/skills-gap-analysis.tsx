@@ -134,12 +134,12 @@ export default function SkillsGapAnalysis() {
     if (!targetEmployee || !employeeSkills.length) return [];
 
     const currentSkills = new Set(employeeSkills.map(s => s.skillName));
-    const skillDemand = new Map<string, number>();
+    const skillDemand: { [skill: string]: number } = {};
 
     // Count skill demand across projects
     projects.forEach(project => {
       project.requiredSkills.forEach(skill => {
-        skillDemand.set(skill, (skillDemand.get(skill) || 0) + 1);
+        skillDemand[skill] = (skillDemand[skill] || 0) + 1;
       });
     });
 
@@ -147,7 +147,7 @@ export default function SkillsGapAnalysis() {
     const recommendations: SkillRecommendation[] = [];
     
     // High-demand skills not currently possessed
-    for (const [skill, demand] of skillDemand.entries()) {
+    Object.entries(skillDemand).forEach(([skill, demand]) => {
       if (!currentSkills.has(skill) && demand >= 2) {
         recommendations.push({
           skill,
@@ -157,7 +157,7 @@ export default function SkillsGapAnalysis() {
           currentGap: true,
         });
       }
-    }
+    });
 
     // Skills for career advancement
     const advancementSkills = ['Python', 'Data Analysis', 'Risk Management', 'SQL', 'AI/ML'];
@@ -167,7 +167,7 @@ export default function SkillsGapAnalysis() {
           skill,
           priority: 'medium',
           reason: 'Critical for career advancement in financial services',
-          projectDemand: skillDemand.get(skill) || 0,
+          projectDemand: skillDemand[skill] || 0,
           currentGap: true,
         });
       }
