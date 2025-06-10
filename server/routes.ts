@@ -262,7 +262,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Skill is required" });
       }
       
-      await storage.trackSkillSearch(skill);
+      // Sanitize skill input to prevent SQL injection
+      const sanitizedSkill = skill.replace(/['"\\]/g, '').trim();
+      if (sanitizedSkill.length === 0) {
+        return res.status(400).json({ error: "Invalid skill name" });
+      }
+      
+      await storage.trackSkillSearch(sanitizedSkill);
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to track search" });
@@ -316,9 +322,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Skill name is required" });
       }
 
+      // Sanitize skill name to prevent SQL injection
+      const sanitizedSkillName = req.body.skillName.replace(/['"\\]/g, '').trim();
+      if (sanitizedSkillName.length === 0) {
+        return res.status(400).json({ error: "Invalid skill name" });
+      }
+
       const skillData = {
         employeeId,
-        skillName: req.body.skillName.trim(),
+        skillName: sanitizedSkillName,
         experienceLevel: req.body.experienceLevel || 'beginner',
         yearsOfExperience: req.body.yearsOfExperience || 1,
         lastUsed: new Date(req.body.lastUsed || Date.now()),

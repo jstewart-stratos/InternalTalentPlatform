@@ -198,7 +198,9 @@ export class DatabaseStorage implements IStorage {
     const conditions = [];
 
     if (query) {
-      const lowerQuery = `%${query.toLowerCase()}%`;
+      // Sanitize input to prevent SQL injection
+      const sanitizedQuery = query.replace(/['"\\]/g, '').toLowerCase();
+      const lowerQuery = `%${sanitizedQuery}%`;
       conditions.push(
         or(
           ilike(employees.name, lowerQuery),
@@ -460,13 +462,14 @@ export class DatabaseStorage implements IStorage {
 
     if (skills && skills.length > 0) {
       // Search for projects that need any of the specified skills
-      conditions.push(
-        or(
-          ...skills.map(skill => 
-            sql`${projects.requiredSkills} @> ARRAY[${skill}]`
-          )
-        )
-      );
+      // Use parameterized queries to prevent SQL injection
+      const skillConditions = skills.map(skill => {
+        // Sanitize skill input and use proper SQL parameterization
+        const sanitizedSkill = skill.replace(/['"\\]/g, '');
+        return sql`${projects.requiredSkills} @> ARRAY[${sanitizedSkill}]::text[]`;
+      });
+      
+      conditions.push(or(...skillConditions));
     }
 
     if (conditions.length === 0) {
@@ -856,12 +859,14 @@ export class DatabaseStorage implements IStorage {
     );
 
     if (query) {
+      // Sanitize input to prevent SQL injection
+      const sanitizedQuery = query.replace(/['"\\]/g, '');
       whereCondition = and(
         whereCondition,
         or(
-          ilike(professionalServices.title, `%${query}%`),
-          ilike(professionalServices.description, `%${query}%`),
-          ilike(professionalServices.shortDescription, `%${query}%`)
+          ilike(professionalServices.title, `%${sanitizedQuery}%`),
+          ilike(professionalServices.description, `%${sanitizedQuery}%`),
+          ilike(professionalServices.shortDescription, `%${sanitizedQuery}%`)
         )
       );
     }
