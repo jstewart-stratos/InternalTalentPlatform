@@ -279,25 +279,14 @@ export default function ExpertDirectory() {
                   </div>
 
                   {/* Action buttons section */}
-                  <div className="flex items-center justify-between">
-                    {expert.maxMentees !== undefined && expert.maxMentees !== null && expert.maxMentees > 0 && (
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => handleContact(expert)}
-                      >
-                        Contact Expert
-                      </Button>
-                    )}
-                    <Button 
-                      size="sm" 
-                      className="ml-auto"
-                      onClick={() => setLocation(`/profile/${expert.id}`)}
-                    >
-                      <User className="h-4 w-4 mr-2" />
-                      View Profile
-                    </Button>
-                  </div>
+                  <Button 
+                    size="sm" 
+                    className="w-full"
+                    onClick={() => setLocation(`/profile/${expert.id}`)}
+                  >
+                    <User className="h-4 w-4 mr-2" />
+                    View Profile
+                  </Button>
                 </CardContent>
               </Card>
             ))}
