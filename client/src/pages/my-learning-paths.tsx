@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -166,6 +166,31 @@ export default function MyLearningPaths() {
 
   const [completedSteps, setCompletedSteps] = useState<{ [key: string]: number[] }>({});
   const [advancedMaterials, setAdvancedMaterials] = useState<{ [skill: string]: any }>({});
+
+  // Load completed steps for each recommendation
+  useEffect(() => {
+    if (savedRecommendations.length > 0) {
+      const loadCompletedSteps = async () => {
+        const completedStepsData: { [key: string]: number[] } = {};
+        
+        for (const recommendation of savedRecommendations) {
+          try {
+            const response = await fetch(`/api/learning-steps/completions/${recommendation.id}`);
+            if (response.ok) {
+              const completions = await response.json();
+              completedStepsData[`${recommendation.id}`] = completions.map((c: any) => c.stepIndex);
+            }
+          } catch (error) {
+            console.error(`Error loading completions for recommendation ${recommendation.id}:`, error);
+          }
+        }
+        
+        setCompletedSteps(completedStepsData);
+      };
+      
+      loadCompletedSteps();
+    }
+  }, [savedRecommendations]);
 
   const handleProgressUpdate = (id: number, newProgress: number) => {
     updateProgress.mutate({ id, progressPercentage: newProgress });
