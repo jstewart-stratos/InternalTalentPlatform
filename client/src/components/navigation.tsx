@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Bell, Users, ChevronDown, LogOut, UserCircle, Menu, X, FolderOpen } from "lucide-react";
+import { Bell, Users, ChevronDown, LogOut, UserCircle, Menu, X, FolderOpen, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -26,7 +26,6 @@ export default function Navigation() {
     { path: "/", label: "Talent Directory", active: location === "/" || location === "/skills" || location === "/experts" },
     { path: "/projects", label: "Projects Hub", active: location === "/projects" },
     { path: "/marketplace", label: "Marketplace", active: location === "/marketplace" },
-    { path: "/services", label: "My Services", active: location === "/services" },
     ...(isAdmin ? [
       { path: "/analytics", label: "Analytics", active: location === "/analytics" || location === "/skills-gap-analysis" },
       { path: "/admin", label: "Admin", active: location === "/admin" },
@@ -121,6 +120,12 @@ export default function Navigation() {
                       My Projects
                     </Link>
                   </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/services" className="flex items-center">
+                      <Briefcase className="h-4 w-4 mr-2" />
+                      My Services
+                    </Link>
+                  </DropdownMenuItem>
 
                   <DropdownMenuItem onClick={handleLogout} className="flex items-center text-red-600">
                     <LogOut className="h-4 w-4 mr-2" />
@@ -191,6 +196,14 @@ export default function Navigation() {
                   >
                     <FolderOpen className="h-5 w-5 mr-3" />
                     My Projects
+                  </Link>
+                  <Link
+                    href="/services"
+                    onClick={closeMobileMenu}
+                    className="flex items-center px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                  >
+                    <Briefcase className="h-5 w-5 mr-3" />
+                    My Services
                   </Link>
 
                   <button
