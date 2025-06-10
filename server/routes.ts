@@ -2340,6 +2340,14 @@ Respond with JSON in this exact format:
               url: `https://www.linkedin.com/learning/search?keywords=${encodeURIComponent(skill)}`,
               cost: "$29.99/month",
               description: `Professional ${skill} training course`
+            },
+            {
+              title: `${skill} Fundamentals on Coursera`,
+              type: "course",
+              provider: "Coursera",
+              url: `https://www.coursera.org/search?query=${encodeURIComponent(skill)}`,
+              cost: "Free audit, $49/month certificate",
+              description: `University-level ${skill} courses`
             }
           ]
         }
