@@ -1909,7 +1909,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // AI-Powered Learning Path Generation
+  // Learning Path Generation with OpenAI and Curated Fallback
   app.post("/api/learning-paths", async (req, res) => {
     try {
       const { skill, currentLevel, targetLevel, context } = req.body;
@@ -1918,15 +1918,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Skill name is required" });
       }
 
-      // Check if OpenAI API key is available
-      if (!process.env.OPENAI_API_KEY) {
-        return res.status(503).json({ 
-          error: "OpenAI API key not configured",
-          message: "To enable AI-powered learning paths, please provide your OpenAI API key in the environment variables."
-        });
-      }
+      // Try OpenAI first if API key is available
+      if (process.env.OPENAI_API_KEY) {
+        try {
+          const openai = new OpenAI({
+            apiKey: process.env.OPENAI_API_KEY,
+          });
 
-      const prompt = `Generate a comprehensive learning path for acquiring "${skill}" skill in the financial services industry.
+          const prompt = `Generate a comprehensive learning path for acquiring "${skill}" skill in the financial services industry.
 
 Current level: ${currentLevel || 'beginner'}
 Target level: ${targetLevel || 'intermediate'}
@@ -1974,52 +1973,377 @@ Respond with JSON in this exact format:
   ]
 }`;
 
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-        messages: [
-          {
-            role: "system",
-            content: "You are an expert learning advisor for financial services professionals. Provide practical, actionable learning paths with real resources and links. Focus on legitimate educational platforms, certifications, and industry-standard materials."
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        response_format: { type: "json_object" },
-        temperature: 0.7,
-      });
+          const response = await openai.chat.completions.create({
+            model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+            messages: [
+              {
+                role: "system",
+                content: "You are an expert learning advisor for financial services professionals. Provide practical, actionable learning paths with real resources and links. Focus on legitimate educational platforms, certifications, and industry-standard materials."
+              },
+              {
+                role: "user",
+                content: prompt
+              }
+            ],
+            response_format: { type: "json_object" },
+            temperature: 0.7,
+          });
 
-      const learningPath = JSON.parse(response.choices[0].message.content || '{}');
+          const learningPath = JSON.parse(response.choices[0].message.content || '{}');
+          return res.json(learningPath);
+        } catch (aiError: any) {
+          console.error('OpenAI API error, using curated resources:', aiError);
+          // Fall through to curated resources
+        }
+      }
+
+      // Use curated learning resources when OpenAI is unavailable
+      const learningPath = generateCuratedLearningPath(skill, currentLevel, targetLevel, context);
       res.json(learningPath);
 
     } catch (error: any) {
       console.error('Error generating learning path:', error);
-      
-      // Handle specific OpenAI API errors
-      if (error.status === 429) {
-        return res.status(429).json({ 
-          error: "OpenAI API quota exceeded",
-          message: "The OpenAI API quota has been exceeded. Please provide your own OpenAI API key or try again later.",
-          type: "quota_exceeded"
-        });
-      }
-      
-      if (error.status === 401) {
-        return res.status(401).json({ 
-          error: "Invalid OpenAI API key",
-          message: "Please provide a valid OpenAI API key to enable AI-powered learning paths.",
-          type: "invalid_api_key"
-        });
-      }
-
       res.status(500).json({ 
         error: "Failed to generate learning path",
-        message: "Unable to generate AI-powered learning path. Please ensure your OpenAI API key is valid and has sufficient quota.",
+        message: "Unable to generate learning path. Please try again.",
         details: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
   });
+
+  function generateCuratedLearningPath(skill: string, currentLevel?: string, targetLevel?: string, context?: string) {
+    const skillLower = skill.toLowerCase();
+    const current = currentLevel || 'beginner';
+    const target = targetLevel || 'intermediate';
+    
+    // Curated learning resources for common financial services skills
+    const skillResources: { [key: string]: any } = {
+      'python': {
+        skill: "Python",
+        totalDuration: "8-12 weeks",
+        difficulty: "progressive",
+        steps: [
+          {
+            title: "Python Programming Fundamentals",
+            description: "Master Python syntax, data types, and programming basics",
+            duration: "3-4 weeks",
+            resources: [
+              {
+                title: "Python for Everybody Specialization",
+                type: "course",
+                provider: "Coursera (University of Michigan)",
+                url: "https://www.coursera.org/specializations/python",
+                cost: "Free audit, $49/month for certificate",
+                description: "Comprehensive Python introduction with hands-on projects"
+              },
+              {
+                title: "Automate the Boring Stuff with Python",
+                type: "book",
+                provider: "No Starch Press",
+                url: "https://automatetheboringstuff.com/",
+                cost: "Free online, $25 paperback",
+                description: "Practical Python programming for beginners"
+              }
+            ]
+          },
+          {
+            title: "Financial Data Analysis with Python",
+            description: "Apply Python to financial modeling and data analysis",
+            duration: "4-5 weeks",
+            resources: [
+              {
+                title: "Python for Finance Specialization",
+                type: "course",
+                provider: "Coursera",
+                url: "https://www.coursera.org/specializations/python-programming-finance",
+                cost: "$49/month subscription",
+                description: "Python applications in finance and investment analysis"
+              },
+              {
+                title: "Python for Finance Cookbook",
+                type: "book",
+                provider: "Packt Publishing",
+                url: "https://www.packtpub.com/product/python-for-finance-cookbook/9781789618518",
+                cost: "$35.99",
+                description: "Practical recipes for financial analysis with Python"
+              }
+            ]
+          }
+        ],
+        certifications: [
+          {
+            name: "Python Institute PCEP Certification",
+            provider: "Python Institute",
+            url: "https://pythoninstitute.org/pcep",
+            cost: "$59",
+            timeToComplete: "2-4 weeks preparation"
+          }
+        ],
+        practiceProjects: [
+          {
+            title: "Portfolio Risk Analysis Tool",
+            description: "Build a Python application to calculate VaR and other risk metrics",
+            difficulty: "intermediate"
+          }
+        ]
+      },
+      'sql': {
+        skill: "SQL",
+        totalDuration: "6-8 weeks",
+        difficulty: "progressive",
+        steps: [
+          {
+            title: "SQL Fundamentals for Financial Data",
+            description: "Master database queries and data manipulation",
+            duration: "3 weeks",
+            resources: [
+              {
+                title: "SQL for Data Science",
+                type: "course",
+                provider: "Coursera (UC Davis)",
+                url: "https://www.coursera.org/learn/sql-for-data-science",
+                cost: "Free audit, $49/month for certificate",
+                description: "SQL fundamentals with practical data science applications"
+              },
+              {
+                title: "Learning SQL",
+                type: "book",
+                provider: "O'Reilly Media",
+                url: "https://www.oreilly.com/library/view/learning-sql-3rd/9781492057604/",
+                cost: "$44.99",
+                description: "Comprehensive SQL reference and tutorial"
+              }
+            ]
+          },
+          {
+            title: "Advanced SQL for Financial Reporting",
+            description: "Complex queries, window functions, and performance optimization",
+            duration: "3-4 weeks",
+            resources: [
+              {
+                title: "Advanced SQL for Data Professionals",
+                type: "course",
+                provider: "LinkedIn Learning",
+                url: "https://www.linkedin.com/learning/advanced-sql-for-data-scientists",
+                cost: "$29.99/month subscription",
+                description: "Advanced SQL techniques for complex data analysis"
+              }
+            ]
+          }
+        ],
+        certifications: [
+          {
+            name: "Microsoft Azure Database Administrator",
+            provider: "Microsoft",
+            url: "https://docs.microsoft.com/en-us/learn/certifications/azure-database-administrator-associate/",
+            cost: "$165",
+            timeToComplete: "4-8 weeks preparation"
+          }
+        ],
+        practiceProjects: [
+          {
+            title: "Financial Reporting Dashboard",
+            description: "Create complex SQL queries for executive financial reports",
+            difficulty: "intermediate"
+          }
+        ]
+      },
+      'risk management': {
+        skill: "Risk Management",
+        totalDuration: "12-16 weeks",
+        difficulty: "intermediate to advanced",
+        steps: [
+          {
+            title: "Financial Risk Fundamentals",
+            description: "Core concepts of market, credit, and operational risk",
+            duration: "4-5 weeks",
+            resources: [
+              {
+                title: "Financial Risk Management Specialization",
+                type: "course",
+                provider: "Coursera (New York Institute of Finance)",
+                url: "https://www.coursera.org/specializations/financialrisk",
+                cost: "$49/month subscription",
+                description: "Comprehensive risk management principles and practices"
+              },
+              {
+                title: "The Essentials of Risk Management",
+                type: "book",
+                provider: "McGraw-Hill",
+                url: "https://www.mheducation.com/highered/product/essentials-risk-management-crouhy-galai/M9781260462098.html",
+                cost: "$85",
+                description: "Industry standard risk management textbook"
+              }
+            ]
+          },
+          {
+            title: "Quantitative Risk Models",
+            description: "VaR, stress testing, and risk modeling techniques",
+            duration: "6-8 weeks",
+            resources: [
+              {
+                title: "Risk Management Professional Certificate",
+                type: "certification",
+                provider: "NYU Tandon School of Engineering",
+                url: "https://engineering.nyu.edu/academics/programs/risk-engineering/non-degree-programs",
+                cost: "$3,500",
+                description: "Professional certificate in financial risk management"
+              }
+            ]
+          }
+        ],
+        certifications: [
+          {
+            name: "Financial Risk Manager (FRM)",
+            provider: "Global Association of Risk Professionals",
+            url: "https://www.garp.org/frm",
+            cost: "$825 + $350 exam fees",
+            timeToComplete: "6-12 months preparation"
+          },
+          {
+            name: "Professional Risk Manager (PRM)",
+            provider: "Professional Risk Managers' International Association",
+            url: "https://www.prmia.org/Public/Certification/PRM_Certification.aspx",
+            cost: "$700 + exam fees",
+            timeToComplete: "4-8 months preparation"
+          }
+        ],
+        practiceProjects: [
+          {
+            title: "Credit Risk Assessment Model",
+            description: "Develop a comprehensive credit scoring and risk assessment framework",
+            difficulty: "advanced"
+          }
+        ]
+      },
+      'data analysis': {
+        skill: "Data Analysis",
+        totalDuration: "10-14 weeks",
+        difficulty: "intermediate",
+        steps: [
+          {
+            title: "Statistical Analysis Fundamentals",
+            description: "Statistics, probability, and data visualization",
+            duration: "4-5 weeks",
+            resources: [
+              {
+                title: "Data Analysis and Visualization Specialization",
+                type: "course",
+                provider: "Coursera (Duke University)",
+                url: "https://www.coursera.org/specializations/analytics",
+                cost: "$49/month subscription",
+                description: "Statistical analysis and data visualization techniques"
+              },
+              {
+                title: "Think Stats",
+                type: "book",
+                provider: "O'Reilly Media",
+                url: "https://greenteapress.com/wp/think-stats-2e/",
+                cost: "Free online, $29.99 paperback",
+                description: "Statistics and probability for programmers"
+              }
+            ]
+          },
+          {
+            title: "Financial Data Analysis",
+            description: "Apply data analysis to financial markets and instruments",
+            duration: "5-6 weeks",
+            resources: [
+              {
+                title: "Financial Markets Data Analysis",
+                type: "course",
+                provider: "edX (MIT)",
+                url: "https://www.edx.org/course/financial-analysis-and-decision-making",
+                cost: "Free audit, $99 for certificate",
+                description: "Data-driven financial analysis and decision making"
+              }
+            ]
+          }
+        ],
+        certifications: [
+          {
+            name: "Certified Analytics Professional (CAP)",
+            provider: "INFORMS",
+            url: "https://www.informs.org/Recognizing-Excellence/INFORMS-Prizes/Certified-Analytics-Professional",
+            cost: "$695",
+            timeToComplete: "6-12 months preparation"
+          }
+        ],
+        practiceProjects: [
+          {
+            title: "Market Trend Analysis Dashboard",
+            description: "Build an automated dashboard for financial market analysis",
+            difficulty: "intermediate"
+          }
+        ]
+      }
+    };
+
+    // Default learning path for any skill not specifically covered
+    const defaultPath = {
+      skill: skill,
+      totalDuration: "8-12 weeks",
+      difficulty: "progressive",
+      steps: [
+        {
+          title: `${skill} Professional Development`,
+          description: `Comprehensive training in ${skill} for financial services professionals`,
+          duration: "4-6 weeks",
+          resources: [
+            {
+              title: `${skill} Fundamentals Course`,
+              type: "course",
+              provider: "LinkedIn Learning",
+              url: `https://www.linkedin.com/learning/search?keywords=${encodeURIComponent(skill)}`,
+              cost: "$29.99/month subscription",
+              description: `Professional development course covering ${skill} essentials`
+            },
+            {
+              title: `${skill} Industry Best Practices`,
+              type: "course",
+              provider: "Coursera",
+              url: `https://www.coursera.org/search?query=${encodeURIComponent(skill + ' financial services')}`,
+              cost: "Free audit, certificate fee varies",
+              description: `Industry-specific ${skill} training and best practices`
+            }
+          ]
+        },
+        {
+          title: `Advanced ${skill} Applications`,
+          description: `Apply ${skill} expertise to complex financial scenarios`,
+          duration: "4-6 weeks",
+          resources: [
+            {
+              title: `${skill} Certification Preparation`,
+              type: "certification",
+              provider: "Professional Organizations",
+              url: `https://www.google.com/search?q="${encodeURIComponent(skill + ' professional certification financial services')}"`,
+              cost: "Varies by certification body",
+              description: `Preparation for professional certification in ${skill}`
+            }
+          ]
+        }
+      ],
+      certifications: [
+        {
+          name: `${skill} Professional Certification`,
+          provider: "Industry Professional Bodies",
+          url: `https://www.google.com/search?q="${encodeURIComponent(skill + ' certification')}"`,
+          cost: "Varies by certification",
+          timeToComplete: "4-12 weeks preparation"
+        }
+      ],
+      practiceProjects: [
+        {
+          title: `${skill} Portfolio Project`,
+          description: `Comprehensive project demonstrating ${skill} mastery in financial services context`,
+          difficulty: target
+        }
+      ]
+    };
+
+    return skillResources[skillLower] || defaultPath;
+  }
 
   // =====================
   // PROFESSIONAL SERVICES MARKETPLACE ENDPOINTS
