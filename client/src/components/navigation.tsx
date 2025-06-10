@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Bell, Users, ChevronDown, LogOut, UserCircle, Menu, X, FolderOpen, Briefcase } from "lucide-react";
+import { Bell, Users, ChevronDown, LogOut, UserCircle, Menu, X, FolderOpen, Briefcase, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -26,7 +26,6 @@ export default function Navigation() {
     { path: "/", label: "Talent Directory", active: location === "/" || location === "/skills" || location === "/experts" },
     { path: "/projects", label: "Projects Hub", active: location === "/projects" },
     { path: "/skills-gap-analysis", label: "Career Growth", active: location === "/skills-gap-analysis" },
-    { path: "/my-learning-paths", label: "My Learning Paths", active: location === "/my-learning-paths" },
     { path: "/marketplace", label: "Marketplace", active: location === "/marketplace" },
     ...(isAdmin ? [
       { path: "/analytics", label: "Analytics", active: location === "/analytics" },
@@ -117,6 +116,12 @@ export default function Navigation() {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
+                    <Link href="/my-learning-paths" className="flex items-center">
+                      <BookOpen className="h-4 w-4 mr-2" />
+                      My Learning Paths
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
                     <Link href="/my-projects" className="flex items-center">
                       <FolderOpen className="h-4 w-4 mr-2" />
                       My Projects
@@ -190,6 +195,14 @@ export default function Navigation() {
                   >
                     <UserCircle className="h-5 w-5 mr-3" />
                     My Profile
+                  </Link>
+                  <Link
+                    href="/my-learning-paths"
+                    onClick={closeMobileMenu}
+                    className="flex items-center px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                  >
+                    <BookOpen className="h-5 w-5 mr-3" />
+                    My Learning Paths
                   </Link>
                   <Link
                     href="/my-projects"
