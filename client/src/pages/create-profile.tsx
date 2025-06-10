@@ -14,12 +14,25 @@ import { X, Plus, User, Mail, Building, MapPin, Briefcase, Award, Target } from 
 import { insertEmployeeSchema, type InsertEmployee } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
-import SkillTaggingSystem from "@/components/skill-tagging-system";
+import SkillsCreationManager from "@/components/skills-creation-manager";
 import LinkedInSkillsImport from "@/components/linkedin-skills-import";
 import ImageUpload from "@/components/image-upload";
 
+interface SkillWithExperience {
+  id: string;
+  skillName: string;
+  experienceLevel: "beginner" | "intermediate" | "advanced" | "expert";
+  yearsOfExperience: number;
+}
+
 const createProfileSchema = insertEmployeeSchema.extend({
   skills: z.array(z.string()).min(1, "At least one skill is required"),
+  skillsWithExperience: z.array(z.object({
+    id: z.string(),
+    skillName: z.string(),
+    experienceLevel: z.enum(["beginner", "intermediate", "advanced", "expert"]),
+    yearsOfExperience: z.number().min(1)
+  })).min(1, "At least one skill with experience details is required"),
   yearsExperience: z.number().min(0, "Years of experience must be positive"),
 });
 
@@ -62,6 +75,7 @@ export default function CreateProfile() {
       address: "",
       bio: "",
       skills: [],
+      skillsWithExperience: [],
       experienceLevel: "Mid-Level",
       yearsExperience: 0,
     },
@@ -121,7 +135,12 @@ export default function CreateProfile() {
 
 
   const onSubmit = (data: CreateProfileForm) => {
-    createEmployee.mutate(data);
+    // Include skills with experience in the submission
+    const submissionData = {
+      ...data,
+      skillsWithExperience: data.skillsWithExperience || []
+    };
+    createEmployee.mutate(submissionData);
   };
 
   return (
@@ -314,17 +333,25 @@ export default function CreateProfile() {
                 {/* LinkedIn Skills Import */}
                 <LinkedInSkillsImport
                   onSkillsSelected={(selectedSkills) => {
-                    const currentSkills = form.getValues("skills") || [];
-                    const newSkills = [...currentSkills, ...selectedSkills];
-                    form.setValue("skills", newSkills);
+                    const currentSkills = form.getValues("skillsWithExperience") || [];
+                    const newSkillsWithExperience = selectedSkills.map(skillName => ({
+                      id: `skill_${Date.now()}_${Math.random()}`,
+                      skillName,
+                      experienceLevel: "beginner" as const,
+                      yearsOfExperience: 1
+                    }));
+                    form.setValue("skillsWithExperience", [...currentSkills, ...newSkillsWithExperience]);
+                    // Also update basic skills array for backwards compatibility
+                    const allSkillNames = [...currentSkills, ...newSkillsWithExperience].map(s => s.skillName);
+                    form.setValue("skills", allSkillNames);
                   }}
-                  currentSkills={form.watch("skills") || []}
+                  currentSkills={form.watch("skillsWithExperience")?.map(s => s.skillName) || []}
                   className="mb-6"
                 />
 
                 <FormField
                   control={form.control}
-                  name="skills"
+                  name="skillsWithExperience"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="flex items-center">
@@ -332,13 +359,13 @@ export default function CreateProfile() {
                         Skills & Expertise
                       </FormLabel>
                       <FormControl>
-                        <SkillTaggingSystem
-                          selectedSkills={field.value}
-                          onSkillsChange={field.onChange}
-                          placeholder="Add skills with AI suggestions..."
-                          maxSkills={20}
-                          showAISuggestions={true}
-                          context="profile"
+                        <SkillsCreationManager
+                          skills={field.value || []}
+                          onSkillsChange={(skills) => {
+                            field.onChange(skills);
+                            // Also update basic skills array for backwards compatibility
+                            form.setValue("skills", skills.map(s => s.skillName));
+                          }}
                         />
                       </FormControl>
                       <FormMessage />

@@ -98,7 +98,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/employees", isAuthenticated, async (req: any, res) => {
     try {
       console.log("Employee creation request body:", req.body);
-      const validatedData = insertEmployeeSchema.parse(req.body);
+      const { skillsWithExperience, ...employeeBody } = req.body;
+      const validatedData = insertEmployeeSchema.parse(employeeBody);
       console.log("Validated employee data:", validatedData);
       
       // Add userId from authenticated user
@@ -110,15 +111,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if employee already exists for this user
       const existingEmployee = await storage.getEmployeeByUserId(req.user.claims.sub);
       
+      let employee;
       if (existingEmployee) {
         // Update existing employee
-        const updatedEmployee = await storage.updateEmployee(existingEmployee.id, employeeData);
-        res.json(updatedEmployee);
+        employee = await storage.updateEmployee(existingEmployee.id, employeeData);
       } else {
         // Create new employee
-        const employee = await storage.createEmployee(employeeData);
-        res.status(201).json(employee);
+        employee = await storage.createEmployee(employeeData);
       }
+
+      if (!employee) {
+        throw new Error("Failed to create or update employee");
+      }
+
+      // Handle individual skills with experience levels if provided
+      if (skillsWithExperience && Array.isArray(skillsWithExperience) && skillsWithExperience.length > 0) {
+        console.log("Creating individual skills:", skillsWithExperience);
+        
+        // Create individual skill records
+        for (const skillData of skillsWithExperience) {
+          try {
+            await storage.createEmployeeSkill({
+              employeeId: employee.id,
+              skillName: skillData.skillName,
+              experienceLevel: skillData.experienceLevel,
+              yearsOfExperience: skillData.yearsOfExperience,
+              lastUsed: new Date(),
+              isEndorsed: false,
+              endorsementCount: 0
+            });
+          } catch (skillError) {
+            console.error(`Failed to create skill ${skillData.skillName}:`, skillError);
+            // Continue with other skills even if one fails
+          }
+        }
+      }
+      
+      res.status(existingEmployee ? 200 : 201).json(employee);
     } catch (error) {
       console.error("Employee creation error:", error);
       if (error instanceof z.ZodError) {
