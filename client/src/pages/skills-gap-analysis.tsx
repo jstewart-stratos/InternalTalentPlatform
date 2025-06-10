@@ -22,20 +22,12 @@ interface SkillRecommendation {
   demandScore: number;
 }
 
-interface CareerPath {
-  title: string;
-  description: string;
-  requiredSkills: string[];
-  missingSkills: string[];
-  completionPercentage: number;
-  estimatedTimeframe: string;
-  salaryRange: string;
-}
+
 
 export default function SkillsGapAnalysis() {
   const { user } = useAuth();
   const [selectedEmployee, setSelectedEmployee] = useState<string>("");
-  const [selectedCareerPath, setSelectedCareerPath] = useState<string>("all");
+
 
   const { data: currentEmployee } = useQuery<Employee>({
     queryKey: ["/api/employees/current"],
