@@ -250,7 +250,7 @@ export const savedSkillRecommendations = pgTable("saved_skill_recommendations", 
   priority: text("priority").notNull(), // high, medium, low
   reason: text("reason").notNull(),
   projectDemand: integer("project_demand").default(0),
-  status: text("status").default("pending"), // pending, in_progress, completed, archived
+  status: text("status").default("saved"), // saved, in_progress, completed, archived
   learningPathGenerated: boolean("learning_path_generated").default(false),
   learningPathData: jsonb("learning_path_data"), // Store the full learning path JSON
   progressPercentage: integer("progress_percentage").default(0),
@@ -258,6 +258,23 @@ export const savedSkillRecommendations = pgTable("saved_skill_recommendations", 
   lastAccessedAt: timestamp("last_accessed_at"),
   completedAt: timestamp("completed_at"),
 });
+
+// Learning path cache table
+export const learningPathCache = pgTable("learning_path_cache", {
+  id: serial("id").primaryKey(),
+  skill: text("skill").notNull(),
+  context: text("context").default("general"), // general, financial, tech, etc.
+  currentLevel: text("current_level").default("beginner"),
+  targetLevel: text("target_level").default("intermediate"),
+  learningPathData: jsonb("learning_path_data").notNull(),
+  generatedBy: text("generated_by").default("openai"), // openai, curated, hybrid
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  lastUsedAt: timestamp("last_used_at").defaultNow().notNull(),
+  usageCount: integer("usage_count").default(1),
+}, (table) => [
+  index("learning_path_cache_skill_idx").on(table.skill),
+  index("learning_path_cache_context_idx").on(table.context),
+]);
 
 // User authentication schemas
 export const insertUserSchema = createInsertSchema(users).omit({
@@ -272,11 +289,20 @@ export const insertSavedSkillRecommendationSchema = createInsertSchema(savedSkil
   completedAt: true,
 });
 
+export const insertLearningPathCacheSchema = createInsertSchema(learningPathCache).omit({
+  id: true,
+  createdAt: true,
+  lastUsedAt: true,
+  usageCount: true,
+});
+
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 export type InsertEmployee = z.infer<typeof insertEmployeeSchema>;
 export type SavedSkillRecommendation = typeof savedSkillRecommendations.$inferSelect;
 export type InsertSavedSkillRecommendation = z.infer<typeof insertSavedSkillRecommendationSchema>;
+export type LearningPathCache = typeof learningPathCache.$inferSelect;
+export type InsertLearningPathCache = z.infer<typeof insertLearningPathCacheSchema>;
 export type Employee = typeof employees.$inferSelect;
 export type InsertSkillEndorsement = z.infer<typeof insertSkillEndorsementSchema>;
 export type SkillEndorsement = typeof skillEndorsements.$inferSelect;

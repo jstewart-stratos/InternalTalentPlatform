@@ -126,6 +126,11 @@ export interface IStorage {
   deleteSavedSkillRecommendation(id: number): Promise<boolean>;
   updateLearningProgress(id: number, progressPercentage: number): Promise<SavedSkillRecommendation | undefined>;
   markSkillRecommendationComplete(id: number): Promise<SavedSkillRecommendation | undefined>;
+
+  // Learning path cache methods
+  getCachedLearningPath(skill: string, context?: string, currentLevel?: string, targetLevel?: string): Promise<LearningPathCache | undefined>;
+  cacheLearningPath(cacheData: InsertLearningPathCache): Promise<LearningPathCache>;
+  updateLearningPathCacheUsage(id: number): Promise<void>;
   getServiceBooking(id: number): Promise<ServiceBooking | undefined>;
   getServiceBookingsByClient(clientId: number): Promise<ServiceBooking[]>;
   getServiceBookingsByProvider(providerId: number): Promise<ServiceBooking[]>;
