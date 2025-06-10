@@ -18,6 +18,7 @@ import MyProjects from "@/pages/my-projects";
 import ExpertDirectory from "@/pages/expert-directory";
 import Services from "@/pages/services";
 import Marketplace from "@/pages/marketplace";
+import ServiceDetails from "@/pages/service-details";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -55,6 +56,7 @@ function Router() {
       <Route path="/projects" component={Projects} />
       <Route path="/my-projects" component={MyProjects} />
       <Route path="/services" component={Services} />
+      <Route path="/services/:id" component={ServiceDetails} />
       <Route path="/marketplace" component={Marketplace} />
       <Route path="/experts" component={ExpertDirectory} />
       <Route component={NotFound} />

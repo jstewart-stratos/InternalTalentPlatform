@@ -208,9 +208,11 @@ export default function MarketplacePage() {
                     </div>
                   )}
 
-                  <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white">
-                    Book Service
-                  </Button>
+                  <Link href={`/services/${service.id}`}>
+                    <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white">
+                      View Details
+                    </Button>
+                  </Link>
                 </CardContent>
               </Card>
             ))}
