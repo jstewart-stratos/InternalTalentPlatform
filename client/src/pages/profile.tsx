@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useRoute, useLocation } from "wouter";
-import { Mail, MapPin, Calendar, Award, Edit, ThumbsUp, Users, Plus, Settings, Building } from "lucide-react";
+import { useRoute, useLocation, Link } from "wouter";
+import { Mail, MapPin, Calendar, Award, Edit, ThumbsUp, Users, Plus, Settings, Building, Briefcase, Star, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -50,6 +50,15 @@ export default function Profile() {
       const response = await fetch(`/api/skill-endorsements/${employeeId}`);
       if (!response.ok) throw new Error("Failed to fetch endorsements");
       return response.json() as Promise<SkillEndorsement[]>;
+    },
+  });
+
+  const { data: userServices = [] } = useQuery({
+    queryKey: ["/api/professional-services/by-provider", employeeId],
+    queryFn: async () => {
+      const response = await fetch(`/api/professional-services?providerId=${employeeId}`);
+      if (!response.ok) throw new Error("Failed to fetch user services");
+      return response.json();
     },
   });
 
@@ -276,6 +285,107 @@ export default function Profile() {
           )}
         </CardContent>
       </Card>
+
+      {/* Services Section */}
+      {userServices.length > 0 && (
+        <Card className="mb-8">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center">
+                <Briefcase className="h-5 w-5 mr-2" />
+                Professional Services
+              </CardTitle>
+              <Badge variant="secondary">{userServices.length} service{userServices.length !== 1 ? 's' : ''}</Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {userServices.map((service: any) => (
+                <Card key={service.id} className="border-l-4 border-l-orange-500">
+                  <CardContent className="p-4">
+                    <h3 className="font-semibold text-lg mb-2 line-clamp-1">{service.title}</h3>
+                    <p className="text-sm text-gray-600 mb-3 line-clamp-2">{service.shortDescription || service.description}</p>
+                    
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-500">Pricing:</span>
+                        <span className="font-medium text-orange-600">
+                          {service.pricingType === 'hourly' && service.hourlyRate && 
+                            `$${(service.hourlyRate / 100).toFixed(2)}/hr`}
+                          {service.pricingType === 'fixed' && service.fixedPrice && 
+                            `$${(service.fixedPrice / 100).toFixed(2)}`}
+                          {service.pricingType === 'consultation' && service.consultationRate && 
+                            `$${(service.consultationRate / 100).toFixed(2)}/consultation`}
+                          {service.pricingType === 'package' && 'Package pricing'}
+                        </span>
+                      </div>
+                      
+                      {service.deliveryTimeframe && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-500">Delivery:</span>
+                          <span className="text-sm">{service.deliveryTimeframe}</span>
+                        </div>
+                      )}
+                      
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-500">Bookings:</span>
+                        <span className="text-sm">{service.bookingCount || 0}</span>
+                      </div>
+                      
+                      {service.averageRating && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-500">Rating:</span>
+                          <div className="flex items-center">
+                            <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 mr-1" />
+                            <span className="text-sm">{(service.averageRating / 100).toFixed(1)}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {service.offeredSkills && service.offeredSkills.length > 0 && (
+                      <div className="mt-3">
+                        <div className="flex flex-wrap gap-1">
+                          {service.offeredSkills.slice(0, 3).map((skill: string) => (
+                            <Badge key={skill} variant="outline" className="text-xs">
+                              {skill}
+                            </Badge>
+                          ))}
+                          {service.offeredSkills.length > 3 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{service.offeredSkills.length - 3} more
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="mt-4 flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => setLocation(`/services/${service.id}`)}
+                        className="flex-1"
+                      >
+                        View Details
+                      </Button>
+                      {isOwnProfile && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => setLocation('/services')}
+                        >
+                          <Settings className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

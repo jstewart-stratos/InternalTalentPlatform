@@ -1862,9 +1862,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Professional Services Management
   app.get("/api/professional-services", async (req, res) => {
     try {
-      const { search, categoryId, skills } = req.query;
+      const { search, categoryId, skills, providerId } = req.query;
       const parsedCategoryId = categoryId ? parseInt(categoryId as string) : undefined;
       const parsedSkills = skills ? (skills as string).split(',') : undefined;
+      const parsedProviderId = providerId ? parseInt(providerId as string) : undefined;
+      
+      // If providerId is specified, get services by provider
+      if (parsedProviderId) {
+        const services = await storage.getProfessionalServicesByProvider(parsedProviderId);
+        res.json(services);
+        return;
+      }
       
       const services = await storage.searchProfessionalServices(
         search as string, 
