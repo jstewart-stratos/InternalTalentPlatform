@@ -32,6 +32,15 @@ export default function Skills() {
     },
   });
 
+  const { data: allSkillsFromDB = [], isLoading: isLoadingSkills } = useQuery({
+    queryKey: ["/api/skills/all"],
+    queryFn: async () => {
+      const response = await fetch("/api/skills/all");
+      if (!response.ok) throw new Error("Failed to fetch skills");
+      return response.json() as Promise<string[]>;
+    },
+  });
+
   const handleSkillSelect = (skill: string) => {
     if (selectedSkills.includes(skill)) {
       setSelectedSkills(prev => prev.filter(s => s !== skill));
@@ -136,10 +145,8 @@ export default function Skills() {
     return 'Very Rare';
   };
 
-  // Get all unique skills from employees
-  const allSkills = Array.from(new Set(
-    allEmployees.flatMap(emp => emp.skills || [])
-  )).sort();
+  // Use all skills from database, not just those assigned to employees
+  const allSkills = allSkillsFromDB.sort();
 
   // Filter skills based on search query
   const filteredSkills = allSkills.filter(skill =>
@@ -158,7 +165,7 @@ export default function Skills() {
       })
     : [];
 
-  const isLoading = isLoadingEmployees || isLoadingEndorsements;
+  const isLoading = isLoadingEmployees || isLoadingEndorsements || isLoadingSkills;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
