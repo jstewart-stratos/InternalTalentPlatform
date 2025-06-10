@@ -387,7 +387,6 @@ export default function Admin() {
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="user">User</SelectItem>
-                                <SelectItem value="manager">Manager</SelectItem>
                                 <SelectItem value="admin">Admin</SelectItem>
                               </SelectContent>
                             </Select>
@@ -883,7 +882,7 @@ export default function Admin() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {['admin', 'manager', 'user'].map(role => {
+                {['admin', 'user'].map(role => {
                   const count = users.filter((u: User) => u.role === role).length;
                   const percentage = users.length > 0 ? Math.round((count / users.length) * 100) : 0;
                   
