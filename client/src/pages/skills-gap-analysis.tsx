@@ -122,6 +122,7 @@ export default function SkillsGapAnalysis() {
       priority: string;
       reason: string;
       learningPathData?: any;
+      status?: string;
     }): Promise<SavedSkillRecommendation> => {
       const res = await apiRequest('/api/saved-skill-recommendations', 'POST', recommendationData);
       return res.json();
@@ -130,7 +131,7 @@ export default function SkillsGapAnalysis() {
       queryClient.invalidateQueries({ queryKey: ["/api/saved-skill-recommendations"] });
       toast({
         title: "Skill Recommendation Saved",
-        description: "Learning path has been added to your saved recommendations.",
+        description: "View your learning path in My Learning Paths to track progress and access resources.",
       });
     },
     onError: (error: any) => {
@@ -188,6 +189,7 @@ export default function SkillsGapAnalysis() {
       priority: recommendation.priority,
       reason: recommendation.reason,
       learningPathData: learningPath || null,
+      status: 'saved'
     });
   };
 
