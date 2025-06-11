@@ -2119,7 +2119,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const cachedPath = await storage.getCachedLearningPath(skill, context, currentLevel, targetLevel);
       if (cachedPath) {
         console.log(`Using cached learning path for: ${skill}`);
-        return res.json(cachedPath.learningPathData);
+        // Validate and fix URLs in cached paths too
+        const validatedPath = validateAndFixUrls(cachedPath.learningPathData, skill);
+        return res.json(validatedPath);
       }
 
       let learningPath;
@@ -2214,6 +2216,8 @@ Respond with JSON in this exact format:
           });
 
           learningPath = JSON.parse(response.choices[0].message.content || '{}');
+          // Validate and fix URLs to ensure they work
+          learningPath = validateAndFixUrls(learningPath, skill);
           generatedBy = "openai";
           console.log(`Generated new OpenAI learning path for: ${skill}`);
         } catch (aiError: any) {
@@ -2225,6 +2229,8 @@ Respond with JSON in this exact format:
       // Use curated learning resources if OpenAI failed or unavailable
       if (!learningPath) {
         learningPath = generateCuratedLearningPath(skill, currentLevel, targetLevel, context);
+        // Validate and fix URLs for curated paths too
+        learningPath = validateAndFixUrls(learningPath, skill);
         console.log(`Generated curated learning path for: ${skill}`);
       }
 
@@ -2260,25 +2266,49 @@ Respond with JSON in this exact format:
   function validateAndFixUrls(learningPath: any, skill: string): any {
     const fixedPath = { ...learningPath };
     
+    // List of problematic URL patterns to replace
+    const problematicPatterns = [
+      'https://example.com',
+      'machine-learning-for-all', // Known 404 from OpenAI
+      'ai-in-finance', // Known 404 from OpenAI
+      '/dp/1234567890', // Placeholder ISBN
+      'USE ONLY THE VERIFIED URL PATTERNS ABOVE'
+    ];
+    
     // Fix URLs in steps
     if (fixedPath.steps) {
       fixedPath.steps = fixedPath.steps.map((step: any) => {
         if (step.resources) {
           step.resources = step.resources.map((resource: any) => {
-            // Replace invalid URLs with verified search URLs
-            if (resource.url && (resource.url.includes('404') || resource.url === 'https://example.com')) {
-              if (resource.provider.toLowerCase().includes('coursera')) {
+            let needsReplacement = false;
+            
+            // Check if URL contains problematic patterns
+            if (resource.url) {
+              for (const pattern of problematicPatterns) {
+                if (resource.url.includes(pattern)) {
+                  needsReplacement = true;
+                  break;
+                }
+              }
+            }
+            
+            if (needsReplacement || !resource.url) {
+              // Generate appropriate search URL based on provider
+              if (resource.provider && resource.provider.toLowerCase().includes('coursera')) {
                 resource.url = `https://www.coursera.org/search?query=${encodeURIComponent(skill)}`;
-              } else if (resource.provider.toLowerCase().includes('edx')) {
+              } else if (resource.provider && resource.provider.toLowerCase().includes('edx')) {
                 resource.url = `https://www.edx.org/search?q=${encodeURIComponent(skill)}`;
-              } else if (resource.provider.toLowerCase().includes('linkedin')) {
+              } else if (resource.provider && resource.provider.toLowerCase().includes('linkedin')) {
                 resource.url = `https://www.linkedin.com/learning/search?keywords=${encodeURIComponent(skill)}`;
-              } else if (resource.provider.toLowerCase().includes('udemy')) {
+              } else if (resource.provider && resource.provider.toLowerCase().includes('udemy')) {
                 resource.url = `https://www.udemy.com/courses/search/?q=${encodeURIComponent(skill)}`;
-              } else if (resource.provider.toLowerCase().includes('pluralsight')) {
+              } else if (resource.provider && resource.provider.toLowerCase().includes('pluralsight')) {
                 resource.url = `https://www.pluralsight.com/search?q=${encodeURIComponent(skill)}`;
+              } else if (resource.provider && resource.provider.toLowerCase().includes('freecodecamp')) {
+                resource.url = 'https://www.freecodecamp.org/learn/';
               } else {
-                resource.url = `https://www.google.com/search?q=${encodeURIComponent(skill + ' course')}`;
+                // Default to Google search for unknown providers
+                resource.url = `https://www.google.com/search?q=${encodeURIComponent(skill + ' course ' + (resource.provider || ''))}`;
               }
             }
             return resource;
@@ -2291,15 +2321,28 @@ Respond with JSON in this exact format:
     // Fix URLs in certifications
     if (fixedPath.certifications) {
       fixedPath.certifications = fixedPath.certifications.map((cert: any) => {
-        if (cert.url && (cert.url.includes('404') || cert.url === 'https://example.com')) {
-          if (cert.provider.toLowerCase().includes('aws')) {
+        let needsReplacement = false;
+        
+        if (cert.url) {
+          for (const pattern of problematicPatterns) {
+            if (cert.url.includes(pattern)) {
+              needsReplacement = true;
+              break;
+            }
+          }
+        }
+        
+        if (needsReplacement || !cert.url) {
+          if (cert.provider && cert.provider.toLowerCase().includes('aws')) {
             cert.url = 'https://aws.amazon.com/certification/';
-          } else if (cert.provider.toLowerCase().includes('microsoft')) {
+          } else if (cert.provider && cert.provider.toLowerCase().includes('microsoft')) {
             cert.url = 'https://docs.microsoft.com/learn/certifications/';
-          } else if (cert.provider.toLowerCase().includes('google')) {
+          } else if (cert.provider && cert.provider.toLowerCase().includes('google')) {
             cert.url = 'https://cloud.google.com/certification';
+          } else if (cert.provider && cert.provider.toLowerCase().includes('ibm')) {
+            cert.url = 'https://www.ibm.com/certify/';
           } else {
-            cert.url = `https://www.google.com/search?q=${encodeURIComponent(cert.name + ' certification')}`;
+            cert.url = `https://www.google.com/search?q=${encodeURIComponent((cert.name || skill) + ' certification')}`;
           }
         }
         return cert;
