@@ -2138,7 +2138,24 @@ Current level: ${currentLevel || 'beginner'}
 Target level: ${targetLevel || 'intermediate'}
 Context: ${context || 'Professional development for financial services employee'}
 
-Please provide a structured learning path with real, specific resources. Focus on legitimate courses, certifications, books, and practice platforms. Include estimated timeframes and difficulty progression.
+CRITICAL: Use ONLY these verified URL patterns to ensure all links work:
+
+For courses, use search URLs only:
+- Coursera: https://www.coursera.org/search?query=${encodeURIComponent(skill)}
+- edX: https://www.edx.org/search?q=${encodeURIComponent(skill)}
+- LinkedIn Learning: https://www.linkedin.com/learning/search?keywords=${encodeURIComponent(skill)}
+- Udemy: https://www.udemy.com/courses/search/?q=${encodeURIComponent(skill)}
+- Pluralsight: https://www.pluralsight.com/search?q=${encodeURIComponent(skill)}
+- freeCodeCamp: https://www.freecodecamp.org/learn/
+
+For certifications, use general certification pages:
+- AWS: https://aws.amazon.com/certification/
+- Microsoft: https://docs.microsoft.com/learn/certifications/
+- Google Cloud: https://cloud.google.com/certification
+- PMI: https://www.pmi.org/certifications
+- CFA Institute: https://www.cfainstitute.org/programs
+
+DO NOT create specific course URLs like "/course/specific-course-name" as they may not exist.
 
 Respond with JSON in this exact format:
 {
@@ -2155,7 +2172,7 @@ Respond with JSON in this exact format:
           "title": "Resource name",
           "type": "course/book/certification/practice",
           "provider": "Platform or publisher",
-          "url": "https://example.com",
+          "url": "USE ONLY THE VERIFIED URL PATTERNS ABOVE",
           "cost": "free/paid/price",
           "description": "Brief description"
         }
@@ -2166,7 +2183,7 @@ Respond with JSON in this exact format:
     {
       "name": "Certification name",
       "provider": "Certification body",
-      "url": "https://example.com",
+      "url": "USE ONLY THE VERIFIED URL PATTERNS ABOVE",
       "cost": "price",
       "timeToComplete": "duration"
     }
@@ -2238,6 +2255,59 @@ Respond with JSON in this exact format:
       });
     }
   });
+
+  // URL validation function to ensure all links work
+  function validateAndFixUrls(learningPath: any, skill: string): any {
+    const fixedPath = { ...learningPath };
+    
+    // Fix URLs in steps
+    if (fixedPath.steps) {
+      fixedPath.steps = fixedPath.steps.map((step: any) => {
+        if (step.resources) {
+          step.resources = step.resources.map((resource: any) => {
+            // Replace invalid URLs with verified search URLs
+            if (resource.url && (resource.url.includes('404') || resource.url === 'https://example.com')) {
+              if (resource.provider.toLowerCase().includes('coursera')) {
+                resource.url = `https://www.coursera.org/search?query=${encodeURIComponent(skill)}`;
+              } else if (resource.provider.toLowerCase().includes('edx')) {
+                resource.url = `https://www.edx.org/search?q=${encodeURIComponent(skill)}`;
+              } else if (resource.provider.toLowerCase().includes('linkedin')) {
+                resource.url = `https://www.linkedin.com/learning/search?keywords=${encodeURIComponent(skill)}`;
+              } else if (resource.provider.toLowerCase().includes('udemy')) {
+                resource.url = `https://www.udemy.com/courses/search/?q=${encodeURIComponent(skill)}`;
+              } else if (resource.provider.toLowerCase().includes('pluralsight')) {
+                resource.url = `https://www.pluralsight.com/search?q=${encodeURIComponent(skill)}`;
+              } else {
+                resource.url = `https://www.google.com/search?q=${encodeURIComponent(skill + ' course')}`;
+              }
+            }
+            return resource;
+          });
+        }
+        return step;
+      });
+    }
+    
+    // Fix URLs in certifications
+    if (fixedPath.certifications) {
+      fixedPath.certifications = fixedPath.certifications.map((cert: any) => {
+        if (cert.url && (cert.url.includes('404') || cert.url === 'https://example.com')) {
+          if (cert.provider.toLowerCase().includes('aws')) {
+            cert.url = 'https://aws.amazon.com/certification/';
+          } else if (cert.provider.toLowerCase().includes('microsoft')) {
+            cert.url = 'https://docs.microsoft.com/learn/certifications/';
+          } else if (cert.provider.toLowerCase().includes('google')) {
+            cert.url = 'https://cloud.google.com/certification';
+          } else {
+            cert.url = `https://www.google.com/search?q=${encodeURIComponent(cert.name + ' certification')}`;
+          }
+        }
+        return cert;
+      });
+    }
+    
+    return fixedPath;
+  }
 
   function generateCuratedLearningPath(skill: string, currentLevel?: string, targetLevel?: string, context?: string) {
     const skillLower = skill.toLowerCase();
