@@ -2442,6 +2442,34 @@ Respond with JSON in this exact format:
     }
   });
 
+  app.post("/api/admin/service-categories", authMiddleware, requireAdminRole, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const validatedData = insertServiceCategorySchema.parse(req.body);
+      const category = await storage.createServiceCategory(validatedData);
+      
+      // Log admin action
+      await storage.createAuditLog({
+        userId,
+        action: "service_category_created",
+        targetType: "service_category",
+        targetId: category.id.toString(),
+        changes: { created: validatedData },
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent')
+      });
+
+      res.status(201).json(category);
+    } catch (error) {
+      console.error("Error creating service category:", error);
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: "Invalid category data", details: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to create service category" });
+      }
+    }
+  });
+
   app.patch("/api/admin/service-categories/:id", authMiddleware, requireAdminRole, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
