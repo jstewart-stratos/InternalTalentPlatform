@@ -1299,6 +1299,64 @@ export class DatabaseStorage implements IStorage {
       })
       .where(eq(learningPathCache.id, id));
   }
+
+  // Service category management methods
+  async getAllServiceCategories(): Promise<ServiceCategory[]> {
+    return await db
+      .select()
+      .from(serviceCategories)
+      .orderBy(serviceCategories.sortOrder, serviceCategories.name);
+  }
+
+  async getServiceCategory(id: number): Promise<ServiceCategory | undefined> {
+    const [category] = await db
+      .select()
+      .from(serviceCategories)
+      .where(eq(serviceCategories.id, id));
+    return category;
+  }
+
+  async createServiceCategory(category: InsertServiceCategory): Promise<ServiceCategory> {
+    const [newCategory] = await db
+      .insert(serviceCategories)
+      .values(category)
+      .returning();
+    return newCategory;
+  }
+
+  async updateServiceCategory(id: number, category: Partial<InsertServiceCategory>): Promise<ServiceCategory | undefined> {
+    const [updated] = await db
+      .update(serviceCategories)
+      .set({ ...category, updatedAt: new Date() })
+      .where(eq(serviceCategories.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteServiceCategory(id: number): Promise<boolean> {
+    // Check if category is in use by any services
+    const servicesUsingCategory = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(professionalServices)
+      .where(eq(professionalServices.categoryId, id));
+    
+    if (servicesUsingCategory[0]?.count > 0) {
+      throw new Error("Cannot delete category that is in use by services");
+    }
+
+    const result = await db
+      .delete(serviceCategories)
+      .where(eq(serviceCategories.id, id))
+      .returning({ id: serviceCategories.id });
+    return result.length > 0;
+  }
+
+  async getServicesByCategory(categoryId: number): Promise<ProfessionalService[]> {
+    return await db
+      .select()
+      .from(professionalServices)
+      .where(eq(professionalServices.categoryId, categoryId));
+  }
 }
 
 export const storage = new DatabaseStorage();
