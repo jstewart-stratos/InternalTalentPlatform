@@ -1360,6 +1360,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // LinkedIn OAuth Authentication
   app.get('/api/linkedin/auth', isAuthenticated, async (req, res) => {
     try {
+      if (!process.env.LINKEDIN_CLIENT_ID || !process.env.LINKEDIN_CLIENT_SECRET) {
+        return res.status(400).json({ 
+          message: 'LinkedIn credentials not configured. Please provide LINKEDIN_CLIENT_ID and LINKEDIN_CLIENT_SECRET.' 
+        });
+      }
+
       const { LinkedInAuthService } = await import('./linkedin-auth');
       const linkedinAuth = new LinkedInAuthService();
       
