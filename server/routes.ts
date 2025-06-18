@@ -17,16 +17,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Development auth bypass
   const isDevelopment = process.env.NODE_ENV === 'development';
   
-  // Store to track development logout state
-  const devAuthStore = { isLoggedOut: false };
+  // Simple in-memory logout state for development
+  let devIsLoggedOut = false;
   
   // Custom auth middleware that properly handles development logout state
   const customAuthMiddleware = (req: any, res: any, next: any) => {
     if (isDevelopment) {
-      console.log(`[AUTH] ${req.method} ${req.path} - isLoggedOut: ${devAuthStore.isLoggedOut}`);
+      console.log(`[AUTH] ${req.method} ${req.path} - isLoggedOut: ${devIsLoggedOut}`);
       
       // Check logout state first - this is critical
-      if (devAuthStore.isLoggedOut) {
+      if (devIsLoggedOut) {
         console.log(`[AUTH] Blocking request due to logout state`);
         return res.status(401).json({ message: "Unauthorized" });
       }
@@ -56,8 +56,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     // Set logout flag for development mode first
     if (isDevelopment) {
-      console.log(`[LOGOUT] Setting devAuthStore.isLoggedOut = true`);
-      devAuthStore.isLoggedOut = true;
+      console.log(`[LOGOUT] Setting devIsLoggedOut = true`);
+      devIsLoggedOut = true;
     }
 
     if (req.session) {
@@ -82,7 +82,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Development login route to reset logout state
   app.post('/api/dev-login', (req, res) => {
     if (isDevelopment) {
-      devAuthStore.isLoggedOut = false;
+      devIsLoggedOut = false;
       res.json({ success: true, message: 'Logged in successfully' });
     } else {
       res.status(404).json({ error: 'Not found' });
