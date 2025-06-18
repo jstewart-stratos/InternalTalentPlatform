@@ -53,6 +53,38 @@ export default function Analytics() {
     },
   });
 
+  // Fetch service categories for analytics
+  const { data: serviceCategories = [] } = useQuery({
+    queryKey: ["/api/service-categories"],
+    queryFn: async () => {
+      const response = await fetch("/api/service-categories");
+      if (!response.ok) throw new Error("Failed to fetch service categories");
+      return response.json() as Promise<Array<{
+        id: number;
+        name: string;
+        description: string;
+        createdAt: string;
+      }>>;
+    },
+  });
+
+  // Fetch professional services for category analytics
+  const { data: professionalServices = [] } = useQuery({
+    queryKey: ["/api/professional-services"],
+    queryFn: async () => {
+      const response = await fetch("/api/professional-services");
+      if (!response.ok) throw new Error("Failed to fetch professional services");
+      return response.json() as Promise<Array<{
+        id: number;
+        title: string;
+        categoryId: number;
+        providerId: number;
+        status: string;
+        pricing: number;
+      }>>;
+    },
+  });
+
   // Fetch all employee skills for accurate gap analysis
   const { data: allEmployeeSkills = [] } = useQuery({
     queryKey: ["/api/all-employee-skills"],
@@ -135,6 +167,23 @@ export default function Analytics() {
 
   const categories = Array.from(new Set(skillGapData.map(item => item.category)));
 
+  // Calculate service category analytics
+  const serviceCategoryStats = serviceCategories.map(category => {
+    const servicesInCategory = professionalServices.filter(service => service.categoryId === category.id);
+    const activeServices = servicesInCategory.filter(service => service.status === 'active');
+    const averagePrice = servicesInCategory.length > 0 
+      ? servicesInCategory.reduce((sum, service) => sum + (service.pricing || 0), 0) / servicesInCategory.length 
+      : 0;
+    
+    return {
+      ...category,
+      totalServices: servicesInCategory.length,
+      activeServices: activeServices.length,
+      averagePrice,
+      utilizationRate: servicesInCategory.length > 0 ? (activeServices.length / servicesInCategory.length) * 100 : 0
+    };
+  });
+
   return (
     <div className="container mx-auto p-6 space-y-8">
       <div className="flex items-center gap-3 mb-6">
@@ -198,10 +247,11 @@ export default function Analytics() {
       </div>
 
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="skills">Skills Analysis</TabsTrigger>
           <TabsTrigger value="skills-gaps">Skills Gaps</TabsTrigger>
+          <TabsTrigger value="services">Service Categories</TabsTrigger>
           <TabsTrigger value="workforce">Workforce</TabsTrigger>
         </TabsList>
 
@@ -349,6 +399,126 @@ export default function Analytics() {
                     </div>
                   );
                 })}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="services" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Target className="h-5 w-5" />
+                  Service Categories Overview
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-blue-600">{serviceCategories.length}</div>
+                      <div className="text-sm text-muted-foreground">Total Categories</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-green-600">{professionalServices.length}</div>
+                      <div className="text-sm text-muted-foreground">Total Services</div>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Active Services</span>
+                      <span>{professionalServices.filter(s => s.status === 'active').length}</span>
+                    </div>
+                    <Progress 
+                      value={professionalServices.length > 0 ? (professionalServices.filter(s => s.status === 'active').length / professionalServices.length) * 100 : 0} 
+                      className="h-2" 
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Award className="h-5 w-5" />
+                  Top Performing Categories
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {serviceCategoryStats
+                    .sort((a, b) => b.totalServices - a.totalServices)
+                    .slice(0, 5)
+                    .map((category, index) => (
+                      <div key={category.id} className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <Badge variant="outline">{index + 1}</Badge>
+                          <span className="font-medium">{category.name}</span>
+                        </div>
+                        <Badge variant="secondary">{category.totalServices} services</Badge>
+                      </div>
+                    ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Service Category Performance</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                {serviceCategoryStats.map((category) => (
+                  <div key={category.id} className="border rounded-lg p-4 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-semibold">{category.name}</h3>
+                        <p className="text-sm text-muted-foreground">{category.description}</p>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm text-muted-foreground">Utilization Rate</div>
+                        <div className="text-lg font-semibold">
+                          {category.utilizationRate.toFixed(1)}%
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="text-center">
+                        <div className="text-xl font-bold text-blue-600">{category.totalServices}</div>
+                        <div className="text-xs text-muted-foreground">Total Services</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-xl font-bold text-green-600">{category.activeServices}</div>
+                        <div className="text-xs text-muted-foreground">Active</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-xl font-bold text-orange-600">
+                          ${category.averagePrice.toFixed(0)}
+                        </div>
+                        <div className="text-xs text-muted-foreground">Avg Price</div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>Service Utilization</span>
+                        <span>{category.activeServices}/{category.totalServices}</span>
+                      </div>
+                      <Progress value={category.utilizationRate} className="h-2" />
+                    </div>
+
+                    {category.totalServices === 0 && (
+                      <div className="text-center py-4">
+                        <AlertTriangle className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
+                        <p className="text-sm text-muted-foreground">No services in this category yet</p>
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>
