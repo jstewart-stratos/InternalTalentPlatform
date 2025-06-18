@@ -15,20 +15,14 @@ interface SkillGapData {
   requiredByProjects: number;
   gapScore: number;
   priority: 'critical' | 'high' | 'medium' | 'low';
-  departments: string[];
+
   projectedDemand: number;
 }
 
-interface DepartmentSkillData {
-  department: string;
-  totalEmployees: number;
-  skillCoverage: number;
-  topSkills: Array<{ skill: string; count: number }>;
-  skillGaps: Array<{ skill: string; gap: number }>;
-}
+
 
 export default function Analytics() {
-  const [selectedDepartment, setSelectedDepartment] = useState<string>("all");
+
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
 
   const { data: stats } = useQuery({
@@ -63,14 +57,7 @@ export default function Analytics() {
     },
   });
 
-  const { data: departments = [] } = useQuery({
-    queryKey: ["/api/departments"],
-    queryFn: async () => {
-      const response = await fetch("/api/departments");
-      if (!response.ok) throw new Error("Failed to fetch departments");
-      return response.json() as Promise<string[]>;
-    },
-  });
+
 
   // Fetch all employee skills for accurate gap analysis
   const { data: allEmployeeSkills = [] } = useQuery({
@@ -157,7 +144,7 @@ export default function Analytics() {
         requiredByProjects,
         gapScore,
         priority,
-        departments: Array.from(employeeSkillMap.get(skill) || []),
+
         projectedDemand: requiredByProjects + Math.floor(requiredByProjects * 0.2),
       });
     });
@@ -185,50 +172,11 @@ export default function Analytics() {
     return 'Other';
   };
 
-  const getDepartmentAnalysis = (): DepartmentSkillData[] => {
-    return departments.map(dept => {
-      const deptEmployees = employees.filter(emp => emp.title === dept);
-      const deptSkills = allEmployeeSkills.filter(skill => skill.employee.department === dept);
-      const allSkills = new Map<string, number>();
-      
-      deptSkills.forEach(skillRecord => {
-        allSkills.set(skillRecord.skillName, (allSkills.get(skillRecord.skillName) || 0) + 1);
-      });
-
-      const topSkills = Array.from(allSkills.entries())
-        .map(([skill, count]) => ({ skill, count }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 5);
-
-      const deptProjects = projects.filter(project => 
-        deptEmployees.some(emp => emp.id === project.ownerId)
-      );
-      
-      const requiredSkills = new Map<string, number>();
-      deptProjects.forEach(project => {
-        project.requiredSkills?.forEach(skill => {
-          requiredSkills.set(skill, (requiredSkills.get(skill) || 0) + 1);
-        });
-      });
-
-      const skillGaps = Array.from(requiredSkills.entries())
-        .map(([skill, required]) => ({
-          skill,
-          gap: Math.max(0, required - (allSkills.get(skill) || 0))
-        }))
-        .filter(item => item.gap > 0)
-        .sort((a, b) => b.gap - a.gap)
-        .slice(0, 5);
-
-      return {
-        department: dept,
-        totalEmployees: deptEmployees.length,
-        skillCoverage: allSkills.size,
-        topSkills,
-        skillGaps
-      };
-    });
-  };
+  // Calculate skill distribution by employee title for analytics
+  const titleCounts = employees.reduce((acc, employee) => {
+    acc[employee.title] = (acc[employee.title] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
 
   const priorityColors = {
     critical: "bg-red-100 text-red-800 border-red-200",
@@ -245,11 +193,9 @@ export default function Analytics() {
   };
 
   const gapData = skillsGapAnalysis();
-  const departmentData = getDepartmentAnalysis();
   const filteredGapData = gapData.filter(item => {
-    const deptMatch = selectedDepartment === "all" || item.departments.includes(selectedDepartment);
     const categoryMatch = selectedCategory === "all" || item.category === selectedCategory;
-    return deptMatch && categoryMatch;
+    return categoryMatch;
   });
   const categories = Array.from(new Set(gapData.map(item => item.category)));
 
