@@ -34,6 +34,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     apiKey: process.env.OPENAI_API_KEY,
   });
   
+  // Logout route (must be before auth middleware)
+  app.post('/api/logout', (req, res) => {
+    if (req.session) {
+      req.session.destroy((err) => {
+        if (err) {
+          console.error('Session destroy error:', err);
+          return res.status(500).json({ error: 'Failed to logout' });
+        }
+        res.clearCookie('connect.sid', { path: '/' });
+        res.json({ success: true, message: 'Logged out successfully' });
+      });
+    } else {
+      res.clearCookie('connect.sid', { path: '/' });
+      res.json({ success: true, message: 'Logged out successfully' });
+    }
+  });
+
   // Auth routes
   app.get('/api/auth/user', authMiddleware, async (req: any, res) => {
     try {
