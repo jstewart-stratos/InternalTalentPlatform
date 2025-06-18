@@ -497,11 +497,39 @@ export const servicePortfolios = pgTable("service_portfolios", {
 });
 
 // Schema validation
-export const insertServiceCategorySchema = createInsertSchema(serviceCategories);
-export const insertProfessionalServiceSchema = createInsertSchema(professionalServices);
-export const insertServiceBookingSchema = createInsertSchema(serviceBookings);
-export const insertServiceReviewSchema = createInsertSchema(serviceReviews);
-export const insertServicePortfolioSchema = createInsertSchema(servicePortfolios);
+export const insertServiceCategorySchema = createInsertSchema(serviceCategories).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertProfessionalServiceSchema = createInsertSchema(professionalServices).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  viewCount: true,
+  bookingCount: true,
+  averageRating: true,
+  totalReviews: true,
+});
+
+export const insertServiceBookingSchema = createInsertSchema(serviceBookings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertServiceReviewSchema = createInsertSchema(serviceReviews).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  isHelpful: true,
+});
+
+export const insertServicePortfolioSchema = createInsertSchema(servicePortfolios).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
 
 // Types
 export type InsertServiceCategory = z.infer<typeof insertServiceCategorySchema>;
