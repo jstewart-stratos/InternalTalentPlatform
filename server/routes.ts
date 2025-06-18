@@ -2563,6 +2563,140 @@ Respond with JSON in this exact format:
     }
   });
 
+  // Admin: Service category management routes
+  app.get("/api/admin/service-categories", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const categories = await storage.getAllServiceCategories();
+      res.json(categories);
+    } catch (error) {
+      console.error("Error fetching service categories for admin:", error);
+      res.status(500).json({ error: "Failed to fetch service categories" });
+    }
+  });
+
+  app.post("/api/admin/service-categories", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const validatedData = insertServiceCategorySchema.parse(req.body);
+      const category = await storage.createServiceCategory(validatedData);
+      
+      // Log admin action
+      await storage.createAuditLog({
+        userId,
+        action: "service_category_created",
+        targetType: "service_category",
+        targetId: category.id.toString(),
+        changes: { created: validatedData },
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent')
+      });
+
+      res.status(201).json(category);
+    } catch (error) {
+      console.error("Error creating service category:", error);
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: "Invalid category data", details: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to create service category" });
+      }
+    }
+  });
+
+  app.patch("/api/admin/service-categories/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const id = parseInt(req.params.id);
+      const existingCategory = await storage.getServiceCategory(id);
+      
+      if (!existingCategory) {
+        return res.status(404).json({ error: "Service category not found" });
+      }
+
+      const updateData = req.body;
+      const category = await storage.updateServiceCategory(id, updateData);
+      
+      // Log admin action
+      await storage.createAuditLog({
+        userId,
+        action: "service_category_updated",
+        targetType: "service_category",
+        targetId: id.toString(),
+        changes: { before: existingCategory, after: updateData },
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent')
+      });
+
+      res.json(category);
+    } catch (error) {
+      console.error("Error updating service category:", error);
+      res.status(500).json({ error: "Failed to update service category" });
+    }
+  });
+
+  app.delete("/api/admin/service-categories/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const id = parseInt(req.params.id);
+      const existingCategory = await storage.getServiceCategory(id);
+      
+      if (!existingCategory) {
+        return res.status(404).json({ error: "Service category not found" });
+      }
+
+      // Check if category is in use
+      const servicesUsingCategory = await storage.getServicesByCategory(id);
+      if (servicesUsingCategory.length > 0) {
+        return res.status(400).json({ 
+          error: "Cannot delete category that is in use", 
+          servicesCount: servicesUsingCategory.length 
+        });
+      }
+
+      await storage.deleteServiceCategory(id);
+      
+      // Log admin action
+      await storage.createAuditLog({
+        userId,
+        action: "service_category_deleted",
+        targetType: "service_category",
+        targetId: id.toString(),
+        changes: { deleted: existingCategory },
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent')
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting service category:", error);
+      res.status(500).json({ error: "Failed to delete service category" });
+    }
+  });
+
   app.post("/api/service-categories", isAuthenticated, async (req: any, res) => {
     try {
       // Check if user is admin

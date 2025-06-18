@@ -104,8 +104,14 @@ export interface IStorage {
   // Professional services marketplace methods
   // Service categories
   getAllServiceCategories(): Promise<ServiceCategory[]>;
+  getServiceCategory(id: number): Promise<ServiceCategory | undefined>;
   createServiceCategory(category: InsertServiceCategory): Promise<ServiceCategory>;
   updateServiceCategory(id: number, category: Partial<InsertServiceCategory>): Promise<ServiceCategory | undefined>;
+  deleteServiceCategory(id: number): Promise<boolean>;
+  getServicesByCategory(categoryId: number): Promise<ProfessionalService[]>;
+  
+  // Audit logging methods
+  createAuditLog(log: InsertAuditLog): Promise<AuditLog>;
   
   // Professional services
   createProfessionalService(service: InsertProfessionalService): Promise<ProfessionalService>;
@@ -954,6 +960,14 @@ export class DatabaseStorage implements IStorage {
     return category;
   }
 
+  async getServiceCategory(id: number): Promise<ServiceCategory | undefined> {
+    const [category] = await db
+      .select()
+      .from(serviceCategories)
+      .where(eq(serviceCategories.id, id));
+    return category;
+  }
+
   async updateServiceCategory(id: number, insertCategory: Partial<InsertServiceCategory>): Promise<ServiceCategory | undefined> {
     const [category] = await db
       .update(serviceCategories)
@@ -961,6 +975,29 @@ export class DatabaseStorage implements IStorage {
       .where(eq(serviceCategories.id, id))
       .returning();
     return category;
+  }
+
+  async deleteServiceCategory(id: number): Promise<boolean> {
+    const result = await db
+      .delete(serviceCategories)
+      .where(eq(serviceCategories.id, id))
+      .returning({ id: serviceCategories.id });
+    return result.length > 0;
+  }
+
+  async getServicesByCategory(categoryId: number): Promise<ProfessionalService[]> {
+    return await db
+      .select()
+      .from(professionalServices)
+      .where(eq(professionalServices.categoryId, categoryId));
+  }
+
+  async createAuditLog(insertLog: InsertAuditLog): Promise<AuditLog> {
+    const [log] = await db
+      .insert(adminAuditLog)
+      .values(insertLog)
+      .returning();
+    return log;
   }
 
   // Professional services

@@ -14,7 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from "@/hooks/use-toast";
 import { Users, Activity, Settings, Shield, Lock, Unlock, UserCheck, Clock, AlertTriangle, Plus, Save, Trash2, Building } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { User, SiteSetting, AuditLog, Department } from "@shared/schema";
+import type { User, SiteSetting, AuditLog, Department, ServiceCategory, InsertServiceCategory } from "@shared/schema";
 
 export default function Admin() {
   const [newSettingKey, setNewSettingKey] = useState("");
@@ -30,6 +30,15 @@ export default function Admin() {
   const [editingDepartment, setEditingDepartment] = useState<Department | null>(null);
   const [editingDepartmentName, setEditingDepartmentName] = useState("");
   const [editingDepartmentDescription, setEditingDepartmentDescription] = useState("");
+
+  // Service category management state
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [newCategoryDescription, setNewCategoryDescription] = useState("");
+  const [newCategoryIcon, setNewCategoryIcon] = useState("");
+  const [editingCategory, setEditingCategory] = useState<ServiceCategory | null>(null);
+  const [editingCategoryName, setEditingCategoryName] = useState("");
+  const [editingCategoryDescription, setEditingCategoryDescription] = useState("");
+  const [editingCategoryIcon, setEditingCategoryIcon] = useState("");
 
   // Fetch admin data
   const { data: users = [], isLoading: usersLoading } = useQuery({
