@@ -130,27 +130,33 @@ export async function setupAuth(app: Express) {
     })(req, res, next);
   });
 
-  app.get("/api/logout", (req, res) => {
+  app.post("/api/logout", (req, res) => {
+    // Clear all session data immediately
     req.logout((err) => {
       if (err) {
         console.error('Logout error:', err);
       }
-      // Destroy the session
-      req.session.destroy((destroyErr) => {
-        if (destroyErr) {
-          console.error('Session destroy error:', destroyErr);
-        }
-        // Clear the session cookie
-        res.clearCookie('connect.sid');
-        
-        // Redirect to OIDC end session URL
-        const endSessionUrl = client.buildEndSessionUrl(config, {
-          client_id: process.env.REPL_ID!,
-          post_logout_redirect_uri: `${req.protocol}://${req.hostname}`,
-        }).href;
-        
-        res.redirect(endSessionUrl);
-      });
+      
+      // Destroy the session completely
+      if (req.session) {
+        req.session.destroy((destroyErr) => {
+          if (destroyErr) {
+            console.error('Session destroy error:', destroyErr);
+          }
+          
+          // Clear all possible session cookies
+          res.clearCookie('connect.sid', { path: '/' });
+          res.clearCookie('connect.sid', { path: '/', domain: req.hostname });
+          
+          // Return JSON response instead of redirect
+          res.json({ success: true, message: 'Logged out successfully' });
+        });
+      } else {
+        // If no session, just clear cookies and return success
+        res.clearCookie('connect.sid', { path: '/' });
+        res.clearCookie('connect.sid', { path: '/', domain: req.hostname });
+        res.json({ success: true, message: 'Logged out successfully' });
+      }
     });
   });
 }

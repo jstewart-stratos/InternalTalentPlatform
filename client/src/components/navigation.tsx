@@ -43,8 +43,24 @@ export default function Navigation() {
 
 
 
-  const handleLogout = () => {
-    window.location.href = '/api/logout';
+  const handleLogout = async () => {
+    try {
+      // Make logout request
+      await fetch('/api/logout', { 
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      // Force full page reload to clear all state and redirect to landing
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Fallback: force reload anyway
+      window.location.href = '/';
+    }
   };
 
   const getUserDisplayName = () => {
