@@ -25,8 +25,7 @@ export default function Admin() {
   const [editingValue, setEditingValue] = useState("");
   
 
-  const [editingDepartmentName, setEditingDepartmentName] = useState("");
-  const [editingDepartmentDescription, setEditingDepartmentDescription] = useState("");
+
 
   // Service category management state
   const [newCategoryName, setNewCategoryName] = useState("");
@@ -50,9 +49,7 @@ export default function Admin() {
     queryKey: ['/api/admin/audit-logs']
   });
 
-  const { data: departments = [], isLoading: departmentsLoading } = useQuery({
-    queryKey: ['/api/admin/departments']
-  });
+
 
   const { data: serviceCategories = [], isLoading: categoriesLoading } = useQuery({
     queryKey: ['/api/admin/service-categories']
@@ -138,77 +135,8 @@ export default function Admin() {
     }
   });
 
-  // Department management mutations
-  const createDepartmentMutation = useMutation({
-    mutationFn: async ({ name, description }: { name: string; description?: string }) => {
-      return await apiRequest('/api/admin/departments', {
-        method: 'POST',
-        body: JSON.stringify({ name, description }),
-        headers: { 'Content-Type': 'application/json' }
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/departments'] });
-      setNewDepartmentName('');
-      setNewDepartmentDescription('');
-      toast({ title: "Success", description: "Department created successfully" });
-    },
-    onError: () => {
-      toast({ title: "Error", description: "Failed to create department", variant: "destructive" });
-    }
-  });
 
-  const updateDepartmentMutation = useMutation({
-    mutationFn: async ({ id, name, description }: { id: number; name: string; description?: string }) => {
-      return await apiRequest(`/api/admin/departments/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify({ name, description }),
-        headers: { 'Content-Type': 'application/json' }
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/departments'] });
-      setEditingDepartment(null);
-      setEditingDepartmentName('');
-      setEditingDepartmentDescription('');
-      toast({ title: "Success", description: "Department updated successfully" });
-    },
-    onError: () => {
-      toast({ title: "Error", description: "Failed to update department", variant: "destructive" });
-    }
-  });
 
-  const deleteDepartmentMutation = useMutation({
-    mutationFn: async (id: number) => {
-      return await apiRequest(`/api/admin/departments/${id}`, {
-        method: 'DELETE'
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/departments'] });
-      toast({ title: "Success", description: "Department deleted successfully" });
-    },
-    onError: () => {
-      toast({ title: "Error", description: "Failed to delete department", variant: "destructive" });
-    }
-  });
-
-  const toggleDepartmentStatusMutation = useMutation({
-    mutationFn: async ({ id, isActive }: { id: number; isActive: boolean }) => {
-      return await apiRequest(`/api/admin/departments/${id}/toggle-status`, {
-        method: 'PATCH',
-        body: JSON.stringify({ isActive }),
-        headers: { 'Content-Type': 'application/json' }
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/departments'] });
-      toast({ title: "Success", description: "Department status updated successfully" });
-    },
-    onError: () => {
-      toast({ title: "Error", description: "Failed to update department status", variant: "destructive" });
-    }
-  });
 
   // Service category mutations
   const createCategoryMutation = useMutation({
@@ -287,40 +215,7 @@ export default function Admin() {
     updateSettingMutation.mutate({ key: setting.key, value: editingValue });
   };
 
-  // Department management handlers
-  const handleCreateDepartment = () => {
-    if (!newDepartmentName) {
-      toast({ title: "Error", description: "Department name is required", variant: "destructive" });
-      return;
-    }
-    
-    createDepartmentMutation.mutate({
-      name: newDepartmentName,
-      description: newDepartmentDescription
-    });
-  };
 
-  const handleUpdateDepartment = (department: Department) => {
-    updateDepartmentMutation.mutate({
-      id: department.id,
-      name: editingDepartmentName,
-      description: editingDepartmentDescription
-    });
-  };
-
-  const handleDeleteDepartment = (id: number) => {
-    deleteDepartmentMutation.mutate(id);
-  };
-
-  const handleToggleDepartmentStatus = (id: number, isActive: boolean) => {
-    toggleDepartmentStatusMutation.mutate({ id, isActive: !isActive });
-  };
-
-  const startEditingDepartment = (department: Department) => {
-    setEditingDepartment(department);
-    setEditingDepartmentName(department.name);
-    setEditingDepartmentDescription(department.description || '');
-  };
 
   // Service category management handlers
   const handleCreateCategory = () => {
