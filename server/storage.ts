@@ -15,7 +15,7 @@ export interface IStorage {
   updateEmployee(id: number, employee: Partial<InsertEmployee>): Promise<Employee | undefined>;
   deleteEmployee(id: number): Promise<boolean>;
   getAllEmployees(): Promise<Employee[]>;
-  searchEmployees(query: string, department?: string, experienceLevel?: string): Promise<Employee[]>;
+  searchEmployees(query: string, experienceLevel?: string): Promise<Employee[]>;
 
   // Skill endorsement methods
   createSkillEndorsement(endorsement: InsertSkillEndorsement): Promise<SkillEndorsement>;
@@ -83,14 +83,7 @@ export interface IStorage {
   revokeUserPermission(userId: string, permission: string): Promise<boolean>;
   hasPermission(userId: string, permission: string): Promise<boolean>;
 
-  // Department management methods
-  getAllDepartments(): Promise<Department[]>;
-  getDepartment(id: number): Promise<Department | undefined>;
-  createDepartment(department: InsertDepartment): Promise<Department>;
-  updateDepartment(id: number, department: Partial<InsertDepartment>): Promise<Department | undefined>;
-  deleteDepartment(id: number): Promise<boolean>;
-  deactivateDepartment(id: number): Promise<boolean>;
-  activateDepartment(id: number): Promise<boolean>;
+
 
   // Expert directory methods
   createExpertiseRequest(request: InsertExpertiseRequest): Promise<ExpertiseRequest>;
@@ -743,61 +736,8 @@ export class DatabaseStorage implements IStorage {
     return !!result;
   }
 
-  // Department management methods
-  async getAllDepartments(): Promise<Department[]> {
-    return await db.select().from(departments);
-  }
 
-  async getDepartment(id: number): Promise<Department | undefined> {
-    const [department] = await db
-      .select()
-      .from(departments)
-      .where(eq(departments.id, id));
-    return department || undefined;
-  }
 
-  async createDepartment(insertDepartment: InsertDepartment): Promise<Department> {
-    const [department] = await db
-      .insert(departments)
-      .values(insertDepartment)
-      .returning();
-    return department;
-  }
-
-  async updateDepartment(id: number, insertDepartment: Partial<InsertDepartment>): Promise<Department | undefined> {
-    const [department] = await db
-      .update(departments)
-      .set({ ...insertDepartment, updatedAt: new Date() })
-      .where(eq(departments.id, id))
-      .returning();
-    return department || undefined;
-  }
-
-  async deleteDepartment(id: number): Promise<boolean> {
-    const result = await db
-      .delete(departments)
-      .where(eq(departments.id, id))
-      .returning({ id: departments.id });
-    return result.length > 0;
-  }
-
-  async deactivateDepartment(id: number): Promise<boolean> {
-    const result = await db
-      .update(departments)
-      .set({ isActive: false, updatedAt: new Date() })
-      .where(eq(departments.id, id))
-      .returning({ id: departments.id });
-    return result.length > 0;
-  }
-
-  async activateDepartment(id: number): Promise<boolean> {
-    const result = await db
-      .update(departments)
-      .set({ isActive: true, updatedAt: new Date() })
-      .where(eq(departments.id, id))
-      .returning({ id: departments.id });
-    return result.length > 0;
-  }
 
   // Learning step completion methods
   async completeLearningStep(stepData: {
