@@ -3098,6 +3098,85 @@ Respond with JSON in this exact format:
     }
   });
 
+  // Service category management endpoints
+  app.get("/api/admin/service-categories", isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const categories = await storage.getAllServiceCategories();
+      res.json(categories);
+    } catch (error) {
+      console.error("Error fetching service categories:", error);
+      res.status(500).json({ error: "Failed to fetch service categories" });
+    }
+  });
+
+  app.post("/api/admin/service-categories", isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const categoryData = req.body;
+      const category = await storage.createServiceCategory(categoryData);
+      res.json(category);
+    } catch (error) {
+      console.error("Error creating service category:", error);
+      res.status(500).json({ error: "Failed to create service category" });
+    }
+  });
+
+  app.patch("/api/admin/service-categories/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const { id } = req.params;
+      const updates = req.body;
+      const category = await storage.updateServiceCategory(parseInt(id), updates);
+      
+      if (!category) {
+        return res.status(404).json({ error: "Service category not found" });
+      }
+
+      res.json(category);
+    } catch (error) {
+      console.error("Error updating service category:", error);
+      res.status(500).json({ error: "Failed to update service category" });
+    }
+  });
+
+  app.delete("/api/admin/service-categories/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const { id } = req.params;
+      const success = await storage.deleteServiceCategory(parseInt(id));
+      
+      if (!success) {
+        return res.status(404).json({ error: "Service category not found or in use" });
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting service category:", error);
+      if (error.message && error.message.includes('in use')) {
+        res.status(400).json({ error: "Cannot delete category that is in use by services" });
+      } else {
+        res.status(500).json({ error: "Failed to delete service category" });
+      }
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

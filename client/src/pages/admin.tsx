@@ -707,6 +707,198 @@ export default function Admin() {
           </Card>
         </TabsContent>
 
+        {/* Service Categories Tab */}
+        <TabsContent value="service-categories" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Service Categories Management</CardTitle>
+              <CardDescription>
+                Manage professional service categories for the marketplace
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Add New Service Category */}
+              <div className="border rounded-lg p-4 space-y-4">
+                <h3 className="font-semibold">Add New Service Category</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="categoryName">Category Name</Label>
+                    <Input
+                      id="categoryName"
+                      value={newCategoryName}
+                      onChange={(e) => setNewCategoryName(e.target.value)}
+                      placeholder="e.g., Financial Analysis"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="categoryIcon">Icon (optional)</Label>
+                    <Input
+                      id="categoryIcon"
+                      value={newCategoryIcon}
+                      onChange={(e) => setNewCategoryIcon(e.target.value)}
+                      placeholder="e.g., calculator"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="categoryDescription">Description</Label>
+                    <Input
+                      id="categoryDescription"
+                      value={newCategoryDescription}
+                      onChange={(e) => setNewCategoryDescription(e.target.value)}
+                      placeholder="Brief description of the category"
+                    />
+                  </div>
+                </div>
+                <Button
+                  onClick={handleCreateCategory}
+                  disabled={createCategoryMutation.isPending || !newCategoryName}
+                  className="flex items-center gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  {createCategoryMutation.isPending ? "Creating..." : "Add Category"}
+                </Button>
+              </div>
+
+              {/* Service Categories List */}
+              <div className="border rounded-lg">
+                <h3 className="font-semibold p-4 border-b">Existing Service Categories</h3>
+                {categoriesLoading ? (
+                  <div className="text-center py-8">Loading service categories...</div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Icon</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Sort Order</TableHead>
+                        <TableHead>Created</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {serviceCategories.map((category: ServiceCategory) => (
+                        <TableRow key={category.id}>
+                          <TableCell>
+                            {editingCategory?.id === category.id ? (
+                              <Input
+                                value={editingCategoryName}
+                                onChange={(e) => setEditingCategoryName(e.target.value)}
+                                className="w-40"
+                              />
+                            ) : (
+                              <span className="font-medium">{category.name}</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {editingCategory?.id === category.id ? (
+                              <Input
+                                value={editingCategoryDescription}
+                                onChange={(e) => setEditingCategoryDescription(e.target.value)}
+                                className="w-48"
+                              />
+                            ) : (
+                              <span className="max-w-48 truncate block">
+                                {category.description || 'No description'}
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {editingCategory?.id === category.id ? (
+                              <Input
+                                value={editingCategoryIcon}
+                                onChange={(e) => setEditingCategoryIcon(e.target.value)}
+                                className="w-32"
+                              />
+                            ) : (
+                              <span className="font-mono text-sm">
+                                {category.icon || 'None'}
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={category.isActive ? "default" : "secondary"}>
+                              {category.isActive ? "Active" : "Inactive"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-sm text-gray-500">{category.sortOrder}</span>
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-sm text-gray-500">
+                              {new Date(category.createdAt).toLocaleDateString()}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex space-x-2">
+                              {editingCategory?.id === category.id ? (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    onClick={handleUpdateCategory}
+                                    disabled={updateCategoryMutation.isPending}
+                                    className="flex items-center gap-1"
+                                  >
+                                    <Save className="h-3 w-3" />
+                                    Save
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => setEditingCategory(null)}
+                                  >
+                                    Cancel
+                                  </Button>
+                                </>
+                              ) : (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleEditCategory(category)}
+                                  >
+                                    Edit
+                                  </Button>
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button size="sm" variant="destructive">
+                                        <Trash2 className="h-3 w-3" />
+                                        Delete
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>Delete Service Category</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          Are you sure you want to delete "{category.name}"? This action cannot be undone and will affect any services using this category.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction
+                                          onClick={() => handleDeleteCategory(category.id)}
+                                          className="bg-red-600 hover:bg-red-700"
+                                        >
+                                          Delete
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                </>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         {/* Site Settings Tab */}
         <TabsContent value="settings" className="space-y-6">
           <Card>
