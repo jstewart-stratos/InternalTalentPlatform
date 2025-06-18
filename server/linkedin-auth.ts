@@ -51,7 +51,7 @@ export class LinkedInAuthService {
       client_id: this.clientId,
       redirect_uri: this.redirectUri,
       state,
-      scope: 'r_liteprofile r_emailaddress w_member_social'
+      scope: 'openid profile email'
     });
 
     return `https://www.linkedin.com/oauth/v2/authorization?${params.toString()}`;
@@ -81,7 +81,7 @@ export class LinkedInAuthService {
   }
 
   async getProfile(accessToken: string): Promise<LinkedInProfile> {
-    const profileResponse = await fetch('https://api.linkedin.com/v2/people/~:(id,firstName,lastName,profilePicture(displayImage~:playableStreams))', {
+    const profileResponse = await fetch('https://api.linkedin.com/v2/userinfo', {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'X-Restli-Protocol-Version': '2.0.0'
@@ -92,61 +92,48 @@ export class LinkedInAuthService {
       throw new Error(`LinkedIn profile fetch failed: ${profileResponse.status}`);
     }
 
-    return profileResponse.json();
+    const userInfo = await profileResponse.json();
+    
+    // Convert userinfo format to expected format
+    return {
+      id: userInfo.sub,
+      firstName: {
+        localized: { 'en_US': userInfo.given_name || 'Unknown' }
+      },
+      lastName: {
+        localized: { 'en_US': userInfo.family_name || 'Unknown' }
+      },
+      profilePicture: userInfo.picture ? {
+        'displayImage~': {
+          elements: [{
+            identifiers: [{ identifier: userInfo.picture }]
+          }]
+        }
+      } : undefined
+    };
   }
 
   async getSkills(accessToken: string): Promise<Array<{ name: string; endorsements: number; category: string }>> {
     try {
-      // First try to get the user's profile to understand their role
+      // Get the user's profile information
       const profile = await this.getProfile(accessToken);
       
-      // Try to fetch skills using LinkedIn API v2
-      let skills: Array<{ name: string; endorsements: number; category: string }> = [];
+      // LinkedIn deprecated their Skills API, so we'll generate professional skills
+      // based on the user's profile information and industry standards
+      const skills = await this.generateProfileBasedSkills(profile, accessToken);
       
-      try {
-        const skillsResponse = await fetch('https://api.linkedin.com/v2/skills', {
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'X-Restli-Protocol-Version': '2.0.0'
-          },
-        });
-
-        if (skillsResponse.ok) {
-          const skillsData = await skillsResponse.json();
-          // Process LinkedIn skills data
-          skills = this.processLinkedInSkills(skillsData);
-        }
-      } catch (skillsError) {
-        console.log('LinkedIn Skills API not accessible, using profile-based inference');
-      }
-
-      // If LinkedIn Skills API is not available, generate professional skills
-      if (skills.length === 0) {
-        skills = await this.generateProfileBasedSkills(profile, accessToken);
-      }
-
       return skills;
     } catch (error) {
-      console.error('Error fetching LinkedIn skills:', error);
-      throw error;
+      console.error('LinkedIn skills import error:', error);
+      throw new Error('Failed to import skills from LinkedIn profile');
     }
-  }
-
-  private processLinkedInSkills(skillsData: any): Array<{ name: string; endorsements: number; category: string }> {
-    if (!skillsData.elements) return [];
-    
-    return skillsData.elements.map((element: any) => ({
-      name: element.skill.name.localized.en_US || Object.values(element.skill.name.localized)[0],
-      endorsements: element.endorsementCount || 0,
-      category: this.categorizeSkill(element.skill.name.localized.en_US || Object.values(element.skill.name.localized)[0])
-    }));
   }
 
   private async generateProfileBasedSkills(profile: LinkedInProfile, accessToken: string): Promise<Array<{ name: string; endorsements: number; category: string }>> {
     // Try to get additional profile information
     let headline = '';
     try {
-      const detailedProfile = await fetch('https://api.linkedin.com/v2/people/~:(id,firstName,lastName,headline,industryName)', {
+      const detailedProfile = await fetch('https://api.linkedin.com/v2/userinfo', {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'X-Restli-Protocol-Version': '2.0.0'
@@ -155,7 +142,7 @@ export class LinkedInAuthService {
       
       if (detailedProfile.ok) {
         const profileData = await detailedProfile.json();
-        headline = profileData.headline || '';
+        headline = profileData.job_title || profileData.headline || '';
       }
     } catch (error) {
       console.log('Could not fetch detailed profile, using basic skills');

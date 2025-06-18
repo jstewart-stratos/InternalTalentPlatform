@@ -1355,78 +1355,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // LinkedIn OAuth Authentication
-  app.get('/api/linkedin/auth', isAuthenticated, (req, res) => {
-    if (!process.env.LINKEDIN_CLIENT_ID || !process.env.LINKEDIN_CLIENT_SECRET) {
-      return res.status(400).json({ 
-        message: 'LinkedIn credentials not configured. Please provide LINKEDIN_CLIENT_ID and LINKEDIN_CLIENT_SECRET.' 
-      });
-    }
 
-    const state = Math.random().toString(36).substring(7);
-    req.session.linkedinState = state;
-    
-    const redirectUri = `${req.protocol}://${req.get('host')}/api/linkedin/callback`;
-    const authUrl = `https://www.linkedin.com/oauth/v2/authorization?` +
-      `response_type=code&` +
-      `client_id=${process.env.LINKEDIN_CLIENT_ID}&` +
-      `redirect_uri=${encodeURIComponent(redirectUri)}&` +
-      `state=${state}&` +
-      `scope=r_liteprofile%20r_emailaddress`;
-    
-    res.json({ authUrl });
-  });
-
-  // LinkedIn OAuth Callback
-  app.get('/api/linkedin/callback', isAuthenticated, async (req, res) => {
-    try {
-      const { code, state } = req.query;
-      
-      if (!code || state !== req.session.linkedinState) {
-        return res.status(400).json({ message: 'Invalid OAuth response' });
-      }
-
-      // Exchange authorization code for access token
-      const tokenResponse = await fetch('https://www.linkedin.com/oauth/v2/accessToken', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          grant_type: 'authorization_code',
-          code: code as string,
-          client_id: process.env.LINKEDIN_CLIENT_ID!,
-          client_secret: process.env.LINKEDIN_CLIENT_SECRET!,
-          redirect_uri: `${req.protocol}://${req.get('host')}/api/linkedin/callback`,
-        }),
-      });
-
-      const tokenData = await tokenResponse.json();
-      
-      if (!tokenData.access_token) {
-        throw new Error('Failed to obtain access token');
-      }
-
-      // Get LinkedIn profile data
-      const profileResponse = await fetch('https://api.linkedin.com/v2/people/~:(id,firstName,lastName,headline)', {
-        headers: {
-          'Authorization': `Bearer ${tokenData.access_token}`,
-        },
-      });
-
-      const profileData = await profileResponse.json();
-
-      // Store access token in session for skills import
-      req.session.linkedinAccessToken = tokenData.access_token;
-      req.session.linkedinProfile = profileData;
-
-      // Redirect to frontend with success
-      res.redirect('/?linkedin=success');
-    } catch (error) {
-      console.error('LinkedIn OAuth error:', error);
-      res.redirect('/?linkedin=error');
-    }
-  });
 
   // LinkedIn OAuth Authentication
   app.get('/api/linkedin/auth', isAuthenticated, async (req, res) => {
