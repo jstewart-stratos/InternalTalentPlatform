@@ -17,22 +17,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Development auth bypass
   const isDevelopment = process.env.NODE_ENV === 'development';
   
-  // Development logout state using session-based storage for proper persistence
-  const getDevLogoutState = (req: any) => {
-    return req.session && req.session.devLoggedOut === true;
-  };
-  
-  const setDevLogoutState = (req: any, isLoggedOut: boolean) => {
-    if (req.session) {
-      req.session.devLoggedOut = isLoggedOut;
-      console.log(`[AUTH] Set session logout state to: ${isLoggedOut}`);
-    }
-  };
-  
-  // Custom auth middleware that properly handles development logout state
-  const customAuthMiddleware = (req: any, res: any, next: any) => {
+  // Custom auth middleware that uses database-backed logout state
+  const customAuthMiddleware = async (req: any, res: any, next: any) => {
     if (isDevelopment) {
-      const isLoggedOut = getDevLogoutState(req);
+      const isLoggedOut = await storage.getDevLogoutState();
       console.log(`[AUTH] ${req.method} ${req.path} - isLoggedOut: ${isLoggedOut}`);
       
       // Check logout state first - this is critical
@@ -61,13 +49,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Logout route (must be before auth middleware)
-  app.post('/api/logout', (req, res) => {
+  app.post('/api/logout', async (req, res) => {
     console.log(`[LOGOUT] Processing logout request - isDevelopment: ${isDevelopment}`);
     
     // Set logout flag for development mode first
     if (isDevelopment) {
       console.log(`[LOGOUT] Setting logout state = true`);
-      setDevLogoutState(req, true);
+      await storage.setDevLogoutState(true);
     }
 
     if (req.session) {

@@ -1,4 +1,4 @@
-import { employees, skillEndorsements, skillSearches, projects, projectApplications, users, siteSettings, adminAuditLog, userPermissions, departments, expertiseRequests, skillExpertise, employeeSkills, serviceCategories, professionalServices, serviceBookings, serviceReviews, servicePortfolios, savedSkillRecommendations, learningPathCache, learningStepCompletions, type Employee, type InsertEmployee, type SkillEndorsement, type InsertSkillEndorsement, type Project, type InsertProject, type ProjectApplication, type InsertProjectApplication, type User, type UpsertUser, type SiteSetting, type InsertSiteSetting, type AuditLog, type InsertAuditLog, type UserPermission, type InsertUserPermission, type Department, type InsertDepartment, type ExpertiseRequest, type InsertExpertiseRequest, type SkillExpertise, type InsertSkillExpertise, type EmployeeSkill, type InsertEmployeeSkill, type ServiceCategory, type InsertServiceCategory, type ProfessionalService, type InsertProfessionalService, type ServiceBooking, type InsertServiceBooking, type ServiceReview, type InsertServiceReview, type ServicePortfolio, type InsertServicePortfolio, type SavedSkillRecommendation, type InsertSavedSkillRecommendation, type LearningPathCache, type InsertLearningPathCache } from "@shared/schema";
+import { employees, skillEndorsements, skillSearches, projects, projectApplications, users, siteSettings, adminAuditLog, userPermissions, departments, expertiseRequests, skillExpertise, employeeSkills, serviceCategories, professionalServices, serviceBookings, serviceReviews, servicePortfolios, savedSkillRecommendations, learningPathCache, learningStepCompletions, devLogoutState, type Employee, type InsertEmployee, type SkillEndorsement, type InsertSkillEndorsement, type Project, type InsertProject, type ProjectApplication, type InsertProjectApplication, type User, type UpsertUser, type SiteSetting, type InsertSiteSetting, type AuditLog, type InsertAuditLog, type UserPermission, type InsertUserPermission, type Department, type InsertDepartment, type ExpertiseRequest, type InsertExpertiseRequest, type SkillExpertise, type InsertSkillExpertise, type EmployeeSkill, type InsertEmployeeSkill, type ServiceCategory, type InsertServiceCategory, type ProfessionalService, type InsertProfessionalService, type ServiceBooking, type InsertServiceBooking, type ServiceReview, type InsertServiceReview, type ServicePortfolio, type InsertServicePortfolio, type SavedSkillRecommendation, type InsertSavedSkillRecommendation, type LearningPathCache, type InsertLearningPathCache } from "@shared/schema";
 import { db } from "./db";
 import { eq, or, and, ilike, sql, desc } from "drizzle-orm";
 
@@ -1309,6 +1309,42 @@ export class DatabaseStorage implements IStorage {
       .where(eq(learningPathCache.id, id));
   }
 
+  // Development logout state management
+  async getDevLogoutState(): Promise<boolean> {
+    try {
+      const [state] = await db
+        .select()
+        .from(devLogoutState)
+        .where(eq(devLogoutState.id, 'singleton'));
+      
+      return state?.isLoggedOut || false;
+    } catch (error) {
+      console.log('[AUTH] Error getting logout state:', error);
+      return false;
+    }
+  }
+
+  async setDevLogoutState(isLoggedOut: boolean): Promise<void> {
+    try {
+      await db
+        .insert(devLogoutState)
+        .values({
+          id: 'singleton',
+          isLoggedOut,
+          updatedAt: new Date(),
+        })
+        .onConflictDoUpdate({
+          target: devLogoutState.id,
+          set: {
+            isLoggedOut,
+            updatedAt: new Date(),
+          },
+        });
+      console.log(`[AUTH] Set database logout state to: ${isLoggedOut}`);
+    } catch (error) {
+      console.log('[AUTH] Error setting logout state:', error);
+    }
+  }
 
 }
 
