@@ -15,14 +15,10 @@ interface SkillGapData {
   requiredByProjects: number;
   gapScore: number;
   priority: 'critical' | 'high' | 'medium' | 'low';
-
   projectedDemand: number;
 }
 
-
-
 export default function Analytics() {
-
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
 
   const { data: stats } = useQuery({
@@ -331,17 +327,6 @@ export default function Analytics() {
 
           <TabsContent value="skills-gaps" className="space-y-6">
             <div className="flex gap-4 mb-6">
-              <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Select department" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Departments</SelectItem>
-                  {departments.map(dept => (
-                    <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
               <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                 <SelectTrigger className="w-48">
                   <SelectValue placeholder="Select category" />
@@ -402,16 +387,7 @@ export default function Analytics() {
                           <Progress value={coveragePercentage} className="h-2" />
                         </div>
 
-                        {item.departments.length > 0 && (
-                          <div>
-                            <span className="text-sm text-gray-600">Present in: </span>
-                            {item.departments.map(dept => (
-                              <Badge key={dept} variant="secondary" className="mr-1">
-                                {dept}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
+
                       </div>
                     );
                   })}
@@ -422,43 +398,16 @@ export default function Analytics() {
 
           <TabsContent value="departments" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {departmentData.map((dept) => (
-                <Card key={dept.department}>
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      <span>{dept.department}</span>
-                      <Badge variant="outline">{dept.totalEmployees} employees</Badge>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <h4 className="font-semibold mb-2">Top Skills</h4>
-                      <div className="space-y-2">
-                        {dept.topSkills.map((skill) => (
-                          <div key={skill.skill} className="flex justify-between items-center">
-                            <span className="text-sm">{skill.skill}</span>
-                            <Badge variant="secondary">{skill.count}</Badge>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    
-                    {dept.skillGaps.length > 0 && (
-                      <div>
-                        <h4 className="font-semibold mb-2 text-red-600">Critical Gaps</h4>
-                        <div className="space-y-2">
-                          {dept.skillGaps.map((gap) => (
-                            <div key={gap.skill} className="flex justify-between items-center">
-                              <span className="text-sm">{gap.skill}</span>
-                              <Badge variant="destructive">-{gap.gap}</Badge>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Department Analysis Removed</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">
+                    Department-based analytics have been removed from the system as requested.
+                  </p>
+                </CardContent>
+              </Card>
             </div>
           </TabsContent>
         </Tabs>
