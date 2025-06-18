@@ -288,11 +288,7 @@ export default function Admin() {
             <span className="hidden sm:inline">User Management</span>
             <span className="sm:hidden">Users</span>
           </TabsTrigger>
-          <TabsTrigger value="departments" className="flex items-center gap-1 sm:gap-2 px-2 py-3 text-xs sm:text-sm">
-            <Building className="h-3 w-3 sm:h-4 sm:w-4" />
-            <span className="hidden sm:inline">Departments</span>
-            <span className="sm:hidden">Depts</span>
-          </TabsTrigger>
+
           <TabsTrigger value="service-categories" className="flex items-center gap-1 sm:gap-2 px-2 py-3 text-xs sm:text-sm">
             <Settings className="h-3 w-3 sm:h-4 sm:w-4" />
             <span className="hidden sm:inline">Service Categories</span>
@@ -425,56 +421,54 @@ export default function Admin() {
           </Card>
         </TabsContent>
 
-        {/* Department Management Tab */}
-        <TabsContent value="departments" className="space-y-6">
+        {/* Service Categories Tab */}
+        <TabsContent value="service-categories" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Department Management</CardTitle>
+              <CardTitle>Service Categories Management</CardTitle>
               <CardDescription>
-                Create and manage organizational departments
+                Manage professional service categories for the marketplace
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Add New Department */}
-              <div className="border rounded-lg p-3 sm:p-4 space-y-3 sm:space-y-4">
-                <h3 className="font-semibold text-sm sm:text-base">Add New Department</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              {/* Add New Service Category */}
+              <div className="border rounded-lg p-4 space-y-4">
+                <h3 className="font-semibold">Add New Service Category</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <Label htmlFor="departmentName" className="text-xs sm:text-sm">Department Name</Label>
+                    <Label htmlFor="categoryName">Category Name</Label>
                     <Input
-                      id="departmentName"
-                      placeholder="Enter department name"
-                      value={newDepartmentName}
-                      onChange={(e) => setNewDepartmentName(e.target.value)}
-                      className="text-sm h-9"
+                      id="categoryName"
+                      value={newCategoryName}
+                      onChange={(e) => setNewCategoryName(e.target.value)}
+                      placeholder="Enter category name"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="departmentDescription" className="text-xs sm:text-sm">Description</Label>
-                    <Textarea
-                      id="departmentDescription"
-                      placeholder="Enter department description"
-                      value={newDepartmentDescription}
-                      onChange={(e) => setNewDepartmentDescription(e.target.value)}
-                      className="text-sm h-9 resize-none"
-                      rows={1}
+                    <Label htmlFor="categoryDescription">Description</Label>
+                    <Input
+                      id="categoryDescription"
+                      value={newCategoryDescription}
+                      onChange={(e) => setNewCategoryDescription(e.target.value)}
+                      placeholder="Enter description"
                     />
+                  </div>
+                  <div className="flex items-end">
+                    <Button 
+                      onClick={handleCreateCategory}
+                      disabled={createCategoryMutation.isPending}
+                      className="w-full"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      {createCategoryMutation.isPending ? "Creating..." : "Create Category"}
+                    </Button>
                   </div>
                 </div>
-                <Button 
-                  onClick={handleCreateDepartment}
-                  disabled={createDepartmentMutation.isPending}
-                  className="flex items-center gap-2 text-xs sm:text-sm h-8 sm:h-9"
-                  size="sm"
-                >
-                  <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
-                  {createDepartmentMutation.isPending ? "Creating..." : "Create Department"}
-                </Button>
               </div>
 
-              {/* Departments List */}
-              {departmentsLoading ? (
-                <div className="text-center py-8">Loading departments...</div>
+              {/* Service Categories List */}
+              {categoriesLoading ? (
+                <div className="text-center py-8">Loading categories...</div>
               ) : (
                 <Table>
                   <TableHeader>
