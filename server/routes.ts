@@ -1086,7 +1086,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   };
 
   // Admin user management routes
-  app.get("/api/admin/users", isAuthenticated, requireAdminRole, async (req, res) => {
+  app.get("/api/admin/users", authMiddleware, requireAdminRole, async (req, res) => {
     try {
       const users = await storage.getAllUsers();
       res.json(users);
@@ -1096,7 +1096,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/admin/users/:userId/role", isAuthenticated, requireAdminRole, async (req: any, res) => {
+  app.put("/api/admin/users/:userId/role", authMiddleware, requireAdminRole, async (req: any, res) => {
     try {
       const { userId } = req.params;
       const { role } = req.body;
@@ -1128,7 +1128,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/admin/users/:userId/deactivate", isAuthenticated, requireAdminRole, async (req: any, res) => {
+  app.put("/api/admin/users/:userId/deactivate", authMiddleware, requireAdminRole, async (req: any, res) => {
     try {
       const { userId } = req.params;
       const success = await storage.deactivateUser(userId);
@@ -1154,7 +1154,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/admin/users/:userId/activate", isAuthenticated, requireAdminRole, async (req: any, res) => {
+  app.put("/api/admin/users/:userId/activate", authMiddleware, requireAdminRole, async (req: any, res) => {
     try {
       const { userId } = req.params;
       const success = await storage.activateUser(userId);
@@ -1181,7 +1181,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Site settings routes
-  app.get("/api/admin/settings", isAuthenticated, requireAdminRole, async (req, res) => {
+  app.get("/api/admin/settings", authMiddleware, requireAdminRole, async (req, res) => {
     try {
       const { category } = req.query;
       const settings = await storage.getSiteSettings(category as string);
@@ -1249,7 +1249,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Audit log routes
-  app.get("/api/admin/audit-logs", isAuthenticated, requireAdminRole, async (req, res) => {
+  app.get("/api/admin/audit-logs", authMiddleware, requireAdminRole, async (req, res) => {
     try {
       const { limit } = req.query;
       const logs = await storage.getAuditLogs(limit ? parseInt(limit as string) : 100);
