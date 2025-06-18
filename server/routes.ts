@@ -17,10 +17,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Development auth bypass
   const isDevelopment = process.env.NODE_ENV === 'development';
   
-  // Custom auth middleware that uses database-backed logout state
-  const customAuthMiddleware = async (req: any, res: any, next: any) => {
+  // File-based logout state for development
+  import fs from 'fs';
+  import path from 'path';
+  const logoutStateFile = path.join(process.cwd(), '.dev-logout-state');
+  
+  const getFileLogoutState = () => {
+    try {
+      if (fs.existsSync(logoutStateFile)) {
+        const state = fs.readFileSync(logoutStateFile, 'utf8').trim();
+        return state === 'true';
+      }
+      return false;
+    } catch (error) {
+      console.log('[AUTH] Error reading logout state file:', error);
+      return false;
+    }
+  };
+  
+  const setFileLogoutState = (isLoggedOut: boolean) => {
+    try {
+      fs.writeFileSync(logoutStateFile, isLoggedOut ? 'true' : 'false');
+      console.log(`[AUTH] Set file logout state to: ${isLoggedOut}`);
+    } catch (error) {
+      console.log('[AUTH] Error writing logout state file:', error);
+    }
+  };
+
+  // Custom auth middleware that uses file-based logout state
+  const customAuthMiddleware = (req: any, res: any, next: any) => {
     if (isDevelopment) {
-      const isLoggedOut = await storage.getDevLogoutState();
+      const isLoggedOut = getFileLogoutState();
       console.log(`[AUTH] ${req.method} ${req.path} - isLoggedOut: ${isLoggedOut}`);
       
       // Check logout state first - this is critical
@@ -49,13 +76,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Logout route (must be before auth middleware)
-  app.post('/api/logout', async (req, res) => {
+  app.post('/api/logout', (req, res) => {
     console.log(`[LOGOUT] Processing logout request - isDevelopment: ${isDevelopment}`);
     
     // Set logout flag for development mode first
     if (isDevelopment) {
       console.log(`[LOGOUT] Setting logout state = true`);
-      await storage.setDevLogoutState(true);
+      setFileLogoutState(true);
     }
 
     if (req.session) {
@@ -80,7 +107,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Development login route to reset logout state
   app.post('/api/dev-login', (req, res) => {
     if (isDevelopment) {
-      setDevLogoutState(req, false);
+      setFileLogoutState(false);
       res.json({ success: true, message: 'Logged in successfully' });
     } else {
       res.status(404).json({ error: 'Not found' });
@@ -92,7 +119,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       if (isDevelopment) {
         // Development mode - check logout state first
-        if (getDevLogoutState(req)) {
+        if (await storage.getDevLogoutState()) {
           return res.status(401).json({ message: "Unauthorized" });
         }
         
