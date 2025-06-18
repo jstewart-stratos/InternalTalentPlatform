@@ -20,6 +20,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Development middleware that bypasses authentication
   const devAuthBypass = (req: any, res: any, next: any) => {
     if (isDevelopment) {
+      // Check if user has been logged out in development mode
+      if (req.cookies && req.cookies.dev_logged_out === 'true') {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
       req.user = {
         claims: { sub: "41327254" }
       };
@@ -43,10 +47,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(500).json({ error: 'Failed to logout' });
         }
         res.clearCookie('connect.sid', { path: '/' });
+        res.clearCookie('connect.sid', { path: '/', domain: req.hostname });
+        
+        // Set a flag to indicate logout in development mode
+        if (isDevelopment) {
+          res.cookie('dev_logged_out', 'true', { path: '/', maxAge: 300000, httpOnly: false }); // 5 minutes
+        }
+        
         res.json({ success: true, message: 'Logged out successfully' });
       });
     } else {
       res.clearCookie('connect.sid', { path: '/' });
+      res.clearCookie('connect.sid', { path: '/', domain: req.hostname });
+      
+      // Set a flag to indicate logout in development mode
+      if (isDevelopment) {
+        res.cookie('dev_logged_out', 'true', { path: '/', maxAge: 300000, httpOnly: false }); // 5 minutes
+      }
+      
       res.json({ success: true, message: 'Logged out successfully' });
     }
   });
