@@ -15,7 +15,7 @@ import { insertEmployeeSchema, type InsertEmployee } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import SkillsCreationManager from "@/components/skills-creation-manager";
-import LinkedInSkillsImport from "@/components/linkedin-skills-import";
+
 import ImageUpload from "@/components/image-upload";
 
 interface SkillWithExperience {
@@ -324,24 +324,7 @@ export default function CreateProfile() {
                   )}
                 />
 
-                {/* LinkedIn Skills Import */}
-                <LinkedInSkillsImport
-                  onSkillsSelected={(selectedSkills) => {
-                    const currentSkills = form.getValues("skillsWithExperience") || [];
-                    const newSkillsWithExperience = selectedSkills.map(skillName => ({
-                      id: `skill_${Date.now()}_${Math.random()}`,
-                      skillName,
-                      experienceLevel: "beginner" as const,
-                      yearsOfExperience: 1
-                    }));
-                    form.setValue("skillsWithExperience", [...currentSkills, ...newSkillsWithExperience]);
-                    // Also update basic skills array for backwards compatibility
-                    const allSkillNames = [...currentSkills, ...newSkillsWithExperience].map(s => s.skillName);
-                    form.setValue("skills", allSkillNames);
-                  }}
-                  currentSkills={form.watch("skillsWithExperience")?.map(s => s.skillName) || []}
-                  className="mb-6"
-                />
+
 
                 <FormField
                   control={form.control}
