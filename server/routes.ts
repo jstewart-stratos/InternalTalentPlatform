@@ -17,11 +17,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Development auth bypass
   const isDevelopment = process.env.NODE_ENV === 'development';
   
+  // Store to track development logout state
+  const devAuthStore = { isLoggedOut: false };
+  
   // Development middleware that bypasses authentication
   const devAuthBypass = (req: any, res: any, next: any) => {
     if (isDevelopment) {
-      // Check for logout flag in session
-      if ((req.session as any)?.devLoggedOut === true) {
+      // Check if user is logged out via session or global store
+      const sessionLoggedOut = req.session && (req.session as any).isLoggedOut;
+      if (sessionLoggedOut || devAuthStore.isLoggedOut) {
         return res.status(401).json({ message: "Unauthorized" });
       }
       req.user = {
@@ -49,9 +53,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.clearCookie('connect.sid', { path: '/' });
         res.clearCookie('connect.sid', { path: '/', domain: req.hostname });
         
-        // Set logout flag for development mode
-        if (isDevelopment && req.session) {
-          req.session.devLoggedOut = true;
+        // Set logout flags for development mode
+        if (isDevelopment) {
+          devAuthStore.isLoggedOut = true;
+          if (req.session) {
+            (req.session as any).isLoggedOut = true;
+          }
         }
         
         res.json({ success: true, message: 'Logged out successfully' });
@@ -61,8 +68,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.clearCookie('connect.sid', { path: '/', domain: req.hostname });
       
       // Set logout flag for development mode
-      if (isDevelopment && req.session) {
-        req.session.devLoggedOut = true;
+      if (isDevelopment) {
+        isLoggedOut = true;
       }
       
       res.json({ success: true, message: 'Logged out successfully' });
