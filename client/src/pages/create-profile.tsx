@@ -26,13 +26,13 @@ interface SkillWithExperience {
 }
 
 const createProfileSchema = insertEmployeeSchema.extend({
-  skills: z.array(z.string()).min(1, "At least one skill is required"),
+  skills: z.array(z.string()).optional(),
   skillsWithExperience: z.array(z.object({
     id: z.string(),
     skillName: z.string(),
     experienceLevel: z.enum(["beginner", "intermediate", "advanced", "expert"]),
     yearsOfExperience: z.number().min(1)
-  })).min(1, "At least one skill with experience details is required"),
+  })).optional(),
   yearsExperience: z.number().min(0, "Years of experience must be positive"),
 });
 
@@ -95,14 +95,6 @@ export default function CreateProfile() {
       form.setValue("experienceLevel", currentEmployee.experienceLevel || "Mid-Level");
       form.setValue("yearsExperience", currentEmployee.yearsExperience || 0);
       form.setValue("profileImage", currentEmployee.profileImage || "");
-    } else if (user) {
-      // Load user auth data for new profile
-      if (user.firstName && user.lastName) {
-        form.setValue("name", `${user.firstName} ${user.lastName}`);
-      }
-      if (user.email) {
-        form.setValue("email", user.email);
-      }
     }
   }, [user, currentEmployee, form]);
 
@@ -138,6 +130,7 @@ export default function CreateProfile() {
     // Include skills with experience in the submission
     const submissionData = {
       ...data,
+      skills: data.skills || [],
       skillsWithExperience: data.skillsWithExperience || []
     };
     createEmployee.mutate(submissionData);
@@ -323,6 +316,7 @@ export default function CreateProfile() {
                           placeholder="Tell colleagues about your background, expertise, and what you're passionate about..."
                           className="min-h-[100px]"
                           {...field}
+                          value={field.value || ""}
                         />
                       </FormControl>
                       <FormMessage />

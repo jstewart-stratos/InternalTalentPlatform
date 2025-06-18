@@ -127,6 +127,7 @@ Changelog:
 - June 18, 2025. Service category creation functionality implemented and verified working
 - June 18, 2025. Service categories analytics section added to analytics dashboard
 - June 18, 2025. Department references completely eliminated from skills gap analysis/career growth page
+- June 18, 2025. Profile editing skills requirement removed - skills now optional during profile updates
 
 ## User Preferences
 
