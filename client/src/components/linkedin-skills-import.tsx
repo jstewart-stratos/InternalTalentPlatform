@@ -80,8 +80,8 @@ export default function LinkedInSkillsImport({
       setSelectedSkills(new Set(newSkills));
 
       toast({
-        title: "Professional Skills Imported",
-        description: `Found ${skills.length} skills tailored to your role and department`,
+        title: "Professional Skills Generated",
+        description: `Generated ${skills.length} skills based on your professional profile`,
       });
     } catch (error) {
       toast({
@@ -179,11 +179,11 @@ export default function LinkedInSkillsImport({
     <Card className={className}>
       <CardHeader>
         <CardTitle className="flex items-center space-x-2">
-          <SiLinkedin className="h-5 w-5 text-blue-600" />
-          <span>Import Skills from LinkedIn</span>
+          <Download className="h-5 w-5 text-blue-600" />
+          <span>Import Professional Skills</span>
         </CardTitle>
         <CardDescription>
-          Automatically import your professional skills from your LinkedIn profile
+          Generate professional skills based on your role and experience level
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -198,12 +198,12 @@ export default function LinkedInSkillsImport({
                 {isLoading ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    Connecting to LinkedIn...
+                    Generating Professional Skills...
                   </>
                 ) : (
                   <>
-                    <SiLinkedin className="h-4 w-4 mr-2" />
-                    Connect & Import Skills from LinkedIn
+                    <Download className="h-4 w-4 mr-2" />
+                    Generate Professional Skills
                   </>
                 )}
               </Button>
@@ -211,14 +211,14 @@ export default function LinkedInSkillsImport({
             
             <div className="bg-blue-50 p-4 rounded-lg">
               <div className="flex items-start space-x-2">
-                <ExternalLink className="h-4 w-4 text-blue-600 mt-0.5" />
+                <Download className="h-4 w-4 text-blue-600 mt-0.5" />
                 <div className="text-sm text-blue-800">
-                  <p className="font-medium">How LinkedIn Import Works:</p>
+                  <p className="font-medium">How Professional Skills Generation Works:</p>
                   <ol className="list-decimal list-inside mt-1 space-y-1">
-                    <li>Click the button above to securely connect to LinkedIn</li>
-                    <li>Authorize our app to access your profile information</li>
-                    <li>We'll automatically extract skills from your profile</li>
-                    <li>Select which skills to add to your internal profile</li>
+                    <li>Analyzes your role and experience level</li>
+                    <li>Generates relevant professional skills for your field</li>
+                    <li>Includes realistic endorsement counts</li>
+                    <li>Select which skills to add to your profile</li>
                   </ol>
                 </div>
               </div>
