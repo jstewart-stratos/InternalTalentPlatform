@@ -14,7 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from "@/hooks/use-toast";
 import { Users, Activity, Settings, Shield, Lock, Unlock, UserCheck, Clock, AlertTriangle, Plus, Save, Trash2, Building } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { User, SiteSetting, AuditLog, Department, ServiceCategory, InsertServiceCategory } from "@shared/schema";
+import type { User, SiteSetting, AuditLog, ServiceCategory, InsertServiceCategory } from "@shared/schema";
 
 export default function Admin() {
   const [newSettingKey, setNewSettingKey] = useState("");
@@ -24,10 +24,7 @@ export default function Admin() {
   const [editingSetting, setEditingSetting] = useState<SiteSetting | null>(null);
   const [editingValue, setEditingValue] = useState("");
   
-  // Department management state
-  const [newDepartmentName, setNewDepartmentName] = useState("");
-  const [newDepartmentDescription, setNewDepartmentDescription] = useState("");
-  const [editingDepartment, setEditingDepartment] = useState<Department | null>(null);
+
   const [editingDepartmentName, setEditingDepartmentName] = useState("");
   const [editingDepartmentDescription, setEditingDepartmentDescription] = useState("");
 
