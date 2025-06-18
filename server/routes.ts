@@ -8,83 +8,28 @@ import OpenAI from "openai";
 import { getProjectRecommendationsForEmployee as getSkillBasedProjectRecs, getEmployeeRecommendationsForProject as getSkillBasedEmployeeRecs } from "./skill-matching";
 import { seedEmployeeSkills, getSkillLevelSummary } from "./seed-employee-skills";
 import { setupAuth, isAuthenticated } from "./replitAuth";
+import { securityHeaders, sanitizeInput, rateLimit, validateRequest } from "./middleware/security";
+import { cacheMiddleware, clearCache } from "./middleware/cache";
 import { z } from "zod";
-import fs from 'fs';
-import path from 'path';
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Apply security middleware globally
+  app.use(securityHeaders);
+  app.use(sanitizeInput);
+  
   // Auth middleware setup
   await setupAuth(app);
-
-  // Development auth bypass
-  const isDevelopment = process.env.NODE_ENV === 'development';
   
-  // File-based logout state for development
-  const logoutStateFile = path.join(process.cwd(), '.dev-logout-state');
-  
-  const getFileLogoutState = () => {
-    try {
-      if (fs.existsSync(logoutStateFile)) {
-        const state = fs.readFileSync(logoutStateFile, 'utf8').trim();
-        return state === 'true';
-      }
-      return false;
-    } catch (error) {
-      console.log('[AUTH] Error reading logout state file:', error);
-      return false;
-    }
-  };
-  
-  const setFileLogoutState = (isLoggedOut: boolean) => {
-    try {
-      fs.writeFileSync(logoutStateFile, isLoggedOut ? 'true' : 'false');
-      console.log(`[AUTH] Set file logout state to: ${isLoggedOut}`);
-    } catch (error) {
-      console.log('[AUTH] Error writing logout state file:', error);
-    }
-  };
-
-  // Custom auth middleware that uses file-based logout state
-  const customAuthMiddleware = (req: any, res: any, next: any) => {
-    if (isDevelopment) {
-      const isLoggedOut = getFileLogoutState();
-      console.log(`[AUTH] ${req.method} ${req.path} - isLoggedOut: ${isLoggedOut}`);
-      
-      // Check logout state first - this is critical
-      if (isLoggedOut) {
-        console.log(`[AUTH] Blocking request due to logout state`);
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-      
-      // Set authenticated user for development
-      req.user = {
-        claims: { sub: "41327254" }
-      };
-      console.log(`[AUTH] Allowing request - user authenticated`);
-      return next();
-    } else {
-      // Production mode - use actual Replit authentication
-      return isAuthenticated(req, res, next);
-    }
-  };
-
-  const authMiddleware = customAuthMiddleware;
+  // Use production authentication middleware
+  const authMiddleware = isAuthenticated;
 
   // Initialize OpenAI
   const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
   });
   
-  // Logout route (must be before auth middleware)
-  app.post('/api/logout', (req, res) => {
-    console.log(`[LOGOUT] Processing logout request - isDevelopment: ${isDevelopment}`);
-    
-    // Set logout flag for development mode first
-    if (isDevelopment) {
-      console.log(`[LOGOUT] Setting logout state = true`);
-      setFileLogoutState(true);
-    }
-
+  // Logout route
+  app.post('/api/logout', rateLimit(5, 60000), (req, res) => {
     if (req.session) {
       req.session.destroy((err) => {
         if (err) {
@@ -93,24 +38,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         res.clearCookie('connect.sid', { path: '/' });
         res.clearCookie('connect.sid', { path: '/', domain: req.hostname });
-        console.log(`[LOGOUT] Successfully logged out`);
         res.json({ success: true, message: 'Logged out successfully' });
       });
     } else {
       res.clearCookie('connect.sid', { path: '/' });
       res.clearCookie('connect.sid', { path: '/', domain: req.hostname });
-      console.log(`[LOGOUT] Successfully logged out (no session)`);
       res.json({ success: true, message: 'Logged out successfully' });
-    }
-  });
-
-  // Development login route to reset logout state
-  app.post('/api/dev-login', (req, res) => {
-    if (isDevelopment) {
-      setFileLogoutState(false);
-      res.json({ success: true, message: 'Logged in successfully' });
-    } else {
-      res.status(404).json({ error: 'Not found' });
     }
   });
 
