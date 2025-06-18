@@ -48,7 +48,7 @@ export default function Admin() {
   // Admin mutations
   const updateUserRoleMutation = useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
-      return await apiRequest('PUT', `/api/admin/users/${userId}/role`, { role });
+      return await apiRequest(`/api/admin/users/${userId}/role`, 'PUT', { role });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
@@ -62,7 +62,7 @@ export default function Admin() {
 
   const deactivateUserMutation = useMutation({
     mutationFn: async (userId: string) => {
-      return await apiRequest('PUT', `/api/admin/users/${userId}/deactivate`);
+      return await apiRequest(`/api/admin/users/${userId}/deactivate`, 'PUT');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
@@ -76,7 +76,7 @@ export default function Admin() {
 
   const activateUserMutation = useMutation({
     mutationFn: async (userId: string) => {
-      return await apiRequest('PUT', `/api/admin/users/${userId}/activate`);
+      return await apiRequest(`/api/admin/users/${userId}/activate`, 'PUT');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
@@ -90,7 +90,7 @@ export default function Admin() {
 
   const createCategoryMutation = useMutation({
     mutationFn: async (categoryData: { name: string; description: string }) => {
-      return await apiRequest('POST', '/api/admin/service-categories', categoryData);
+      return await apiRequest('/api/admin/service-categories', 'POST', categoryData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/service-categories'] });
