@@ -50,37 +50,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth routes
   app.get('/api/auth/user', authMiddleware, async (req: any, res) => {
     try {
-      if (isDevelopment) {
-        // Development mode - check logout state first
-        if (await storage.getDevLogoutState()) {
-          return res.status(401).json({ message: "Unauthorized" });
-        }
-        
-        // Return authenticated user data from storage
-        const user = await storage.getUser("41327254");
-        if (!user) {
-          return res.status(404).json({ error: "User not found" });
-        }
-        
-        const employeeProfile = await storage.getEmployeeByUserId(user.id);
-        res.json({
-          ...user,
-          hasEmployeeProfile: !!employeeProfile,
-          employeeProfile: employeeProfile || null
-        });
-        return;
-      }
-
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       
-      // Update last login
-      if (user) {
-        await storage.updateUserLastLogin(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
       }
       
+      // Update last login
+      await storage.updateUserLastLogin(userId);
+      
       // Check if user has an employee profile
-      const employeeProfile = await storage.getEmployeeByEmail(user?.email || '');
+      const employeeProfile = await storage.getEmployeeByEmail(user.email || '');
       
       res.json({
         ...user,
@@ -96,13 +77,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get current user's employee profile
   app.get('/api/employees/current', authMiddleware, async (req: any, res) => {
     try {
-      if (isDevelopment) {
-        // Development mode - return mock employee profile
-        const employee = await storage.getEmployee(94);
-        res.json(employee);
-        return;
-      }
-
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       if (!user) {
@@ -121,15 +95,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Employee routes
-  app.get("/api/employees", async (req, res) => {
+  // Employee routes with caching and rate limiting
+  app.get("/api/employees", cacheMiddleware(300), rateLimit(100, 60000), async (req, res) => {
     try {
-      const { q: query, department, experienceLevel } = req.query;
+      const { q: query, experienceLevel } = req.query;
       
-      if (query || department || experienceLevel) {
+      if (query || experienceLevel) {
         const employees = await storage.searchEmployees(
           query as string || "",
-          department as string,
           experienceLevel as string
         );
         res.json(employees);
@@ -142,9 +115,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/employees/:id", async (req, res) => {
+  app.get("/api/employees/:id", cacheMiddleware(600), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
+      if (isNaN(id) || id <= 0) {
+        return res.status(400).json({ error: "Invalid employee ID" });
+      }
+      
       const employee = await storage.getEmployee(id);
       
       if (!employee) {
@@ -157,16 +134,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/employees", isAuthenticated, async (req: any, res) => {
+  app.post("/api/employees", 
+    authMiddleware, 
+    rateLimit(10, 60000), 
+    validateRequest(insertEmployeeSchema), 
+    async (req: any, res) => {
     try {
-      console.log("Employee creation request body:", req.body);
       const { skillsWithExperience, ...employeeBody } = req.body;
-      const validatedData = insertEmployeeSchema.parse(employeeBody);
-      console.log("Validated employee data:", validatedData);
       
       // Add userId from authenticated user
       const employeeData = {
-        ...validatedData,
+        ...employeeBody,
         userId: req.user.claims.sub
       };
       
@@ -183,13 +161,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       if (!employee) {
-        throw new Error("Failed to create or update employee");
+        return res.status(500).json({ error: "Failed to create or update employee" });
       }
 
       // Handle individual skills with experience levels if provided
-      if (skillsWithExperience && Array.isArray(skillsWithExperience) && skillsWithExperience.length > 0) {
-        console.log("Creating individual skills:", skillsWithExperience);
-        
+      if (skillsWithExperience && Array.isArray(skillsWithExperience)) {
         // Create individual skill records
         for (const skillData of skillsWithExperience) {
           try {
@@ -204,20 +180,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
             });
           } catch (skillError) {
             console.error(`Failed to create skill ${skillData.skillName}:`, skillError);
-            // Continue with other skills even if one fails
           }
         }
       }
       
+      // Clear employee cache
+      clearCache('/api/employees');
+      
       res.status(existingEmployee ? 200 : 201).json(employee);
     } catch (error) {
       console.error("Employee creation error:", error);
-      if (error instanceof z.ZodError) {
-        console.error("Validation errors:", error.errors);
-        res.status(400).json({ error: "Invalid employee data", details: error.errors });
-      } else {
-        res.status(500).json({ error: "Failed to create employee" });
-      }
+      res.status(500).json({ error: "Failed to create employee" });
     }
   });
 
@@ -285,34 +258,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
 
-  // Analytics routes
-  app.get("/api/analytics/stats", async (req, res) => {
+  // Analytics routes with caching
+  app.get("/api/analytics/stats", authMiddleware, cacheMiddleware(600), async (req, res) => {
     try {
       const employees = await storage.getAllEmployees();
       
-      const allSkills = employees.flatMap(e => e.skills);
-      const uniqueSkills = Array.from(new Set(allSkills));
+      const allSkills = employees.flatMap(e => e.skills || []);
+      const uniqueSkills = [...new Set(allSkills)];
       
       const stats = {
         activeUsers: employees.length,
         skillsRegistered: uniqueSkills.length,
-        successfulMatches: Math.floor(employees.length * 0.7), // Simulated
-        projectsCompleted: Math.floor(employees.length * 0.2) // Simulated
+        successfulMatches: Math.floor(employees.length * 0.7),
+        projectsCompleted: Math.floor(employees.length * 0.2)
       };
       
       res.json(stats);
     } catch (error) {
+      console.error("Analytics stats error:", error);
       res.status(500).json({ error: "Failed to fetch analytics" });
     }
   });
 
 
 
-  app.get("/api/trending-skills", async (req, res) => {
+  app.get("/api/trending-skills", cacheMiddleware(300), rateLimit(50, 60000), async (req, res) => {
     try {
       const trendingSkills = await storage.getTrendingSkills();
       res.json(trendingSkills);
     } catch (error) {
+      console.error("Trending skills error:", error);
       res.status(500).json({ error: "Failed to fetch trending skills" });
     }
   });
@@ -1009,11 +984,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.getUser(userId);
       
       if (!user || user.role !== 'admin') {
+        await storage.logAdminAction({
+          userId,
+          action: 'unauthorized_admin_access_attempt',
+          targetType: 'admin_endpoint',
+          changes: { 
+            endpoint: req.path,
+            method: req.method
+          },
+          ipAddress: req.ip,
+          userAgent: req.get('User-Agent')
+        });
         return res.status(403).json({ error: "Admin access required" });
       }
       
       next();
     } catch (error) {
+      console.error("Admin role verification error:", error);
       res.status(500).json({ error: "Failed to verify admin access" });
     }
   };
