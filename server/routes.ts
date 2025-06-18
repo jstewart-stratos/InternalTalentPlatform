@@ -20,22 +20,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Store to track development logout state
   const devAuthStore = { isLoggedOut: false };
   
-  // Development middleware that bypasses authentication
-  const devAuthBypass = (req: any, res: any, next: any) => {
+  // Custom auth middleware that properly handles development logout state
+  const customAuthMiddleware = (req: any, res: any, next: any) => {
     if (isDevelopment) {
-      // Check logout state - if logged out, deny access
+      console.log(`[AUTH] ${req.method} ${req.path} - isLoggedOut: ${devAuthStore.isLoggedOut}`);
+      
+      // Check logout state first - this is critical
       if (devAuthStore.isLoggedOut) {
+        console.log(`[AUTH] Blocking request due to logout state`);
         return res.status(401).json({ message: "Unauthorized" });
       }
-      // Otherwise set authenticated user
+      
+      // Set authenticated user for development
       req.user = {
         claims: { sub: "41327254" }
       };
+      console.log(`[AUTH] Allowing request - user authenticated`);
+      return next();
+    } else {
+      // Production mode - use actual Replit authentication
+      return isAuthenticated(req, res, next);
     }
-    next();
   };
 
-  const authMiddleware = isDevelopment ? devAuthBypass : isAuthenticated;
+  const authMiddleware = customAuthMiddleware;
 
   // Initialize OpenAI
   const openai = new OpenAI({
@@ -44,8 +52,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Logout route (must be before auth middleware)
   app.post('/api/logout', (req, res) => {
+    console.log(`[LOGOUT] Processing logout request - isDevelopment: ${isDevelopment}`);
+    
     // Set logout flag for development mode first
     if (isDevelopment) {
+      console.log(`[LOGOUT] Setting devAuthStore.isLoggedOut = true`);
       devAuthStore.isLoggedOut = true;
     }
 
@@ -57,11 +68,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         res.clearCookie('connect.sid', { path: '/' });
         res.clearCookie('connect.sid', { path: '/', domain: req.hostname });
+        console.log(`[LOGOUT] Successfully logged out`);
         res.json({ success: true, message: 'Logged out successfully' });
       });
     } else {
       res.clearCookie('connect.sid', { path: '/' });
       res.clearCookie('connect.sid', { path: '/', domain: req.hostname });
+      console.log(`[LOGOUT] Successfully logged out (no session)`);
       res.json({ success: true, message: 'Logged out successfully' });
     }
   });
@@ -80,22 +93,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/auth/user', authMiddleware, async (req: any, res) => {
     try {
       if (isDevelopment) {
-        // Development mode - return a mock authenticated user
-        const mockUser = {
-          id: "41327254",
-          email: "jstewart@stratoswp.com",
-          firstName: "Jacob",
-          lastName: "Stewart",
-          profileImageUrl: null,
-          hasEmployeeProfile: true,
-          employeeProfile: {
-            id: 94,
-            name: "Jacob Stewart",
-            email: "jstewart@stratoswp.com",
-            department: "Risk Management"
-          }
-        };
-        res.json(mockUser);
+        // Development mode - check logout state first
+        if (devAuthStore.isLoggedOut) {
+          return res.status(401).json({ message: "Unauthorized" });
+        }
+        
+        // Return authenticated user data from storage
+        const user = await storage.getUser("41327254");
+        if (!user) {
+          return res.status(404).json({ error: "User not found" });
+        }
+        
+        const employeeProfile = await storage.getEmployeeByUserId(user.id);
+        res.json({
+          ...user,
+          hasEmployeeProfile: !!employeeProfile,
+          employeeProfile: employeeProfile || null
+        });
         return;
       }
 
