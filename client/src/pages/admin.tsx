@@ -57,6 +57,10 @@ export default function Admin() {
     queryKey: ['/api/admin/departments']
   });
 
+  const { data: serviceCategories = [], isLoading: categoriesLoading } = useQuery({
+    queryKey: ['/api/admin/service-categories']
+  });
+
   // Admin mutations
   const updateUserRoleMutation = useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
@@ -209,6 +213,53 @@ export default function Admin() {
     }
   });
 
+  // Service category mutations
+  const createCategoryMutation = useMutation({
+    mutationFn: async (data: InsertServiceCategory) => {
+      return await apiRequest('POST', '/api/admin/service-categories', data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/service-categories'] });
+      toast({ title: "Success", description: "Service category created successfully" });
+      setNewCategoryName("");
+      setNewCategoryDescription("");
+      setNewCategoryIcon("");
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to create service category", variant: "destructive" });
+    }
+  });
+
+  const updateCategoryMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: Partial<InsertServiceCategory> }) => {
+      return await apiRequest('PATCH', `/api/admin/service-categories/${id}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/service-categories'] });
+      toast({ title: "Success", description: "Service category updated successfully" });
+      setEditingCategory(null);
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update service category", variant: "destructive" });
+    }
+  });
+
+  const deleteCategoryMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return await apiRequest('DELETE', `/api/admin/service-categories/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/service-categories'] });
+      toast({ title: "Success", description: "Service category deleted successfully" });
+    },
+    onError: (error: any) => {
+      const message = error.message?.includes('in use') 
+        ? "Cannot delete category that is in use by services"
+        : "Failed to delete service category";
+      toast({ title: "Error", description: message, variant: "destructive" });
+    }
+  });
+
   const handleRoleChange = (userId: string, newRole: string) => {
     updateUserRoleMutation.mutate({ userId, role: newRole });
   };
@@ -274,6 +325,49 @@ export default function Admin() {
     setEditingDepartmentDescription(department.description || '');
   };
 
+  // Service category management handlers
+  const handleCreateCategory = () => {
+    if (!newCategoryName) {
+      toast({ title: "Error", description: "Category name is required", variant: "destructive" });
+      return;
+    }
+
+    createCategoryMutation.mutate({
+      name: newCategoryName,
+      description: newCategoryDescription,
+      icon: newCategoryIcon,
+      isActive: true,
+      sortOrder: 0
+    });
+  };
+
+  const handleEditCategory = (category: ServiceCategory) => {
+    setEditingCategory(category);
+    setEditingCategoryName(category.name);
+    setEditingCategoryDescription(category.description || "");
+    setEditingCategoryIcon(category.icon || "");
+  };
+
+  const handleUpdateCategory = () => {
+    if (!editingCategory || !editingCategoryName) {
+      toast({ title: "Error", description: "Category name is required", variant: "destructive" });
+      return;
+    }
+
+    updateCategoryMutation.mutate({
+      id: editingCategory.id,
+      data: {
+        name: editingCategoryName,
+        description: editingCategoryDescription,
+        icon: editingCategoryIcon
+      }
+    });
+  };
+
+  const handleDeleteCategory = (id: number) => {
+    deleteCategoryMutation.mutate(id);
+  };
+
   const getRoleBadgeVariant = (role: string) => {
     switch (role) {
       case 'admin': return 'destructive';
@@ -296,7 +390,7 @@ export default function Admin() {
       </div>
 
       <Tabs defaultValue="users" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 h-auto gap-1 p-1">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 h-auto gap-1 p-1">
           <TabsTrigger value="users" className="flex items-center gap-1 sm:gap-2 px-2 py-3 text-xs sm:text-sm">
             <Users className="h-3 w-3 sm:h-4 sm:w-4" />
             <span className="hidden sm:inline">User Management</span>
@@ -306,6 +400,11 @@ export default function Admin() {
             <Building className="h-3 w-3 sm:h-4 sm:w-4" />
             <span className="hidden sm:inline">Departments</span>
             <span className="sm:hidden">Depts</span>
+          </TabsTrigger>
+          <TabsTrigger value="service-categories" className="flex items-center gap-1 sm:gap-2 px-2 py-3 text-xs sm:text-sm">
+            <Settings className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Service Categories</span>
+            <span className="sm:hidden">Services</span>
           </TabsTrigger>
           <TabsTrigger value="settings" className="flex items-center gap-1 sm:gap-2 px-2 py-3 text-xs sm:text-sm">
             <Settings className="h-3 w-3 sm:h-4 sm:w-4" />
