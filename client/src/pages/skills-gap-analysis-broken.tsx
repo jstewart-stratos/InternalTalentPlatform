@@ -204,7 +204,7 @@ export default function SkillsGapAnalysis() {
               <div className="flex items-center gap-4">
                 <div>
                   <h3 className="font-semibold text-lg">{currentEmployee.name}</h3>
-                  <p className="text-gray-600">{currentEmployee.role} • {currentEmployee.department}</p>
+                  <p className="text-gray-600">{currentEmployee.role}</p>
                   <p className="text-sm text-gray-500">{currentEmployee.yearsOfExperience} years of experience</p>
                 </div>
               </div>

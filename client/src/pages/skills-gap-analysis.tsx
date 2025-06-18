@@ -322,10 +322,10 @@ export default function SkillsGapAnalysis() {
                 <h3 className="font-semibold text-lg mb-2">{currentEmployee.name}</h3>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="font-medium">Department:</span> {currentEmployee.department}
+                    <span className="font-medium">Role:</span> {currentEmployee.role}
                   </div>
                   <div>
-                    <span className="font-medium">Role:</span> {currentEmployee.role}
+                    <span className="font-medium">Experience:</span> {currentEmployee.yearsOfExperience} years
                   </div>
                 </div>
               </div>

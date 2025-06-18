@@ -126,6 +126,7 @@ Changelog:
 - June 18, 2025. Analytics page rebuilt without department dependencies
 - June 18, 2025. Service category creation functionality implemented and verified working
 - June 18, 2025. Service categories analytics section added to analytics dashboard
+- June 18, 2025. Department references completely eliminated from skills gap analysis/career growth page
 
 ## User Preferences
 
