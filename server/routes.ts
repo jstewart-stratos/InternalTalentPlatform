@@ -17,16 +17,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Development auth bypass
   const isDevelopment = process.env.NODE_ENV === 'development';
   
-  // Development logout state management using process environment
-  const getDevLogoutState = () => process.env.DEV_LOGGED_OUT === 'true';
-  const setDevLogoutState = (isLoggedOut: boolean) => {
-    process.env.DEV_LOGGED_OUT = isLoggedOut ? 'true' : 'false';
+  // Development logout state using session-based storage for proper persistence
+  const getDevLogoutState = (req: any) => {
+    return req.session && req.session.devLoggedOut === true;
+  };
+  
+  const setDevLogoutState = (req: any, isLoggedOut: boolean) => {
+    if (req.session) {
+      req.session.devLoggedOut = isLoggedOut;
+      console.log(`[AUTH] Set session logout state to: ${isLoggedOut}`);
+    }
   };
   
   // Custom auth middleware that properly handles development logout state
   const customAuthMiddleware = (req: any, res: any, next: any) => {
     if (isDevelopment) {
-      const isLoggedOut = getDevLogoutState();
+      const isLoggedOut = getDevLogoutState(req);
       console.log(`[AUTH] ${req.method} ${req.path} - isLoggedOut: ${isLoggedOut}`);
       
       // Check logout state first - this is critical
@@ -61,7 +67,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Set logout flag for development mode first
     if (isDevelopment) {
       console.log(`[LOGOUT] Setting logout state = true`);
-      setDevLogoutState(true);
+      setDevLogoutState(req, true);
     }
 
     if (req.session) {
@@ -86,7 +92,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Development login route to reset logout state
   app.post('/api/dev-login', (req, res) => {
     if (isDevelopment) {
-      setDevLogoutState(false);
+      setDevLogoutState(req, false);
       res.json({ success: true, message: 'Logged in successfully' });
     } else {
       res.status(404).json({ error: 'Not found' });
@@ -98,7 +104,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       if (isDevelopment) {
         // Development mode - check logout state first
-        if (devIsLoggedOut) {
+        if (getDevLogoutState(req)) {
           return res.status(401).json({ message: "Unauthorized" });
         }
         
