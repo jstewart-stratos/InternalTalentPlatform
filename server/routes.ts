@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertEmployeeSchema, insertSkillEndorsementSchema, insertProjectSchema, insertSiteSettingSchema, insertAuditLogSchema, insertUserPermissionSchema, insertDepartmentSchema, insertServiceCategorySchema, insertProfessionalServiceSchema, insertServiceBookingSchema, insertServiceReviewSchema, insertServicePortfolioSchema, insertSavedSkillRecommendationSchema } from "@shared/schema";
+import { insertEmployeeSchema, insertSkillEndorsementSchema, insertProjectSchema, insertSiteSettingSchema, insertAuditLogSchema, insertUserPermissionSchema, insertServiceCategorySchema, insertProfessionalServiceSchema, insertServiceBookingSchema, insertServiceReviewSchema, insertServicePortfolioSchema, insertSavedSkillRecommendationSchema } from "@shared/schema";
 import { sendEmail } from "./sendgrid";
 import { getProjectRecommendationsForEmployee, getEmployeeRecommendationsForProject, getSkillGapAnalysis } from "./ai-recommendations";
 import OpenAI from "openai";
@@ -9,6 +9,8 @@ import { getProjectRecommendationsForEmployee as getSkillBasedProjectRecs, getEm
 import { seedEmployeeSkills, getSkillLevelSummary } from "./seed-employee-skills";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { z } from "zod";
+import fs from 'fs';
+import path from 'path';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware setup
@@ -18,8 +20,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const isDevelopment = process.env.NODE_ENV === 'development';
   
   // File-based logout state for development
-  import fs from 'fs';
-  import path from 'path';
   const logoutStateFile = path.join(process.cwd(), '.dev-logout-state');
   
   const getFileLogoutState = () => {
