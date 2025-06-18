@@ -53,8 +53,6 @@ export default function Analytics() {
     },
   });
 
-
-
   // Fetch all employee skills for accurate gap analysis
   const { data: allEmployeeSkills = [] } = useQuery({
     queryKey: ["/api/all-employee-skills"],
@@ -67,7 +65,7 @@ export default function Analytics() {
         skillName: string;
         experienceLevel: string;
         yearsOfExperience: number;
-        employee: { name: string; department: string };
+        employee: { name: string; };
       }>>;
     },
   });
@@ -82,7 +80,7 @@ export default function Analytics() {
     .sort(([, a], [, b]) => b - a)
     .slice(0, 10);
 
-  const departmentCounts = employees.reduce((acc, employee) => {
+  const titleCounts = employees.reduce((acc, employee) => {
     acc[employee.title] = (acc[employee.title] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
@@ -100,318 +98,298 @@ export default function Analytics() {
     return acc;
   }, {} as Record<string, number>);
 
-  // Skills gap analysis functions
-  const skillsGapAnalysis = (): SkillGapData[] => {
-    const employeeSkillMap = new Map<string, Set<string>>();
-    allEmployeeSkills.forEach(skillRecord => {
-      if (!employeeSkillMap.has(skillRecord.skillName)) {
-        employeeSkillMap.set(skillRecord.skillName, new Set());
-      }
-      employeeSkillMap.get(skillRecord.skillName)?.add(skillRecord.employee.department);
-    });
-
-    const projectSkills = new Map<string, number>();
-    projects.forEach(project => {
-      if (project.requiredSkills) {
-        project.requiredSkills.forEach(skill => {
-          projectSkills.set(skill, (projectSkills.get(skill) || 0) + 1);
-        });
-      }
-    });
-
-    const allSkills = new Set([...Array.from(employeeSkillMap.keys()), ...Array.from(projectSkills.keys())]);
-    const gapData: SkillGapData[] = [];
-
-    Array.from(allSkills).forEach(skill => {
-      const currentEmployees = allEmployeeSkills.filter(s => s.skillName === skill).length;
-      const requiredByProjects = projectSkills.get(skill) || 0;
-      const gap = Math.max(0, requiredByProjects - currentEmployees);
-      const gapScore = currentEmployees > 0 ? gap / currentEmployees : requiredByProjects;
-      
-      let priority: 'critical' | 'high' | 'medium' | 'low' = 'low';
-      if (gapScore >= 2) priority = 'critical';
-      else if (gapScore >= 1) priority = 'high';
-      else if (gapScore >= 0.5) priority = 'medium';
-
-      gapData.push({
-        skill,
-        category: getCategoryForSkill(skill),
-        currentEmployees,
-        requiredByProjects,
-        gapScore,
-        priority,
-
-        projectedDemand: requiredByProjects + Math.floor(requiredByProjects * 0.2),
-      });
-    });
-
-    return gapData.sort((a, b) => b.gapScore - a.gapScore);
-  };
-
-  const getCategoryForSkill = (skill: string): string => {
-    const skillLower = skill.toLowerCase();
-    if (skillLower.includes('react') || skillLower.includes('vue') || skillLower.includes('angular') || skillLower.includes('javascript') || skillLower.includes('typescript')) {
-      return 'Frontend Development';
+  // Mock skill gap data for demonstration
+  const skillGapData: SkillGapData[] = [
+    {
+      skill: "React Development",
+      category: "Frontend",
+      currentEmployees: 12,
+      requiredByProjects: 18,
+      gapScore: 6,
+      priority: 'high',
+      projectedDemand: 22
+    },
+    {
+      skill: "Data Analysis",
+      category: "Analytics",
+      currentEmployees: 8,
+      requiredByProjects: 15,
+      gapScore: 7,
+      priority: 'critical',
+      projectedDemand: 20
+    },
+    {
+      skill: "Project Management",
+      category: "Management",
+      currentEmployees: 15,
+      requiredByProjects: 20,
+      gapScore: 5,
+      priority: 'medium',
+      projectedDemand: 25
     }
-    if (skillLower.includes('node') || skillLower.includes('python') || skillLower.includes('java') || skillLower.includes('api')) {
-      return 'Backend Development';
-    }
-    if (skillLower.includes('sql') || skillLower.includes('database') || skillLower.includes('mongodb')) {
-      return 'Database';
-    }
-    if (skillLower.includes('aws') || skillLower.includes('azure') || skillLower.includes('docker') || skillLower.includes('kubernetes')) {
-      return 'DevOps/Cloud';
-    }
-    if (skillLower.includes('design') || skillLower.includes('ui') || skillLower.includes('ux')) {
-      return 'Design';
-    }
-    return 'Other';
-  };
+  ];
 
-  // Calculate skill distribution by employee title for analytics
-  const titleCounts = employees.reduce((acc, employee) => {
-    acc[employee.title] = (acc[employee.title] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  const filteredSkillGaps = selectedCategory === "all" 
+    ? skillGapData 
+    : skillGapData.filter(item => item.category === selectedCategory);
 
-  const priorityColors = {
-    critical: "bg-red-100 text-red-800 border-red-200",
-    high: "bg-orange-100 text-orange-800 border-orange-200",
-    medium: "bg-yellow-100 text-yellow-800 border-yellow-200",
-    low: "bg-green-100 text-green-800 border-green-200",
-  };
-
-  const priorityIcons = {
-    critical: AlertTriangle,
-    high: TrendingUp,
-    medium: Target,
-    low: CheckCircle,
-  };
-
-  const gapData = skillsGapAnalysis();
-  const filteredGapData = gapData.filter(item => {
-    const categoryMatch = selectedCategory === "all" || item.category === selectedCategory;
-    return categoryMatch;
-  });
-  const categories = Array.from(new Set(gapData.map(item => item.category)));
+  const categories = Array.from(new Set(skillGapData.map(item => item.category)));
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Analytics Dashboard</h1>
-          <p className="text-gray-600">Comprehensive insights into your organization's talent and skills</p>
-        </div>
+    <div className="container mx-auto p-6 space-y-8">
+      <div className="flex items-center gap-3 mb-6">
+        <BarChart3 className="h-8 w-8 text-primary" />
+        <h1 className="text-3xl font-bold">Analytics Dashboard</h1>
+      </div>
 
-        {/* Key Metrics */}
-        {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      {/* Key Metrics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Users</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.activeUsers || 0}</div>
+            <p className="text-xs text-muted-foreground">
+              +12% from last month
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Skills Registered</CardTitle>
+            <Award className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.skillsRegistered || 0}</div>
+            <p className="text-xs text-muted-foreground">
+              +8% from last month
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Successful Matches</CardTitle>
+            <Target className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.successfulMatches || 0}</div>
+            <p className="text-xs text-muted-foreground">
+              +24% from last month
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Projects Completed</CardTitle>
+            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.projectsCompleted || 0}</div>
+            <p className="text-xs text-muted-foreground">
+              +18% from last month
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Tabs defaultValue="overview" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="skills">Skills Analysis</TabsTrigger>
+          <TabsTrigger value="skills-gaps">Skills Gaps</TabsTrigger>
+          <TabsTrigger value="workforce">Workforce</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-gray-600">Critical Gaps</CardTitle>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5" />
+                  Top Skills
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center space-x-2">
-                  <AlertTriangle className="h-8 w-8 text-red-500" />
-                  <div>
-                    <div className="text-2xl font-bold">
-                      {filteredGapData.filter(item => item.priority === 'critical').length}
-                    </div>
-                    <p className="text-sm text-gray-600">Skills at risk</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-gray-600">Active Users</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center space-x-2">
-                  <Users className="h-8 w-8 text-blue-500" />
-                  <div>
-                    <div className="text-2xl font-bold">{stats.activeUsers}</div>
-                    <p className="text-sm text-gray-600">Employees</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-gray-600">Skills Tracked</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center space-x-2">
-                  <Target className="h-8 w-8 text-green-500" />
-                  <div>
-                    <div className="text-2xl font-bold">{filteredGapData.length}</div>
-                    <p className="text-sm text-gray-600">Total skills</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-gray-600">Coverage Rate</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center space-x-2">
-                  <CheckCircle className="h-8 w-8 text-accent" />
-                  <div>
-                    <div className="text-2xl font-bold">
-                      {Math.round((filteredGapData.filter(item => item.currentEmployees > 0).length / Math.max(1, filteredGapData.length)) * 100)}%
-                    </div>
-                    <p className="text-sm text-gray-600">Skills covered</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {/* Tabs */}
-        <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="skills-gaps">Skills Gaps</TabsTrigger>
-            <TabsTrigger value="departments">Departments</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <BarChart3 className="h-5 w-5 text-accent" />
-                    Top Skills
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {topSkills.map(([skill, count], index) => (
-                      <div key={skill} className="flex justify-between items-center">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-gray-600">#{index + 1}</span>
-                          <span className="text-sm">{skill}</span>
-                        </div>
-                        <Badge variant="secondary">{count} employees</Badge>
+                <div className="space-y-3">
+                  {topSkills.map(([skill, count], index) => (
+                    <div key={skill} className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Badge variant="outline">{index + 1}</Badge>
+                        <span className="font-medium">{skill}</span>
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <PieChart className="h-5 w-5 text-accent" />
-                    Department Distribution
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {Object.entries(departmentCounts).map(([dept, count]) => (
-                      <div key={dept} className="flex justify-between items-center">
-                        <span className="text-sm">{dept}</span>
-                        <Badge variant="outline">{count} employees</Badge>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="skills-gaps" className="space-y-6">
-            <div className="flex gap-4 mb-6">
-              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
-                  {categories.map(category => (
-                    <SelectItem key={category} value={category}>{category}</SelectItem>
+                      <Badge variant="secondary">{count} employees</Badge>
+                    </div>
                   ))}
-                </SelectContent>
-              </Select>
-            </div>
+                </div>
+              </CardContent>
+            </Card>
 
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5 text-accent" />
-                  Critical Skills Gaps
+                  <PieChart className="h-5 w-5" />
+                  Experience Distribution
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {filteredGapData.slice(0, 10).map((item) => {
-                    const PriorityIcon = priorityIcons[item.priority];
-                    const coveragePercentage = item.requiredByProjects > 0 
-                      ? Math.min(100, (item.currentEmployees / item.requiredByProjects) * 100)
-                      : 100;
-
-                    return (
-                      <div key={item.skill} className="border rounded-lg p-4 space-y-3">
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <h3 className="font-semibold text-lg">{item.skill}</h3>
-                              <Badge className={priorityColors[item.priority]}>
-                                <PriorityIcon className="h-3 w-3 mr-1" />
-                                {item.priority}
-                              </Badge>
-                              <Badge variant="outline">{item.category}</Badge>
-                            </div>
-                            <div className="flex gap-6 text-sm text-gray-600">
-                              <span><Users className="h-4 w-4 inline mr-1" />{item.currentEmployees} employees</span>
-                              <span><Target className="h-4 w-4 inline mr-1" />{item.requiredByProjects} projects need this</span>
-                              <span>Gap Score: {item.gapScore.toFixed(1)}</span>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-2xl font-bold text-accent">{Math.round(coveragePercentage)}%</div>
-                            <div className="text-sm text-gray-600">Coverage</div>
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <div className="flex justify-between text-sm">
-                            <span>Skill Coverage</span>
-                            <span>{item.currentEmployees} / {item.requiredByProjects} needed</span>
-                          </div>
-                          <Progress value={coveragePercentage} className="h-2" />
-                        </div>
-
-
+                <div className="space-y-3">
+                  {Object.entries(experienceLevels).map(([level, count]) => (
+                    <div key={level} className="flex items-center justify-between">
+                      <span className="font-medium">{level} Level</span>
+                      <div className="flex items-center gap-2">
+                        <Progress 
+                          value={(count / employees.length) * 100} 
+                          className="w-24 h-2" 
+                        />
+                        <Badge variant="outline">{count}</Badge>
                       </div>
-                    );
-                  })}
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
+          </div>
+        </TabsContent>
 
-          <TabsContent value="departments" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Department Analysis Removed</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground">
-                    Department-based analytics have been removed from the system as requested.
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-        </Tabs>
-      </div>
+        <TabsContent value="skills" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Skills Distribution Analysis</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4">
+                {topSkills.map(([skill, count]) => {
+                  const percentage = (count / employees.length) * 100;
+                  return (
+                    <div key={skill} className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium">{skill}</span>
+                        <span className="text-sm text-muted-foreground">
+                          {count} employees ({percentage.toFixed(1)}%)
+                        </span>
+                      </div>
+                      <Progress value={percentage} className="h-2" />
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="skills-gaps" className="space-y-6">
+          <div className="flex gap-4 mb-6">
+            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {categories.map(category => (
+                  <SelectItem key={category} value={category}>{category}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-orange-500" />
+                Skills Gap Analysis
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {filteredSkillGaps.map((item) => {
+                  const coveragePercentage = (item.currentEmployees / item.requiredByProjects) * 100;
+                  const priorityColor = {
+                    critical: 'destructive',
+                    high: 'orange',
+                    medium: 'yellow',
+                    low: 'green'
+                  };
+
+                  return (
+                    <div key={item.skill} className="border rounded-lg p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-semibold">{item.skill}</h3>
+                        <Badge variant={priorityColor[item.priority] as any}>
+                          {item.priority} priority
+                        </Badge>
+                      </div>
+                      
+                      <div className="grid grid-cols-3 gap-4 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">Current: </span>
+                          <span className="font-medium">{item.currentEmployees}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Required: </span>
+                          <span className="font-medium">{item.requiredByProjects}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Gap: </span>
+                          <span className="font-medium text-red-600">-{item.gapScore}</span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-sm">
+                          <span>Coverage</span>
+                          <span>{coveragePercentage.toFixed(1)}%</span>
+                        </div>
+                        <Progress value={coveragePercentage} className="h-2" />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="workforce" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Availability Status</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {Object.entries(availabilityStats).map(([status, count]) => (
+                    <div key={status} className="flex items-center justify-between">
+                      <span className="font-medium capitalize">{status}</span>
+                      <Badge variant="outline">{count} employees</Badge>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Role Distribution</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {Object.entries(titleCounts).slice(0, 8).map(([title, count]) => (
+                    <div key={title} className="flex items-center justify-between">
+                      <span className="font-medium">{title}</span>
+                      <Badge variant="outline">{count}</Badge>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
