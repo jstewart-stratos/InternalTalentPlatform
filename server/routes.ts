@@ -1075,7 +1075,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       
-      if (!user || (user.role !== 'admin' && user.role !== 'manager')) {
+      if (!user || user.role !== 'admin') {
         return res.status(403).json({ error: "Admin access required" });
       }
       
@@ -2494,14 +2494,9 @@ Respond with JSON in this exact format:
     }
   });
 
-  app.patch("/api/admin/service-categories/:id", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/admin/service-categories/:id", authMiddleware, requireAdminRole, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      
-      if (!user || user.role !== 'admin') {
-        return res.status(403).json({ error: "Admin access required" });
-      }
 
       const id = parseInt(req.params.id);
       const existingCategory = await storage.getServiceCategory(id);
@@ -2531,14 +2526,9 @@ Respond with JSON in this exact format:
     }
   });
 
-  app.delete("/api/admin/service-categories/:id", isAuthenticated, async (req: any, res) => {
+  app.delete("/api/admin/service-categories/:id", authMiddleware, requireAdminRole, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      
-      if (!user || user.role !== 'admin') {
-        return res.status(403).json({ error: "Admin access required" });
-      }
 
       const id = parseInt(req.params.id);
       const existingCategory = await storage.getServiceCategory(id);
@@ -2978,12 +2968,8 @@ Respond with JSON in this exact format:
   });
 
   // Service category management endpoints
-  app.get("/api/admin/service-categories", isAuthenticated, async (req: any, res) => {
+  app.get("/api/admin/service-categories", authMiddleware, requireAdminRole, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
-      if (!user || user.role !== 'admin') {
-        return res.status(403).json({ error: "Admin access required" });
-      }
 
       const categories = await storage.getAllServiceCategories();
       res.json(categories);
@@ -2993,12 +2979,9 @@ Respond with JSON in this exact format:
     }
   });
 
-  app.post("/api/admin/service-categories", isAuthenticated, async (req: any, res) => {
+  app.post("/api/admin/service-categories", authMiddleware, requireAdminRole, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
-      if (!user || user.role !== 'admin') {
-        return res.status(403).json({ error: "Admin access required" });
-      }
+      const userId = req.user.claims.sub;
 
       const categoryData = req.body;
       const category = await storage.createServiceCategory(categoryData);
