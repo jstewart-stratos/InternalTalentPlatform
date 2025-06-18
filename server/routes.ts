@@ -23,11 +23,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Development middleware that bypasses authentication
   const devAuthBypass = (req: any, res: any, next: any) => {
     if (isDevelopment) {
-      // Check if user is logged out via session or global store
-      const sessionLoggedOut = req.session && (req.session as any).isLoggedOut;
-      if (sessionLoggedOut || devAuthStore.isLoggedOut) {
+      // Check logout state - if logged out, deny access
+      if (devAuthStore.isLoggedOut) {
         return res.status(401).json({ message: "Unauthorized" });
       }
+      // Otherwise set authenticated user
       req.user = {
         claims: { sub: "41327254" }
       };
@@ -44,6 +44,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Logout route (must be before auth middleware)
   app.post('/api/logout', (req, res) => {
+    // Set logout flag for development mode first
+    if (isDevelopment) {
+      devAuthStore.isLoggedOut = true;
+    }
+
     if (req.session) {
       req.session.destroy((err) => {
         if (err) {
@@ -52,27 +57,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         res.clearCookie('connect.sid', { path: '/' });
         res.clearCookie('connect.sid', { path: '/', domain: req.hostname });
-        
-        // Set logout flags for development mode
-        if (isDevelopment) {
-          devAuthStore.isLoggedOut = true;
-          if (req.session) {
-            (req.session as any).isLoggedOut = true;
-          }
-        }
-        
         res.json({ success: true, message: 'Logged out successfully' });
       });
     } else {
       res.clearCookie('connect.sid', { path: '/' });
       res.clearCookie('connect.sid', { path: '/', domain: req.hostname });
-      
-      // Set logout flag for development mode
-      if (isDevelopment) {
-        isLoggedOut = true;
-      }
-      
       res.json({ success: true, message: 'Logged out successfully' });
+    }
+  });
+
+  // Development login route to reset logout state
+  app.post('/api/dev-login', (req, res) => {
+    if (isDevelopment) {
+      devAuthStore.isLoggedOut = false;
+      res.json({ success: true, message: 'Logged in successfully' });
+    } else {
+      res.status(404).json({ error: 'Not found' });
     }
   });
 
