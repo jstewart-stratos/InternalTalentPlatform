@@ -542,3 +542,12 @@ export type InsertServiceReview = z.infer<typeof insertServiceReviewSchema>;
 export type ServiceReview = typeof serviceReviews.$inferSelect;
 export type InsertServicePortfolio = z.infer<typeof insertServicePortfolioSchema>;
 export type ServicePortfolio = typeof servicePortfolios.$inferSelect;
+
+// Development logout state table for proper persistence
+export const devLogoutState = pgTable("dev_logout_state", {
+  id: varchar("id").primaryKey().default("singleton"),
+  isLoggedOut: boolean("is_logged_out").default(false),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type DevLogoutState = typeof devLogoutState.$inferSelect;
