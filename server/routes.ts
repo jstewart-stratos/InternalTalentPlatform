@@ -3298,9 +3298,16 @@ Respond with JSON in this exact format:
           if (isManagerDirect || req.user.role === 'admin') {
             const members = await storage.getTeamMembers(team.id);
             console.log(`Debug: Adding team ${team.id} to managed teams (${members.length} members)`);
+            
+            // Map specialties to expertiseAreas for frontend compatibility
+            const expertiseAreas = team.specialties || team.expertiseAreas || [];
+            console.log(`Debug: Team ${team.id} specialties/expertise areas:`, expertiseAreas);
+            
             managedTeams.push({
               ...team,
-              memberCount: members.length
+              memberCount: members.length,
+              expertiseAreas: expertiseAreas,
+              specialties: team.specialties  // Keep both for compatibility
             });
           }
         } catch (error) {
@@ -3366,7 +3373,11 @@ Respond with JSON in this exact format:
   app.get("/api/team-manager/teams/:teamId/members", authMiddleware, requireTeamManagerAccess, async (req, res) => {
     try {
       const teamId = parseInt(req.params.teamId);
+      console.log(`=== FETCHING TEAM MEMBERS FOR TEAM ${teamId} ===`);
+      
       const members = await storage.getTeamMembers(teamId);
+      console.log(`Debug: Found ${members.length} members for team ${teamId}:`, members);
+      
       res.json(members);
     } catch (error) {
       console.error("Error fetching team members:", error);

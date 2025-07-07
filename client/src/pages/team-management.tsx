@@ -25,12 +25,19 @@ export default function TeamManagement() {
   const { data: managedTeams, isLoading: teamsLoading, refetch: refetchTeams } = useQuery({
     queryKey: ["/api/team-manager/my-teams"],
   });
+  
+  // Debug: Log the team data structure
+  console.log("=== Managed Teams Data ===", managedTeams);
 
   // Fetch team members for selected team
   const { data: teamMembers } = useQuery({
     queryKey: ["/api/team-manager/teams", selectedTeam?.id, "members"],
     enabled: !!selectedTeam,
   });
+  
+  // Debug: Log the team members data and selected team
+  console.log("=== Selected Team ===", selectedTeam);
+  console.log("=== Team Members Data ===", teamMembers);
 
   // Update team mutation
   const updateTeamMutation = useMutation({
