@@ -36,7 +36,7 @@ export default function ExpertDirectory() {
     if (experienceParam) setExperienceFilter(experienceParam);
   }, []);
 
-  const { data: experts = [], isLoading } = useQuery({
+  const { data: experts = [], isLoading, error } = useQuery({
     queryKey: ["/api/experts", searchTerm, selectedSkill, experienceFilter],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -44,10 +44,15 @@ export default function ExpertDirectory() {
       if (selectedSkill && selectedSkill !== "all") params.append("skill", selectedSkill);
       if (experienceFilter && experienceFilter !== "all") params.append("experience", experienceFilter);
       
+      console.log('Fetching experts with params:', params.toString());
       const response = await fetch(`/api/experts?${params}`);
       if (!response.ok) throw new Error("Failed to fetch experts");
-      return response.json() as Promise<ExpertProfile[]>;
+      const data = await response.json() as ExpertProfile[];
+      console.log('Received experts data:', data.length, 'experts');
+      return data;
     },
+    staleTime: 0, // Force fresh data
+    cacheTime: 0, // Don't cache
   });
 
   const { data: skills = [] } = useQuery({
@@ -187,7 +192,18 @@ export default function ExpertDirectory() {
       </div>
 
       {/* Results */}
-      {experts.length === 0 ? (
+      {isLoading ? (
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading experts...</p>
+        </div>
+      ) : error ? (
+        <div className="text-center py-12">
+          <Users className="h-12 w-12 text-red-400 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-red-900 mb-2">Error loading experts</h3>
+          <p className="text-red-600">{error.message}</p>
+        </div>
+      ) : experts.length === 0 ? (
         <div className="text-center py-12">
           <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">No experts found</h3>
