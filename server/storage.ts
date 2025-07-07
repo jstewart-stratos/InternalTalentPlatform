@@ -1582,6 +1582,124 @@ export class DatabaseStorage implements IStorage {
     return teamsWithCounts;
   }
 
+  // Team management helpers for team managers
+  async getUserTeams(userId: string): Promise<any[]> {
+    const employee = await this.getEmployeeByUserId(parseInt(userId));
+    if (!employee) return [];
+
+    const userTeams = await db
+      .select({
+        id: teams.id,
+        name: teams.name,
+        description: teams.description,
+        profileImage: teams.profileImage,
+        website: teams.website,
+        specialties: teams.specialties,
+        isActive: teams.isActive,
+        createdBy: teams.createdBy,
+        createdAt: teams.createdAt,
+        updatedAt: teams.updatedAt,
+        memberRole: teamMembers.role,
+        joinedAt: teamMembers.joinedAt
+      })
+      .from(teams)
+      .innerJoin(teamMembers, eq(teams.id, teamMembers.teamId))
+      .where(
+        and(
+          eq(teamMembers.employeeId, employee.id),
+          eq(teamMembers.isActive, true),
+          eq(teams.isActive, true)
+        )
+      );
+
+    return userTeams;
+  }
+
+  async isTeamManager(userId: string, teamId: number): Promise<boolean> {
+    const employee = await this.getEmployeeByUserId(parseInt(userId));
+    if (!employee) return false;
+
+    const membership = await db
+      .select()
+      .from(teamMembers)
+      .where(
+        and(
+          eq(teamMembers.teamId, teamId),
+          eq(teamMembers.employeeId, employee.id),
+          eq(teamMembers.isActive, true),
+          eq(teamMembers.role, "leader")
+        )
+      );
+
+    return membership.length > 0;
+  }
+
+  async getTeamMembers(teamId: number): Promise<any[]> {
+    const members = await db
+      .select({
+        id: teamMembers.id,
+        teamId: teamMembers.teamId,
+        employeeId: teamMembers.employeeId,
+        role: teamMembers.role,
+        joinedAt: teamMembers.joinedAt,
+        isActive: teamMembers.isActive,
+        approvedBy: teamMembers.approvedBy,
+        approvedAt: teamMembers.approvedAt,
+        // Employee details
+        employeeName: employees.name,
+        employeeEmail: sql<string>`(SELECT ${users.email} FROM ${users} WHERE ${users.id} = ${employees.userId})`.as('employeeEmail'),
+        employeeTitle: employees.title,
+        employeeSkills: employees.skills
+      })
+      .from(teamMembers)
+      .innerJoin(employees, eq(teamMembers.employeeId, employees.id))
+      .where(
+        and(
+          eq(teamMembers.teamId, teamId),
+          eq(teamMembers.isActive, true)
+        )
+      )
+      .orderBy(teamMembers.joinedAt);
+
+    return members;
+  }
+
+  async updateTeamMemberRole(teamId: number, employeeId: number, newRole: string): Promise<boolean> {
+    try {
+      await db
+        .update(teamMembers)
+        .set({ role: newRole })
+        .where(
+          and(
+            eq(teamMembers.teamId, teamId),
+            eq(teamMembers.employeeId, employeeId)
+          )
+        );
+      return true;
+    } catch (error) {
+      console.error("Error updating team member role:", error);
+      return false;
+    }
+  }
+
+  async removeTeamMember(teamId: number, employeeId: number): Promise<boolean> {
+    try {
+      await db
+        .update(teamMembers)
+        .set({ isActive: false })
+        .where(
+          and(
+            eq(teamMembers.teamId, teamId),
+            eq(teamMembers.employeeId, employeeId)
+          )
+        );
+      return true;
+    } catch (error) {
+      console.error("Error removing team member:", error);
+      return false;
+    }
+  }
+
 }
 
 export const storage = new DatabaseStorage();

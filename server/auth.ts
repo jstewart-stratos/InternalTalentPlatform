@@ -226,3 +226,27 @@ export const requireAdmin = (req: Request, res: Response, next: NextFunction) =>
   }
   next();
 };
+
+export const requireTeamManager = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+  
+  if (req.user?.role !== "team-manager" && req.user?.role !== "admin") {
+    return res.status(403).json({ error: "Team manager access required" });
+  }
+  
+  next();
+};
+
+export const requireTeamManagerOrAdmin = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+  
+  if (!["admin", "team-manager"].includes(req.user?.role || "")) {
+    return res.status(403).json({ error: "Team manager or admin access required" });
+  }
+  
+  next();
+};

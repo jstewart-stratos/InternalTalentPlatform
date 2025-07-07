@@ -7,7 +7,7 @@ import { getProjectRecommendationsForEmployee, getEmployeeRecommendationsForProj
 import OpenAI from "openai";
 import { getProjectRecommendationsForEmployee as getSkillBasedProjectRecs, getEmployeeRecommendationsForProject as getSkillBasedEmployeeRecs } from "./skill-matching";
 import { seedEmployeeSkills, getSkillLevelSummary } from "./seed-employee-skills";
-import { setupCustomAuth, requireAuth, requireAdmin, hashPassword } from "./auth";
+import { setupCustomAuth, requireAuth, requireAdmin, requireTeamManager, requireTeamManagerOrAdmin, hashPassword } from "./auth";
 import { securityHeaders, sanitizeInput, rateLimit, validateRequest } from "./middleware/security";
 import { cacheMiddleware, clearCache } from "./middleware/cache";
 import { z } from "zod";
@@ -3161,6 +3161,114 @@ Respond with JSON in this exact format:
     } catch (error) {
       console.error("Error fetching team services:", error);
       res.status(500).json({ error: "Failed to fetch team services" });
+    }
+  });
+
+  // Team management endpoints for team managers
+  app.get("/api/team-manager/my-teams", requireTeamManagerOrAdmin, async (req, res) => {
+    try {
+      const teams = await storage.getUserTeams(req.user.id.toString());
+      res.json(teams);
+    } catch (error) {
+      console.error("Error fetching user teams:", error);
+      res.status(500).json({ error: "Failed to fetch teams" });
+    }
+  });
+
+  app.get("/api/team-manager/team/:teamId/members", requireTeamManagerOrAdmin, async (req, res) => {
+    try {
+      const teamId = parseInt(req.params.teamId);
+      
+      // Check if user is manager of this team or admin
+      if (req.user.role !== "admin") {
+        const isManager = await storage.isTeamManager(req.user.id.toString(), teamId);
+        if (!isManager) {
+          return res.status(403).json({ error: "Not authorized to manage this team" });
+        }
+      }
+
+      const members = await storage.getTeamMembers(teamId);
+      res.json(members);
+    } catch (error) {
+      console.error("Error fetching team members:", error);
+      res.status(500).json({ error: "Failed to fetch team members" });
+    }
+  });
+
+  app.put("/api/team-manager/team/:teamId/member/:employeeId/role", requireTeamManagerOrAdmin, async (req, res) => {
+    try {
+      const teamId = parseInt(req.params.teamId);
+      const employeeId = parseInt(req.params.employeeId);
+      const { role } = req.body;
+
+      if (!["member", "leader"].includes(role)) {
+        return res.status(400).json({ error: "Invalid role. Must be 'member' or 'leader'" });
+      }
+
+      // Check if user is manager of this team or admin
+      if (req.user.role !== "admin") {
+        const isManager = await storage.isTeamManager(req.user.id.toString(), teamId);
+        if (!isManager) {
+          return res.status(403).json({ error: "Not authorized to manage this team" });
+        }
+      }
+
+      const success = await storage.updateTeamMemberRole(teamId, employeeId, role);
+      if (success) {
+        
+        // Log admin action
+        await storage.createAuditLog({
+          userId: req.user.id.toString(),
+          action: "UPDATE_TEAM_MEMBER_ROLE",
+          resource: `team:${teamId}:member:${employeeId}`,
+          details: { newRole: role },
+          ipAddress: req.ip,
+          userAgent: req.get("User-Agent") || "unknown"
+        });
+
+        res.json({ message: "Team member role updated successfully" });
+      } else {
+        res.status(500).json({ error: "Failed to update team member role" });
+      }
+    } catch (error) {
+      console.error("Error updating team member role:", error);
+      res.status(500).json({ error: "Failed to update team member role" });
+    }
+  });
+
+  app.delete("/api/team-manager/team/:teamId/member/:employeeId", requireTeamManagerOrAdmin, async (req, res) => {
+    try {
+      const teamId = parseInt(req.params.teamId);
+      const employeeId = parseInt(req.params.employeeId);
+
+      // Check if user is manager of this team or admin
+      if (req.user.role !== "admin") {
+        const isManager = await storage.isTeamManager(req.user.id.toString(), teamId);
+        if (!isManager) {
+          return res.status(403).json({ error: "Not authorized to manage this team" });
+        }
+      }
+
+      const success = await storage.removeTeamMember(teamId, employeeId);
+      if (success) {
+        
+        // Log admin action
+        await storage.createAuditLog({
+          userId: req.user.id.toString(),
+          action: "REMOVE_TEAM_MEMBER",
+          resource: `team:${teamId}:member:${employeeId}`,
+          details: {},
+          ipAddress: req.ip,
+          userAgent: req.get("User-Agent") || "unknown"
+        });
+
+        res.json({ message: "Team member removed successfully" });
+      } else {
+        res.status(500).json({ error: "Failed to remove team member" });
+      }
+    } catch (error) {
+      console.error("Error removing team member:", error);
+      res.status(500).json({ error: "Failed to remove team member" });
     }
   });
 
