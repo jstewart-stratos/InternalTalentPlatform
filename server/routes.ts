@@ -3370,11 +3370,38 @@ Respond with JSON in this exact format:
   });
 
   // Get team members (team managers)
-  app.get("/api/team-manager/teams/:teamId/members", authMiddleware, requireTeamManagerOrAdmin, async (req, res) => {
+  app.get("/api/team-manager/teams/:teamId/members", authMiddleware, async (req: any, res) => {
     try {
       const teamId = parseInt(req.params.teamId);
       console.log(`=== FETCHING TEAM MEMBERS FOR TEAM ${teamId} ===`);
       console.log(`Debug: User ${req.user.id}, Role: ${req.user.role}, Team: ${teamId}`);
+      
+      // Check if user is admin or team manager for this specific team
+      if (req.user.role !== 'admin') {
+        const employee = await storage.getEmployeeByUserId(req.user.id);
+        if (!employee) {
+          console.log(`Debug: No employee profile found for user ${req.user.id}`);
+          return res.status(403).json({ error: "Employee profile required" });
+        }
+        
+        // Use direct query like we do for my-teams
+        const directManagerCheck = await db
+          .select()
+          .from(teamMembers)
+          .where(and(
+            eq(teamMembers.teamId, teamId),
+            eq(teamMembers.employeeId, employee.id),
+            eq(teamMembers.role, 'manager'),
+            eq(teamMembers.isActive, true)
+          ));
+          
+        console.log(`Debug: Direct manager check for team ${teamId}, employee ${employee.id}:`, directManagerCheck);
+        
+        if (directManagerCheck.length === 0) {
+          console.log(`Debug: User ${req.user.id} is not a manager of team ${teamId}`);
+          return res.status(403).json({ error: "Team manager access required for this team" });
+        }
+      }
       
       const members = await storage.getTeamMembers(teamId);
       console.log(`Debug: Found ${members.length} members for team ${teamId}:`, members);
