@@ -1614,7 +1614,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Enhanced search filter - includes team skills and service skills
       if (search && typeof search === 'string') {
         const searchLower = search.toLowerCase();
-        
         const matchingEmployeeIds = await storage.searchEmployeesWithAllSkills(searchLower);
         employees = employees.filter(emp => matchingEmployeeIds.includes(emp.id));
       }
