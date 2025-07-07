@@ -901,6 +901,113 @@ export default function TeamManagement() {
           </Form>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Service Dialog */}
+      {editingService && (
+        <Dialog open={editServiceDialogOpen} onOpenChange={setEditServiceDialogOpen}>
+          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Edit Service</DialogTitle>
+              <DialogDescription>
+                Update service details for {editingService.title}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="editTitle">Service Title</Label>
+                <Input
+                  id="editTitle"
+                  defaultValue={editingService.title}
+                  placeholder="Service title"
+                />
+              </div>
+              <div>
+                <Label htmlFor="editDescription">Description</Label>
+                <Textarea
+                  id="editDescription"
+                  defaultValue={editingService.description}
+                  placeholder="Service description"
+                  rows={4}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="editPricingType">Pricing Type</Label>
+                  <Select defaultValue={editingService.pricingType}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="hourly">Hourly Rate</SelectItem>
+                      <SelectItem value="fixed">Fixed Price</SelectItem>
+                      <SelectItem value="consultation">Consultation</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {editingService.pricingType === "hourly" && (
+                  <div>
+                    <Label htmlFor="editHourlyRate">Hourly Rate ($)</Label>
+                    <Input
+                      id="editHourlyRate"
+                      type="number"
+                      defaultValue={editingService.hourlyRate ? (editingService.hourlyRate / 100).toString() : ""}
+                      placeholder="150"
+                    />
+                  </div>
+                )}
+                {editingService.pricingType === "fixed" && (
+                  <div>
+                    <Label htmlFor="editFixedPrice">Fixed Price ($)</Label>
+                    <Input
+                      id="editFixedPrice"
+                      type="number"
+                      defaultValue={editingService.fixedPrice ? (editingService.fixedPrice / 100).toString() : ""}
+                      placeholder="500"
+                    />
+                  </div>
+                )}
+                {editingService.pricingType === "consultation" && (
+                  <div>
+                    <Label htmlFor="editConsultationRate">Consultation Rate ($)</Label>
+                    <Input
+                      id="editConsultationRate"
+                      type="number"
+                      defaultValue={editingService.consultationRate ? (editingService.consultationRate / 100).toString() : ""}
+                      placeholder="200"
+                    />
+                  </div>
+                )}
+              </div>
+              <div className="flex justify-end gap-3 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setEditServiceDialogOpen(false);
+                    setEditingService(null);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => {
+                    // For now, just show a success message
+                    toast({
+                      title: "Success",
+                      description: "Service updates will be implemented in next iteration",
+                      className: "bg-green-50 border-green-200 text-green-800"
+                    });
+                    setEditServiceDialogOpen(false);
+                    setEditingService(null);
+                  }}
+                  className="bg-[rgb(248,153,59)] hover:bg-[rgb(228,133,39)] text-white"
+                >
+                  Save Changes
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
