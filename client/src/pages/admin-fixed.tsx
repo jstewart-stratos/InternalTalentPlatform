@@ -934,7 +934,7 @@ export default function Admin() {
                         {(allUsersForTeams as any[])
                           .filter(user => 
                             user.hasEmployeeProfile && 
-                            !selectedTeamMembers.includes(user.userId) &&
+                            !selectedTeamMembers.includes(user.id) &&
                             (user.name.toLowerCase().includes(memberSearchQuery.toLowerCase()) ||
                              user.email.toLowerCase().includes(memberSearchQuery.toLowerCase()))
                           )
@@ -944,7 +944,7 @@ export default function Admin() {
                               key={user.id} 
                               className="flex items-center justify-between p-2 hover:bg-muted/50 rounded cursor-pointer"
                               onClick={() => {
-                                setSelectedTeamMembers([...selectedTeamMembers, user.userId]);
+                                setSelectedTeamMembers([...selectedTeamMembers, user.id]);
                                 setMemberSearchQuery('');
                               }}
                             >
@@ -960,7 +960,7 @@ export default function Admin() {
                         {(allUsersForTeams as any[])
                           .filter(user => 
                             user.hasEmployeeProfile && 
-                            !selectedTeamMembers.includes(user.userId) &&
+                            !selectedTeamMembers.includes(user.id) &&
                             (user.name.toLowerCase().includes(memberSearchQuery.toLowerCase()) ||
                              user.email.toLowerCase().includes(memberSearchQuery.toLowerCase()))
                           ).length === 0 && (
@@ -984,7 +984,7 @@ export default function Admin() {
                 ) : (
                   <div className="border rounded-lg p-2 max-h-32 overflow-y-auto bg-background">
                     {selectedTeamMembers.map((userId) => {
-                      const user = (allUsersForTeams as any[]).find(u => u.userId === userId);
+                      const user = (allUsersForTeams as any[]).find(u => u.id === userId);
                       if (!user) return null;
                       return (
                         <div key={userId} className="flex items-center justify-between p-1 hover:bg-muted/25 rounded">
@@ -1362,7 +1362,7 @@ export default function Admin() {
                         {(allUsersForTeams as any[])
                           .filter(user => 
                             user.hasEmployeeProfile && 
-                            !editSelectedMembers.includes(user.userId) &&
+                            !editSelectedMembers.includes(user.id) &&
                             (user.name.toLowerCase().includes(memberSearchQuery.toLowerCase()) ||
                              user.email.toLowerCase().includes(memberSearchQuery.toLowerCase()))
                           )
@@ -1391,7 +1391,7 @@ export default function Admin() {
                         {(allUsersForTeams as any[])
                           .filter(user => 
                             user.hasEmployeeProfile && 
-                            !editSelectedMembers.includes(user.userId) &&
+                            !editSelectedMembers.includes(user.id) &&
                             (user.name.toLowerCase().includes(memberSearchQuery.toLowerCase()) ||
                              user.email.toLowerCase().includes(memberSearchQuery.toLowerCase()))
                           ).length === 0 && (
