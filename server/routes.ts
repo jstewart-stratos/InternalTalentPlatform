@@ -7,7 +7,7 @@ import { getProjectRecommendationsForEmployee, getEmployeeRecommendationsForProj
 import OpenAI from "openai";
 import { getProjectRecommendationsForEmployee as getSkillBasedProjectRecs, getEmployeeRecommendationsForProject as getSkillBasedEmployeeRecs } from "./skill-matching";
 import { seedEmployeeSkills, getSkillLevelSummary } from "./seed-employee-skills";
-import { setupCustomAuth, requireAuth, requireAdmin } from "./auth";
+import { setupCustomAuth, requireAuth, requireAdmin, hashPassword } from "./auth";
 import { securityHeaders, sanitizeInput, rateLimit, validateRequest } from "./middleware/security";
 import { cacheMiddleware, clearCache } from "./middleware/cache";
 import { z } from "zod";
@@ -1008,13 +1008,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Hash password using the same method as registration
-      const { scrypt, randomBytes } = require('crypto');
-      const { promisify } = require('util');
-      const scryptAsync = promisify(scrypt);
-      
-      const salt = randomBytes(16).toString('hex');
-      const buf = await scryptAsync(password, salt, 64);
-      const hashedPassword = `${buf.toString('hex')}.${salt}`;
+      const hashedPassword = await hashPassword(password);
 
       // Create user
       const user = await storage.createUser({
