@@ -2441,10 +2441,18 @@ Respond with JSON in this exact format:
   // Professional Services Management
   app.get("/api/professional-services", async (req, res) => {
     try {
-      const { search, categoryId, skills, providerId } = req.query;
+      const { search, categoryId, skills, providerId, teamId } = req.query;
       const parsedCategoryId = categoryId ? parseInt(categoryId as string) : undefined;
       const parsedSkills = skills ? (skills as string).split(',') : undefined;
       const parsedProviderId = providerId ? parseInt(providerId as string) : undefined;
+      const parsedTeamId = teamId ? parseInt(teamId as string) : undefined;
+      
+      // If teamId is specified, get services by team
+      if (parsedTeamId) {
+        const services = await storage.getProfessionalServicesByTeam(parsedTeamId);
+        res.json(services);
+        return;
+      }
       
       // If providerId is specified, get services by provider
       if (parsedProviderId) {

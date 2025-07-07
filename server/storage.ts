@@ -115,6 +115,7 @@ export interface IStorage {
   createProfessionalService(service: InsertProfessionalService): Promise<ProfessionalService>;
   getProfessionalService(id: number): Promise<ProfessionalService | undefined>;
   getProfessionalServicesByProvider(providerId: number): Promise<ProfessionalService[]>;
+  getProfessionalServicesByTeam(teamId: number): Promise<ProfessionalService[]>;
   getAllProfessionalServices(): Promise<ProfessionalService[]>;
   searchProfessionalServices(query?: string, categoryId?: number, skills?: string[]): Promise<ProfessionalService[]>;
   updateProfessionalService(id: number, service: Partial<InsertProfessionalService>): Promise<ProfessionalService | undefined>;
@@ -1053,6 +1054,17 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(professionalServices)
       .where(eq(professionalServices.providerId, providerId))
+      .orderBy(desc(professionalServices.createdAt));
+  }
+
+  async getProfessionalServicesByTeam(teamId: number): Promise<ProfessionalService[]> {
+    return await db
+      .select()
+      .from(professionalServices)
+      .where(and(
+        eq(professionalServices.teamId, teamId),
+        eq(professionalServices.isActive, true)
+      ))
       .orderBy(desc(professionalServices.createdAt));
   }
 

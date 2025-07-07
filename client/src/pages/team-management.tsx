@@ -7,9 +7,13 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useForm } from "react-hook-form";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Settings, Users, Plus, Edit, Trash2, UserCheck, UserX } from "lucide-react";
+import { Settings, Users, Plus, Edit, Trash2, UserCheck, UserX, Briefcase, DollarSign, Clock, Star } from "lucide-react";
 
 export default function TeamManagement() {
   console.log("=== TeamManagement page loaded ===");
@@ -20,6 +24,28 @@ export default function TeamManagement() {
   const [editTeamDescription, setEditTeamDescription] = useState("");
   const [editTeamExpertiseAreas, setEditTeamExpertiseAreas] = useState("");
   const [newExpertiseArea, setNewExpertiseArea] = useState("");
+
+  // Services state
+  const [createServiceDialogOpen, setCreateServiceDialogOpen] = useState(false);
+  const [editServiceDialogOpen, setEditServiceDialogOpen] = useState(false);
+  const [editingService, setEditingService] = useState<any>(null);
+
+  // Service form
+  const serviceForm = useForm({
+    defaultValues: {
+      title: "",
+      description: "",
+      shortDescription: "",
+      pricingType: "hourly",
+      hourlyRate: "",
+      fixedPrice: "",
+      consultationRate: "",
+      duration: "",
+      skills: "",
+      categoryId: "",
+      isActive: true
+    }
+  });
 
   // Fetch teams managed by current user  
   const { data: managedTeams, isLoading: teamsLoading, refetch: refetchTeams } = useQuery({
@@ -61,6 +87,22 @@ export default function TeamManagement() {
   if (selectedTeam) {
     console.log(`=== Query enabled for team ${selectedTeam.id} ===`);
   }
+
+  // Fetch team services
+  const { data: teamServices, isLoading: servicesLoading } = useQuery({
+    queryKey: ["/api/professional-services", "team", selectedTeam?.id],
+    queryFn: async () => {
+      if (!selectedTeam) return [];
+      const response = await fetch(`/api/professional-services?teamId=${selectedTeam.id}`, {
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+      }
+      return response.json();
+    },
+    enabled: !!selectedTeam,
+  });
 
   // Update team mutation
   const updateTeamMutation = useMutation({
@@ -159,6 +201,73 @@ export default function TeamManagement() {
         visibility: selectedTeam.visibility || 'public'
       }
     });
+  };
+
+  // Service management functions
+  const handleEditService = (service: any) => {
+    setEditingService(service);
+    setEditServiceDialogOpen(true);
+  };
+
+  const handleDeleteService = async (service: any) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to delete the service "${service.title}"? This action cannot be undone.`
+    );
+    if (!confirmed) return;
+
+    try {
+      await apiRequest("DELETE", `/api/professional-services/${service.id}`);
+      queryClient.invalidateQueries({ queryKey: ["/api/professional-services", "team", selectedTeam?.id] });
+      toast({
+        title: "Success",
+        description: "Service deleted successfully",
+        className: "bg-green-50 border-green-200 text-green-800"
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete service",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const createServiceMutation = useMutation({
+    mutationFn: async (serviceData: any) => {
+      const response = await apiRequest("POST", "/api/professional-services", {
+        ...serviceData,
+        teamId: selectedTeam?.id,
+        providerId: null, // Team services don't have individual providers
+        hourlyRate: serviceData.hourlyRate ? Math.round(parseFloat(serviceData.hourlyRate) * 100) : null,
+        fixedPrice: serviceData.fixedPrice ? Math.round(parseFloat(serviceData.fixedPrice) * 100) : null,
+        consultationRate: serviceData.consultationRate ? Math.round(parseFloat(serviceData.consultationRate) * 100) : null,
+        duration: serviceData.duration ? parseInt(serviceData.duration) : null,
+        skills: serviceData.skills ? serviceData.skills.split(',').map((s: string) => s.trim()) : [],
+        categoryId: serviceData.categoryId ? parseInt(serviceData.categoryId) : null
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/professional-services", "team", selectedTeam?.id] });
+      setCreateServiceDialogOpen(false);
+      serviceForm.reset();
+      toast({
+        title: "Success",
+        description: "Service created successfully",
+        className: "bg-green-50 border-green-200 text-green-800"
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create service",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const handleCreateService = (data: any) => {
+    createServiceMutation.mutate(data);
   };
 
   const handleRoleToggle = async (member: any) => {
@@ -277,6 +386,7 @@ export default function TeamManagement() {
                 <TabsList>
                   <TabsTrigger value="overview">Overview</TabsTrigger>
                   <TabsTrigger value="members">Members</TabsTrigger>
+                  <TabsTrigger value="services">Services</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="overview">
@@ -377,6 +487,102 @@ export default function TeamManagement() {
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="services">
+                  <Card>
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <CardTitle>Team Services</CardTitle>
+                          <p className="text-muted-foreground">Manage professional services offered by this team</p>
+                        </div>
+                        <Button
+                          size="sm"
+                          onClick={() => setCreateServiceDialogOpen(true)}
+                          className="bg-[rgb(248,153,59)] hover:bg-[rgb(228,133,39)] text-white"
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Service
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      {!teamServices || teamServices.length === 0 ? (
+                        <div className="text-center py-8">
+                          <Briefcase className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                          <p className="text-muted-foreground">No services created yet</p>
+                          <p className="text-sm text-muted-foreground mt-1">Add your first team service to start offering professional services</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {teamServices.map((service: any) => (
+                            <div key={service.id} className="border rounded-lg p-4">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <h4 className="font-medium">{service.title}</h4>
+                                    <Badge 
+                                      variant={service.isActive ? "default" : "secondary"}
+                                      className={service.isActive ? "bg-green-100 text-green-800" : ""}
+                                    >
+                                      {service.isActive ? "Active" : "Inactive"}
+                                    </Badge>
+                                  </div>
+                                  <p className="text-sm text-muted-foreground mb-3">{service.shortDescription || service.description}</p>
+                                  <div className="flex items-center gap-4 text-sm">
+                                    <div className="flex items-center gap-1">
+                                      <DollarSign className="h-4 w-4" />
+                                      {service.pricingType === 'hourly' && service.hourlyRate && (
+                                        <span>${(service.hourlyRate / 100).toFixed(0)}/hr</span>
+                                      )}
+                                      {service.pricingType === 'fixed' && service.fixedPrice && (
+                                        <span>${(service.fixedPrice / 100).toFixed(0)} fixed</span>
+                                      )}
+                                      {service.pricingType === 'consultation' && service.consultationRate && (
+                                        <span>${(service.consultationRate / 100).toFixed(0)} consultation</span>
+                                      )}
+                                    </div>
+                                    {service.duration && (
+                                      <div className="flex items-center gap-1">
+                                        <Clock className="h-4 w-4" />
+                                        <span>{service.duration} min</span>
+                                      </div>
+                                    )}
+                                    {service.averageRating && (
+                                      <div className="flex items-center gap-1">
+                                        <Star className="h-4 w-4" />
+                                        <span>{service.averageRating.toFixed(1)} ({service.reviewCount || 0})</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2 ml-4">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleEditService(service)}
+                                    title="Edit service"
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleDeleteService(service)}
+                                    className="text-destructive hover:text-destructive"
+                                    title="Delete service"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
                               </div>
                             </div>
                           ))}
@@ -503,6 +709,206 @@ export default function TeamManagement() {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Service Dialog */}
+      <Dialog open={createServiceDialogOpen} onOpenChange={setCreateServiceDialogOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Create Team Service</DialogTitle>
+            <DialogDescription>
+              Add a new professional service offered by {selectedTeam?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...serviceForm}>
+            <form onSubmit={serviceForm.handleSubmit(handleCreateService)} className="space-y-4">
+              <FormField
+                control={serviceForm.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Service Title *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., Portfolio Analysis" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={serviceForm.control}
+                name="shortDescription"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Short Description *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Brief description for listings" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={serviceForm.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Full Description *</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Detailed description of your service"
+                        rows={4}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={serviceForm.control}
+                  name="pricingType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Pricing Type *</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select pricing type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="hourly">Hourly Rate</SelectItem>
+                          <SelectItem value="fixed">Fixed Price</SelectItem>
+                          <SelectItem value="consultation">Consultation</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {serviceForm.watch("pricingType") === "hourly" && (
+                  <FormField
+                    control={serviceForm.control}
+                    name="hourlyRate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Hourly Rate ($) *</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="150"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
+                {serviceForm.watch("pricingType") === "fixed" && (
+                  <FormField
+                    control={serviceForm.control}
+                    name="fixedPrice"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Fixed Price ($) *</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="500"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
+                {serviceForm.watch("pricingType") === "consultation" && (
+                  <FormField
+                    control={serviceForm.control}
+                    name="consultationRate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Consultation Rate ($) *</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="200"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={serviceForm.control}
+                  name="duration"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Duration (minutes)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="60"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={serviceForm.control}
+                  name="skills"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Required Skills</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="e.g., Financial Analysis, Risk Management"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setCreateServiceDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={createServiceMutation.isPending}
+                  className="bg-[rgb(248,153,59)] hover:bg-[rgb(228,133,39)] text-white"
+                >
+                  {createServiceMutation.isPending ? "Creating..." : "Create Service"}
+                </Button>
+              </div>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
     </div>
