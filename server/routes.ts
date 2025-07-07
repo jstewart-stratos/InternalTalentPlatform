@@ -3065,7 +3065,7 @@ Respond with JSON in this exact format:
   // Create new team (Admin only)
   app.post("/api/admin/teams", authMiddleware, requireAdminRole, async (req: any, res) => {
     try {
-      const { name, description, expertiseAreas = [], visibility = 'public' } = req.body;
+      const { name, description, expertiseAreas = [], visibility = 'public', members = [] } = req.body;
 
       // Validate required fields
       if (!name || !description) {
@@ -3080,13 +3080,31 @@ Respond with JSON in this exact format:
         createdBy: req.user.id.toString()
       });
 
+      // Add members to team if provided
+      if (members && Array.isArray(members) && members.length > 0) {
+        for (const employeeId of members) {
+          try {
+            await storage.addTeamMember({
+              teamId: team.id,
+              employeeId: employeeId,
+              role: "member",
+              approvedBy: null,
+              approvedAt: new Date()
+            });
+          } catch (memberError) {
+            console.error(`Error adding member ${employeeId} to team:`, memberError);
+            // Continue adding other members even if one fails
+          }
+        }
+      }
+
       // Log admin action
       await storage.logAdminAction({
         userId: req.user.id,
         action: "team_created",
         targetType: "team",
         targetId: team.id.toString(),
-        changes: { name, description, expertiseAreas, visibility },
+        changes: { name, description, expertiseAreas, visibility, memberCount: members.length },
         ipAddress: req.ip,
         userAgent: req.get('User-Agent')
       });

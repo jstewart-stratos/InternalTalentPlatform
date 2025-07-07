@@ -41,6 +41,7 @@ export default function Admin() {
   const [newTeamDescription, setNewTeamDescription] = useState("");
   const [newTeamExpertiseAreas, setNewTeamExpertiseAreas] = useState("");
   const [newTeamVisibility, setNewTeamVisibility] = useState("public");
+  const [selectedTeamMembers, setSelectedTeamMembers] = useState<number[]>([]);
 
   // Fetch admin data
   const { data: users = [], isLoading: usersLoading } = useQuery({
@@ -61,6 +62,10 @@ export default function Admin() {
 
   const { data: teams = [], isLoading: teamsLoading } = useQuery({
     queryKey: ['/api/admin/teams']
+  });
+
+  const { data: employees = [], isLoading: employeesLoading } = useQuery({
+    queryKey: ['/api/employees']
   });
 
   // Admin mutations
@@ -126,7 +131,7 @@ export default function Admin() {
   });
 
   const createTeamMutation = useMutation({
-    mutationFn: async (teamData: { name: string; description: string; expertiseAreas: string[]; visibility: string }) => {
+    mutationFn: async (teamData: { name: string; description: string; expertiseAreas: string[]; visibility: string; members?: number[] }) => {
       return await apiRequest('/api/admin/teams', 'POST', teamData);
     },
     onSuccess: () => {
@@ -135,6 +140,7 @@ export default function Admin() {
       setNewTeamDescription("");
       setNewTeamExpertiseAreas("");
       setNewTeamVisibility("public");
+      setSelectedTeamMembers([]);
       toast({ title: "Success", description: "Team created successfully" });
     },
     onError: (error) => {
@@ -542,6 +548,50 @@ export default function Admin() {
                   </div>
                 </div>
               </div>
+
+              {/* Team Members Selection */}
+              <div className="space-y-4">
+                <Label>Team Members (Optional)</Label>
+                <div className="border rounded-lg p-4 max-h-64 overflow-y-auto">
+                  {employeesLoading ? (
+                    <div className="text-center py-4 text-muted-foreground">Loading employees...</div>
+                  ) : employees.length === 0 ? (
+                    <div className="text-center py-4 text-muted-foreground">No employees available</div>
+                  ) : (
+                    <div className="space-y-2">
+                      {(employees as any[]).map((employee) => (
+                        <div key={employee.id} className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id={`member-${employee.id}`}
+                            checked={selectedTeamMembers.includes(employee.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedTeamMembers([...selectedTeamMembers, employee.id]);
+                              } else {
+                                setSelectedTeamMembers(selectedTeamMembers.filter(id => id !== employee.id));
+                              }
+                            }}
+                            className="rounded border-gray-300"
+                          />
+                          <label 
+                            htmlFor={`member-${employee.id}`}
+                            className="flex-1 text-sm cursor-pointer"
+                          >
+                            <div className="font-medium">{employee.name}</div>
+                            <div className="text-muted-foreground text-xs">{employee.title} • {employee.skills?.slice(0, 3).join(', ')}</div>
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {selectedTeamMembers.length > 0 && (
+                  <div className="text-sm text-muted-foreground">
+                    {selectedTeamMembers.length} member{selectedTeamMembers.length > 1 ? 's' : ''} selected
+                  </div>
+                )}
+              </div>
               <div className="flex justify-end">
                 <Button 
                   onClick={() => {
@@ -554,7 +604,8 @@ export default function Admin() {
                       name: newTeamName,
                       description: newTeamDescription,
                       expertiseAreas,
-                      visibility: newTeamVisibility
+                      visibility: newTeamVisibility,
+                      members: selectedTeamMembers
                     });
                   }}
                   disabled={createTeamMutation.isPending}
