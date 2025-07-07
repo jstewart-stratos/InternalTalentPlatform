@@ -3274,6 +3274,7 @@ Respond with JSON in this exact format:
             name: `${user.firstName} ${user.lastName}`,
             email: user.email,
             title: 'Team Member',
+            yearsExperience: 0,
             skills: []
           });
           actualEmployeeId = newEmployee.id;
@@ -3563,6 +3564,7 @@ Respond with JSON in this exact format:
             name: `${user.firstName} ${user.lastName}`,
             email: user.email,
             title: 'Team Member',
+            yearsExperience: 0,
             skills: []
           });
           actualEmployeeId = newEmployee.id;
