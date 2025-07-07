@@ -47,6 +47,7 @@ export default function Admin() {
   const [currentTeamMembers, setCurrentTeamMembers] = useState<any[]>([]);
   const [editSelectedMembers, setEditSelectedMembers] = useState<number[]>([]);
   const [editTeamDialogOpen, setEditTeamDialogOpen] = useState(false);
+  const [memberSearchQuery, setMemberSearchQuery] = useState("");
 
   // User editing state
   const [editingUser, setEditingUser] = useState<any>(null);
@@ -794,52 +795,108 @@ export default function Admin() {
               <div className="flex items-center justify-between">
                 <Label className="text-base font-semibold">Team Members (Optional)</Label>
                 <Badge variant="secondary">
-                  {selectedTeamMembers.length} selected
+                  {selectedTeamMembers.length} members
                 </Badge>
               </div>
               
-              <div className="border rounded-lg p-3 max-h-48 overflow-y-auto bg-background">
-                {allUsersLoading ? (
-                  <div className="text-center py-4 text-muted-foreground">Loading users...</div>
-                ) : allUsersForTeams.length === 0 ? (
-                  <div className="text-center py-4 text-muted-foreground">No users available</div>
-                ) : (
-                  <div className="space-y-2">
-                    {(allUsersForTeams as any[])
-                      .filter(user => user.hasEmployeeProfile)
-                      .map((user) => (
-                      <div key={user.id} className="flex items-center space-x-2 p-1 hover:bg-muted/50 rounded">
-                        <input
-                          type="checkbox"
-                          id={`member-${user.id}`}
-                          checked={selectedTeamMembers.includes(user.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedTeamMembers([...selectedTeamMembers, user.id]);
-                            } else {
-                              setSelectedTeamMembers(selectedTeamMembers.filter(id => id !== user.id));
-                            }
-                          }}
-                          className="rounded border-gray-300"
-                        />
-                        <label 
-                          htmlFor={`member-${user.id}`}
-                          className="flex-1 text-sm cursor-pointer flex items-center justify-between"
-                        >
-                          <div>
-                            <span className="font-medium">{user.name}</span>
-                            <span className="text-muted-foreground ml-2">({user.email})</span>
+              {/* Search and Add Members */}
+              <div className="space-y-3">
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <Input
+                      placeholder="Search users to add..."
+                      value={memberSearchQuery}
+                      onChange={(e) => setMemberSearchQuery(e.target.value)}
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+                
+                {/* Search Results */}
+                {memberSearchQuery && (
+                  <div className="border rounded-lg max-h-32 overflow-y-auto bg-background">
+                    {allUsersLoading ? (
+                      <div className="text-center py-2 text-muted-foreground text-sm">Loading...</div>
+                    ) : (
+                      <div className="p-1">
+                        {(allUsersForTeams as any[])
+                          .filter(user => 
+                            user.hasEmployeeProfile && 
+                            !selectedTeamMembers.includes(user.userId) &&
+                            (user.name.toLowerCase().includes(memberSearchQuery.toLowerCase()) ||
+                             user.email.toLowerCase().includes(memberSearchQuery.toLowerCase()))
+                          )
+                          .slice(0, 5)
+                          .map((user) => (
+                            <div 
+                              key={user.id} 
+                              className="flex items-center justify-between p-2 hover:bg-muted/50 rounded cursor-pointer"
+                              onClick={() => {
+                                setSelectedTeamMembers([...selectedTeamMembers, user.userId]);
+                                setMemberSearchQuery('');
+                              }}
+                            >
+                              <div>
+                                <span className="font-medium text-sm">{user.name}</span>
+                                <span className="text-muted-foreground ml-2 text-xs">({user.email})</span>
+                              </div>
+                              <Badge variant="outline" className="text-xs">
+                                {user.title || 'No Title'}
+                              </Badge>
+                            </div>
+                          ))}
+                        {(allUsersForTeams as any[])
+                          .filter(user => 
+                            user.hasEmployeeProfile && 
+                            !selectedTeamMembers.includes(user.userId) &&
+                            (user.name.toLowerCase().includes(memberSearchQuery.toLowerCase()) ||
+                             user.email.toLowerCase().includes(memberSearchQuery.toLowerCase()))
+                          ).length === 0 && (
+                          <div className="text-center py-2 text-muted-foreground text-sm">
+                            No users found
                           </div>
-                          <Badge variant="outline" className="text-xs">
-                            {user.title || 'No Title'}
-                          </Badge>
-                        </label>
+                        )}
                       </div>
-                    ))}
+                    )}
                   </div>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground">Only users with employee profiles can be added to teams</p>
+
+              {/* Current Members List */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Selected Members:</Label>
+                {selectedTeamMembers.length === 0 ? (
+                  <div className="text-center py-4 text-muted-foreground text-sm border rounded-lg">
+                    No members selected
+                  </div>
+                ) : (
+                  <div className="border rounded-lg p-2 max-h-32 overflow-y-auto bg-background">
+                    {selectedTeamMembers.map((userId) => {
+                      const user = (allUsersForTeams as any[]).find(u => u.userId === userId);
+                      if (!user) return null;
+                      return (
+                        <div key={userId} className="flex items-center justify-between p-1 hover:bg-muted/25 rounded">
+                          <div>
+                            <span className="font-medium text-sm">{user.name}</span>
+                            <span className="text-muted-foreground ml-2 text-xs">({user.email})</span>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              setSelectedTeamMembers(selectedTeamMembers.filter(id => id !== userId));
+                            }}
+                            className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                          >
+                            ×
+                          </Button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">Search and click to add members. Only users with employee profiles can be added to teams.</p>
             </div>
             
             <div className="flex justify-end space-x-2 pt-4">
@@ -851,6 +908,7 @@ export default function Admin() {
                   setNewTeamExpertiseAreas("");
                   setNewTeamVisibility("public");
                   setSelectedTeamMembers([]);
+                  setMemberSearchQuery("");
                   setCreateTeamDialogOpen(false);
                 }}
               >
@@ -1055,57 +1113,113 @@ export default function Admin() {
               />
             </div>
 
-            {/* Current Team Members Display */}
+            {/* Team Members Management */}
             <div className="space-y-3 border-t pt-4">
               <div className="flex items-center justify-between">
                 <Label className="text-base font-semibold">Team Members</Label>
                 <Badge variant="secondary">
-                  {editSelectedMembers.length} selected
+                  {editSelectedMembers.length} members
                 </Badge>
               </div>
               
-              <div className="border rounded-lg p-3 max-h-48 overflow-y-auto bg-background">
-                {allUsersLoading ? (
-                  <div className="text-center py-4 text-muted-foreground">Loading users...</div>
-                ) : allUsersForTeams.length === 0 ? (
-                  <div className="text-center py-4 text-muted-foreground">No users available</div>
-                ) : (
-                  <div className="space-y-2">
-                    {(allUsersForTeams as any[])
-                      .filter(user => user.hasEmployeeProfile)
-                      .map((user) => (
-                      <div key={user.id} className="flex items-center space-x-2 p-1 hover:bg-muted/50 rounded">
-                        <input
-                          type="checkbox"
-                          id={`edit-member-${user.id}`}
-                          checked={editSelectedMembers.includes(user.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setEditSelectedMembers([...editSelectedMembers, user.id]);
-                            } else {
-                              setEditSelectedMembers(editSelectedMembers.filter(id => id !== user.id));
-                            }
-                          }}
-                          className="rounded border-gray-300"
-                        />
-                        <label 
-                          htmlFor={`edit-member-${user.id}`}
-                          className="flex-1 text-sm cursor-pointer flex items-center justify-between"
-                        >
-                          <div>
-                            <span className="font-medium">{user.name}</span>
-                            <span className="text-muted-foreground ml-2">({user.email})</span>
+              {/* Search and Add Members */}
+              <div className="space-y-3">
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <Input
+                      placeholder="Search users to add..."
+                      value={memberSearchQuery}
+                      onChange={(e) => setMemberSearchQuery(e.target.value)}
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+                
+                {/* Search Results */}
+                {memberSearchQuery && (
+                  <div className="border rounded-lg max-h-32 overflow-y-auto bg-background">
+                    {allUsersLoading ? (
+                      <div className="text-center py-2 text-muted-foreground text-sm">Loading...</div>
+                    ) : (
+                      <div className="p-1">
+                        {(allUsersForTeams as any[])
+                          .filter(user => 
+                            user.hasEmployeeProfile && 
+                            !editSelectedMembers.includes(user.userId) &&
+                            (user.name.toLowerCase().includes(memberSearchQuery.toLowerCase()) ||
+                             user.email.toLowerCase().includes(memberSearchQuery.toLowerCase()))
+                          )
+                          .slice(0, 5)
+                          .map((user) => (
+                            <div 
+                              key={user.id} 
+                              className="flex items-center justify-between p-2 hover:bg-muted/50 rounded cursor-pointer"
+                              onClick={() => {
+                                setEditSelectedMembers([...editSelectedMembers, user.userId]);
+                                setMemberSearchQuery('');
+                              }}
+                            >
+                              <div>
+                                <span className="font-medium text-sm">{user.name}</span>
+                                <span className="text-muted-foreground ml-2 text-xs">({user.email})</span>
+                              </div>
+                              <Badge variant="outline" className="text-xs">
+                                {user.title || 'No Title'}
+                              </Badge>
+                            </div>
+                          ))}
+                        {(allUsersForTeams as any[])
+                          .filter(user => 
+                            user.hasEmployeeProfile && 
+                            !editSelectedMembers.includes(user.userId) &&
+                            (user.name.toLowerCase().includes(memberSearchQuery.toLowerCase()) ||
+                             user.email.toLowerCase().includes(memberSearchQuery.toLowerCase()))
+                          ).length === 0 && (
+                          <div className="text-center py-2 text-muted-foreground text-sm">
+                            No users found
                           </div>
-                          <Badge variant="outline" className="text-xs">
-                            {user.title || 'No Title'}
-                          </Badge>
-                        </label>
+                        )}
                       </div>
-                    ))}
+                    )}
                   </div>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground">Only users with employee profiles can be added to teams</p>
+
+              {/* Current Members List */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Current Members:</Label>
+                {editSelectedMembers.length === 0 ? (
+                  <div className="text-center py-4 text-muted-foreground text-sm border rounded-lg">
+                    No members selected
+                  </div>
+                ) : (
+                  <div className="border rounded-lg p-2 max-h-32 overflow-y-auto bg-background">
+                    {editSelectedMembers.map((userId) => {
+                      const user = (allUsersForTeams as any[]).find(u => u.userId === userId);
+                      if (!user) return null;
+                      return (
+                        <div key={userId} className="flex items-center justify-between p-1 hover:bg-muted/25 rounded">
+                          <div>
+                            <span className="font-medium text-sm">{user.name}</span>
+                            <span className="text-muted-foreground ml-2 text-xs">({user.email})</span>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              setEditSelectedMembers(editSelectedMembers.filter(id => id !== userId));
+                            }}
+                            className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                          >
+                            ×
+                          </Button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">Search and click to add members. Only users with employee profiles can be added to teams.</p>
             </div>
             
             <div className="flex justify-end space-x-2 pt-4">
@@ -1113,6 +1227,7 @@ export default function Admin() {
                 variant="outline"
                 onClick={() => {
                   setEditingTeam(null);
+                  setMemberSearchQuery("");
                   setEditTeamDialogOpen(false);
                 }}
               >
