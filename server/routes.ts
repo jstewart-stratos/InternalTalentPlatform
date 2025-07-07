@@ -3117,6 +3117,18 @@ Respond with JSON in this exact format:
     }
   });
 
+  // Get team members for editing
+  app.get("/api/admin/teams/:teamId/members", authMiddleware, requireAdminRole, async (req, res) => {
+    try {
+      const teamId = parseInt(req.params.teamId);
+      const members = await storage.getTeamMembers(teamId);
+      res.json(members);
+    } catch (error) {
+      console.error("Error fetching team members:", error);
+      res.status(500).json({ error: "Failed to fetch team members" });
+    }
+  });
+
   // Get all users for team member selection
   app.get("/api/admin/users-for-teams", authMiddleware, requireAdminRole, async (req, res) => {
     try {

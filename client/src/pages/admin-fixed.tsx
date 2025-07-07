@@ -413,14 +413,33 @@ export default function Admin() {
                             <Button 
                               size="sm" 
                               variant="outline"
-                              onClick={() => {
+                              onClick={async () => {
                                 setEditingTeam(team);
                                 setEditTeamName(team.name);
                                 setEditTeamDescription(team.description);
                                 setEditTeamExpertiseAreas(team.specialties?.join(', ') || '');
                                 setEditTeamVisibility(team.visibility || 'public');
-                                setCurrentTeamMembers([]);
-                                setEditSelectedMembers([]);
+                                
+                                // Fetch current team members
+                                try {
+                                  const response = await fetch(`/api/admin/teams/${team.id}/members`, {
+                                    credentials: "include"
+                                  });
+                                  if (response.ok) {
+                                    const members = await response.json();
+                                    const memberIds = members.map((member: any) => member.userId);
+                                    setEditSelectedMembers(memberIds);
+                                    setCurrentTeamMembers(members);
+                                  } else {
+                                    setEditSelectedMembers([]);
+                                    setCurrentTeamMembers([]);
+                                  }
+                                } catch (error) {
+                                  console.error("Error fetching team members:", error);
+                                  setEditSelectedMembers([]);
+                                  setCurrentTeamMembers([]);
+                                }
+                                
                                 setEditTeamDialogOpen(true);
                               }}
                             >
@@ -978,6 +997,149 @@ export default function Admin() {
                 className="bg-[rgb(248,153,59)] hover:bg-[rgb(228,133,39)] text-white"
               >
                 {updateUserMutation.isPending ? "Updating..." : "Update User"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Team Dialog */}
+      <Dialog open={editTeamDialogOpen} onOpenChange={setEditTeamDialogOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Team: {editingTeam?.name}</DialogTitle>
+            <DialogDescription>
+              Update team information and members
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="editTeamName">Team Name</Label>
+                <Input
+                  id="editTeamName"
+                  value={editTeamName}
+                  onChange={(e) => setEditTeamName(e.target.value)}
+                  placeholder="Enter team name"
+                />
+              </div>
+              <div>
+                <Label htmlFor="editTeamVisibility">Team Visibility</Label>
+                <Select value={editTeamVisibility} onValueChange={setEditTeamVisibility}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select visibility" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="public">Public</SelectItem>
+                    <SelectItem value="private">Private</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="editTeamDescription">Description</Label>
+              <Input
+                id="editTeamDescription"
+                value={editTeamDescription}
+                onChange={(e) => setEditTeamDescription(e.target.value)}
+                placeholder="Brief description of the team"
+              />
+            </div>
+            <div>
+              <Label htmlFor="editTeamExpertiseAreas">Expertise Areas (comma-separated)</Label>
+              <Input
+                id="editTeamExpertiseAreas"
+                value={editTeamExpertiseAreas}
+                onChange={(e) => setEditTeamExpertiseAreas(e.target.value)}
+                placeholder="Finance, Risk Management, Compliance"
+              />
+            </div>
+
+            {/* Current Team Members Display */}
+            <div className="space-y-3 border-t pt-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-base font-semibold">Team Members</Label>
+                <Badge variant="secondary">
+                  {editSelectedMembers.length} selected
+                </Badge>
+              </div>
+              
+              <div className="border rounded-lg p-3 max-h-48 overflow-y-auto bg-background">
+                {allUsersLoading ? (
+                  <div className="text-center py-4 text-muted-foreground">Loading users...</div>
+                ) : allUsersForTeams.length === 0 ? (
+                  <div className="text-center py-4 text-muted-foreground">No users available</div>
+                ) : (
+                  <div className="space-y-2">
+                    {(allUsersForTeams as any[])
+                      .filter(user => user.hasEmployeeProfile)
+                      .map((user) => (
+                      <div key={user.id} className="flex items-center space-x-2 p-1 hover:bg-muted/50 rounded">
+                        <input
+                          type="checkbox"
+                          id={`edit-member-${user.id}`}
+                          checked={editSelectedMembers.includes(user.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setEditSelectedMembers([...editSelectedMembers, user.id]);
+                            } else {
+                              setEditSelectedMembers(editSelectedMembers.filter(id => id !== user.id));
+                            }
+                          }}
+                          className="rounded border-gray-300"
+                        />
+                        <label 
+                          htmlFor={`edit-member-${user.id}`}
+                          className="flex-1 text-sm cursor-pointer flex items-center justify-between"
+                        >
+                          <div>
+                            <span className="font-medium">{user.name}</span>
+                            <span className="text-muted-foreground ml-2">({user.email})</span>
+                          </div>
+                          <Badge variant="outline" className="text-xs">
+                            {user.title || 'No Title'}
+                          </Badge>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">Only users with employee profiles can be added to teams</p>
+            </div>
+            
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button 
+                variant="outline"
+                onClick={() => {
+                  setEditingTeam(null);
+                  setEditTeamDialogOpen(false);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={() => {
+                  if (!editTeamName || !editTeamDescription) {
+                    toast({ title: "Error", description: "Please fill in required fields", variant: "destructive" });
+                    return;
+                  }
+                  const expertiseAreas = editTeamExpertiseAreas.split(',').map(area => area.trim()).filter(area => area);
+                  updateTeamMutation.mutate({
+                    teamId: editingTeam.id,
+                    teamData: {
+                      name: editTeamName,
+                      description: editTeamDescription,
+                      expertiseAreas,
+                      visibility: editTeamVisibility,
+                      members: editSelectedMembers
+                    }
+                  });
+                }}
+                disabled={updateTeamMutation.isPending}
+                className="bg-[rgb(248,153,59)] hover:bg-[rgb(228,133,39)] text-white"
+              >
+                {updateTeamMutation.isPending ? "Updating..." : "Update Team"}
               </Button>
             </div>
           </div>
