@@ -3382,7 +3382,7 @@ Respond with JSON in this exact format:
   app.put("/api/team-manager/teams/:teamId", authMiddleware, requireTeamManagerAccess, async (req: any, res) => {
     try {
       const teamId = parseInt(req.params.teamId);
-      const { name, description, expertiseAreas = [], visibility = 'public' } = req.body;
+      const { name, description, expertiseAreas = [], profileImage, visibility = 'public' } = req.body;
 
       if (!name || !description) {
         return res.status(400).json({ error: "Name and description are required" });
@@ -3392,6 +3392,7 @@ Respond with JSON in this exact format:
         name,
         description,
         expertiseAreas,
+        profileImage,
         visibility
       });
 

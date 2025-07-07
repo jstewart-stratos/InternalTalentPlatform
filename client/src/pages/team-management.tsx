@@ -14,6 +14,8 @@ import { useForm } from "react-hook-form";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Settings, Users, Plus, Edit, Trash2, UserCheck, UserX, Briefcase, DollarSign, Clock, Star } from "lucide-react";
+import ImageUpload from "@/components/image-upload";
+import ProfileAvatar from "@/components/profile-avatar";
 
 export default function TeamManagement() {
   console.log("=== TeamManagement page loaded ===");
@@ -23,6 +25,7 @@ export default function TeamManagement() {
   const [editTeamName, setEditTeamName] = useState("");
   const [editTeamDescription, setEditTeamDescription] = useState("");
   const [editTeamExpertiseAreas, setEditTeamExpertiseAreas] = useState("");
+  const [editTeamLogo, setEditTeamLogo] = useState("");
   const [newExpertiseArea, setNewExpertiseArea] = useState("");
 
   // Services state
@@ -172,6 +175,7 @@ export default function TeamManagement() {
     setEditTeamName(team.name);
     setEditTeamDescription(team.description);
     setEditTeamExpertiseAreas(team.expertiseAreas?.join(", ") || "");
+    setEditTeamLogo(team.profileImage || "");
     setEditTeamDialogOpen(true);
   };
 
@@ -188,6 +192,7 @@ export default function TeamManagement() {
         name: editTeamName,
         description: editTeamDescription,
         expertiseAreas,
+        profileImage: editTeamLogo,
         visibility: selectedTeam.visibility || 'public'
       }
     });
@@ -339,9 +344,16 @@ export default function TeamManagement() {
                     }}
                   >
                     <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="font-medium">{team.name}</h4>
-                        <p className="text-sm text-muted-foreground">{team.memberCount} members</p>
+                      <div className="flex items-center gap-3 flex-1">
+                        <ProfileAvatar
+                          src={team.profileImage}
+                          name={team.name}
+                          size="md"
+                        />
+                        <div>
+                          <h4 className="font-medium">{team.name}</h4>
+                          <p className="text-sm text-muted-foreground">{team.memberCount} members</p>
+                        </div>
                       </div>
                       <Button
                         size="sm"
@@ -383,9 +395,16 @@ export default function TeamManagement() {
                   <Card>
                     <CardHeader>
                       <div className="flex items-center justify-between">
-                        <div>
-                          <CardTitle>{selectedTeam.name}</CardTitle>
-                          <p className="text-muted-foreground mt-1">{selectedTeam.description}</p>
+                        <div className="flex items-center gap-4">
+                          <ProfileAvatar
+                            src={selectedTeam.profileImage}
+                            name={selectedTeam.name}
+                            size="lg"
+                          />
+                          <div>
+                            <CardTitle>{selectedTeam.name}</CardTitle>
+                            <p className="text-muted-foreground mt-1">{selectedTeam.description}</p>
+                          </div>
                         </div>
                         <Button
                           size="sm"
@@ -615,6 +634,15 @@ export default function TeamManagement() {
                 placeholder="Enter team description"
                 className="min-h-[80px] w-full px-3 py-2 text-sm border border-input bg-background rounded-md"
                 rows={3}
+              />
+            </div>
+            <div>
+              <Label>Team Logo</Label>
+              <ImageUpload
+                value={editTeamLogo}
+                onChange={setEditTeamLogo}
+                name={editTeamName || "Team"}
+                className="mt-2"
               />
             </div>
             <div>
