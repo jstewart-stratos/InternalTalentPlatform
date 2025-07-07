@@ -922,11 +922,19 @@ export default function TeamManagement() {
                 />
               </div>
               <div>
-                <Label htmlFor="editDescription">Description</Label>
+                <Label htmlFor="editShortDescription">Short Description</Label>
+                <Input
+                  id="editShortDescription"
+                  defaultValue={editingService.shortDescription}
+                  placeholder="Brief description for listings"
+                />
+              </div>
+              <div>
+                <Label htmlFor="editDescription">Full Description</Label>
                 <Textarea
                   id="editDescription"
                   defaultValue={editingService.description}
-                  placeholder="Service description"
+                  placeholder="Detailed service description"
                   rows={4}
                 />
               </div>
@@ -978,6 +986,28 @@ export default function TeamManagement() {
                   </div>
                 )}
               </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="editDuration">Duration (minutes)</Label>
+                  <Input
+                    id="editDuration"
+                    type="number"
+                    defaultValue={editingService.duration ? editingService.duration.toString() : ""}
+                    placeholder="60"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="editSkills">Required Skills</Label>
+                  <Input
+                    id="editSkills"
+                    defaultValue={Array.isArray(editingService.skills) ? editingService.skills.join(', ') : editingService.skills || ""}
+                    placeholder="e.g., Financial Analysis, Risk Management"
+                  />
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Separate multiple skills with commas
+              </p>
               <div className="flex justify-end gap-3 pt-4">
                 <Button
                   variant="outline"

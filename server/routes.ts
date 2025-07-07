@@ -2988,6 +2988,22 @@ Respond with JSON in this exact format:
     }
   });
 
+  // Get team members (public endpoint)
+  app.get("/api/teams/:id/members", async (req, res) => {
+    try {
+      const teamId = parseInt(req.params.id);
+      if (isNaN(teamId)) {
+        return res.status(400).json({ error: "Invalid team ID" });
+      }
+      
+      const members = await storage.getTeamMembers(teamId);
+      res.json(members);
+    } catch (error) {
+      console.error("Error fetching team members:", error);
+      res.status(500).json({ error: "Failed to fetch team members" });
+    }
+  });
+
   // Create team (Admin only)
   app.post("/api/teams", authMiddleware, async (req: any, res) => {
     try {
