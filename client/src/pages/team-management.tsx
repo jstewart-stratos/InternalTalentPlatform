@@ -21,14 +21,9 @@ export default function TeamManagement() {
   const [editTeamExpertiseAreas, setEditTeamExpertiseAreas] = useState("");
   const [newExpertiseArea, setNewExpertiseArea] = useState("");
 
-  // Fetch teams managed by current user
-  console.log("=== About to fetch managed teams from /api/team-manager/my-teams ===");
+  // Fetch teams managed by current user  
   const { data: managedTeams, isLoading: teamsLoading, refetch: refetchTeams } = useQuery({
-    queryKey: ["/api/team-manager/my-teams", Date.now()], // Add timestamp to force fresh queries
-    staleTime: 0, // Always fetch fresh data
-    cacheTime: 0, // Don't cache results
-    refetchOnMount: true,
-    refetchOnWindowFocus: true,
+    queryKey: ["/api/team-manager/my-teams"],
   });
 
   // Fetch team members for selected team

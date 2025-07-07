@@ -3294,7 +3294,8 @@ Respond with JSON in this exact format:
           const isManager = await storage.isTeamManager(team.id, employee.id);
           console.log(`Debug: Team ${team.id} (${team.name}) - isManagerDirect: ${isManagerDirect}, isManagerStorage: ${isManager}, userRole: ${req.user.role}`);
           
-          if (isManager || isManagerDirect || req.user.role === 'admin') {
+          // Use the working direct query result for now
+          if (isManagerDirect || req.user.role === 'admin') {
             const members = await storage.getTeamMembers(team.id);
             console.log(`Debug: Adding team ${team.id} to managed teams (${members.length} members)`);
             managedTeams.push({
