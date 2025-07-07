@@ -88,17 +88,23 @@ export default function TeamManagement() {
   // Update member role mutation
   const updateMemberRoleMutation = useMutation({
     mutationFn: async ({ teamId, employeeId, role }: any) => {
+      console.log(`=== Updating member role: Team ${teamId}, Employee ${employeeId}, Role ${role} ===`);
       const response = await apiRequest("PUT", `/api/team-manager/teams/${teamId}/members/${employeeId}/role`, { role });
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data: any, variables: any) => {
+      console.log(`=== Role update successful ===`, data);
+      const action = variables.role === 'manager' ? 'promoted to Team Manager' : 'demoted to Member';
       toast({
         title: "Success",
-        description: "Member role updated successfully",
+        description: `Team member ${action} successfully`,
+        className: "bg-green-50 border-green-200 text-green-800"
       });
       queryClient.invalidateQueries({ queryKey: ["/api/team-manager/teams", selectedTeam?.id, "members"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/team-manager/my-teams"] });
     },
     onError: (error: Error) => {
+      console.error(`=== Role update failed ===`, error);
       toast({
         title: "Error",
         description: error.message || "Failed to update member role",
@@ -155,10 +161,21 @@ export default function TeamManagement() {
     });
   };
 
-  const handleRoleToggle = (member: any) => {
+  const handleRoleToggle = async (member: any) => {
     const newRole = member.role === 'manager' ? 'member' : 'manager';
+    
+    if (updateMemberRoleMutation.isPending) return;
+    
+    // Confirm promotion to manager
+    if (newRole === 'manager') {
+      const confirmed = window.confirm(
+        `Are you sure you want to promote ${member.employeeName} to Team Manager? They will have full management access to this team.`
+      );
+      if (!confirmed) return;
+    }
+    
     updateMemberRoleMutation.mutate({
-      teamId: selectedTeam.id,
+      teamId: selectedTeam?.id,
       employeeId: member.employeeId,
       role: newRole
     });
@@ -345,7 +362,8 @@ export default function TeamManagement() {
                                   variant="outline"
                                   onClick={() => handleRoleToggle(member)}
                                   disabled={updateMemberRoleMutation.isPending}
-                                  title={member.role === 'manager' ? 'Demote to Member' : 'Promote to Manager'}
+                                  title={member.role === 'manager' ? 'Demote to Member' : 'Promote to Team Manager'}
+                                  className={member.role === 'member' ? 'text-[rgb(248,153,59)] hover:text-[rgb(228,133,39)] border-[rgb(248,153,59)] hover:border-[rgb(228,133,39)]' : ''}
                                 >
                                   {member.role === 'manager' ? <UserX className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
                                 </Button>

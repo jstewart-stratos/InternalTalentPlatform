@@ -3433,25 +3433,78 @@ Respond with JSON in this exact format:
   });
 
   // Update team member role (team managers)
-  app.put("/api/team-manager/teams/:teamId/members/:employeeId/role", authMiddleware, requireTeamManagerAccess, async (req: any, res) => {
+  app.put("/api/team-manager/teams/:teamId/members/:employeeId/role", authMiddleware, async (req: any, res) => {
     try {
       const teamId = parseInt(req.params.teamId);
       const employeeId = parseInt(req.params.employeeId);
       const { role } = req.body;
+      
+      console.log(`=== UPDATING TEAM MEMBER ROLE ===`);
+      console.log(`Team: ${teamId}, Employee: ${employeeId}, New Role: ${role}`);
       
       // Validate role
       if (!['member', 'manager'].includes(role)) {
         return res.status(400).json({ error: "Invalid role. Must be 'member' or 'manager'" });
       }
 
-      // Update team member role
-      const updated = await storage.updateTeamMemberRole(teamId, employeeId, role);
-      
-      if (!updated) {
-        return res.status(404).json({ error: "Team member not found" });
+      // Check if user is admin or team manager for this specific team (same check as members API)
+      if (req.user.role !== 'admin') {
+        const employee = await storage.getEmployeeByUserId(req.user.id);
+        if (!employee) {
+          console.log(`Debug: No employee profile found for user ${req.user.id}`);
+          return res.status(403).json({ error: "Employee profile required" });
+        }
+        
+        // Use direct query like we do for my-teams
+        const directManagerCheck = await db
+          .select()
+          .from(teamMembers)
+          .where(and(
+            eq(teamMembers.teamId, teamId),
+            eq(teamMembers.employeeId, employee.id),
+            eq(teamMembers.role, 'manager'),
+            eq(teamMembers.isActive, true)
+          ));
+          
+        if (directManagerCheck.length === 0) {
+          console.log(`Debug: User ${req.user.id} is not a manager of team ${teamId}`);
+          return res.status(403).json({ error: "Team manager access required for this team" });
+        }
       }
 
-      res.json({ message: "Team member role updated successfully", role });
+      // Update team member role using direct query
+      const updateResult = await db
+        .update(teamMembers)
+        .set({ role })
+        .where(and(
+          eq(teamMembers.teamId, teamId),
+          eq(teamMembers.employeeId, employeeId),
+          eq(teamMembers.isActive, true)
+        ))
+        .returning();
+        
+      console.log(`Debug: Role update result:`, updateResult);
+      
+      if (updateResult.length === 0) {
+        return res.status(404).json({ error: "Team member not found or update failed" });
+      }
+
+      // If promoting to manager, also update user role if they're currently just 'user'
+      if (role === 'manager') {
+        const user = await storage.getUserById(updateResult[0].employeeId);
+        if (user && user.role === 'user') {
+          await db
+            .update(users)
+            .set({ role: 'team-manager' })
+            .where(eq(users.id, user.id));
+          console.log(`Debug: Updated user ${user.id} role to team-manager`);
+        }
+      }
+
+      res.json({ 
+        message: `Team member role updated to ${role}`, 
+        member: updateResult[0] 
+      });
     } catch (error) {
       console.error("Error updating team member role:", error);
       res.status(500).json({ error: "Failed to update team member role" });
