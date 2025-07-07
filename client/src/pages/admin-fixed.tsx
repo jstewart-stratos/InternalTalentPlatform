@@ -46,7 +46,6 @@ export default function Admin() {
   const [editTeamExpertiseAreas, setEditTeamExpertiseAreas] = useState("");
   const [newExpertiseArea, setNewExpertiseArea] = useState("");
   const [editTeamVisibility, setEditTeamVisibility] = useState("public");
-  const [currentTeamMembers, setCurrentTeamMembers] = useState<any[]>([]);
   const [editSelectedMembers, setEditSelectedMembers] = useState<number[]>([]);
   const [editTeamDialogOpen, setEditTeamDialogOpen] = useState(false);
   const [memberSearchQuery, setMemberSearchQuery] = useState("");
@@ -78,6 +77,12 @@ export default function Admin() {
 
   const { data: serviceCategories = [] } = useQuery({
     queryKey: ['/api/service-categories']
+  });
+
+  // Current team members query for editing
+  const { data: currentTeamMembers = [], isLoading: currentMembersLoading } = useQuery({
+    queryKey: [`/api/admin/teams/${editingTeam?.id}/members`],
+    enabled: !!editingTeam?.id
   });
 
   // User mutations
@@ -137,6 +142,36 @@ export default function Admin() {
     },
     onError: (error: any) => {
       toast({ title: "Error", description: error.message || "Failed to create team", variant: "destructive" });
+    }
+  });
+
+  const addTeamMemberMutation = useMutation({
+    mutationFn: async ({ teamId, employeeId, role = 'member' }: { teamId: number, employeeId: number, role?: string }) => {
+      const response = await apiRequest(`/api/admin/teams/${teamId}/members`, 'POST', { employeeId, role });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/teams'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/teams/${editingTeam?.id}/members`] });
+      toast({ title: "Success", description: "Team member added successfully" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message || "Failed to add team member", variant: "destructive" });
+    }
+  });
+
+  const removeTeamMemberMutation = useMutation({
+    mutationFn: async ({ teamId, employeeId }: { teamId: number, employeeId: number }) => {
+      const response = await apiRequest(`/api/admin/teams/${teamId}/members/${employeeId}`, 'DELETE');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/teams'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/teams/${editingTeam?.id}/members`] });
+      toast({ title: "Success", description: "Team member removed successfully" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message || "Failed to remove team member", variant: "destructive" });
     }
   });
 
@@ -1340,7 +1375,10 @@ export default function Admin() {
                               key={user.id} 
                               className="flex items-center justify-between p-2 hover:bg-muted/50 rounded cursor-pointer"
                               onClick={() => {
-                                setEditSelectedMembers([...editSelectedMembers, user.userId]);
+                                addTeamMemberMutation.mutate({
+                                  teamId: editingTeam.id,
+                                  employeeId: user.id
+                                });
                                 setMemberSearchQuery('');
                               }}
                             >
@@ -1402,19 +1440,12 @@ export default function Admin() {
                               onClick={async () => {
                                 const newRole = member.role === 'manager' ? 'member' : 'manager';
                                 try {
-                                  const response = await fetch(`/api/admin/teams/${editingTeam.id}/members/${member.employeeId}/role`, {
-                                    method: 'PUT',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ role: newRole })
-                                  });
+                                  const response = await apiRequest(`/api/admin/teams/${editingTeam.id}/members/${member.employeeId}/role`, 'PUT', { role: newRole });
                                   
                                   if (response.ok) {
-                                    // Update local state
-                                    setCurrentTeamMembers(currentTeamMembers.map(m => 
-                                      m.employeeId === member.employeeId 
-                                        ? { ...m, role: newRole }
-                                        : m
-                                    ));
+                                    // Invalidate queries to refetch data
+                                    queryClient.invalidateQueries({ queryKey: [`/api/admin/teams/${editingTeam.id}/members`] });
+                                    queryClient.invalidateQueries({ queryKey: ['/api/admin/teams'] });
                                     toast({
                                       title: "Success",
                                       description: `${member.employeeName} is now a ${newRole === 'manager' ? 'team manager' : 'team member'}`,
@@ -1444,9 +1475,14 @@ export default function Admin() {
                               size="sm"
                               variant="ghost"
                               onClick={() => {
-                                setEditSelectedMembers(editSelectedMembers.filter(id => id !== member.employeeId));
-                                setCurrentTeamMembers(currentTeamMembers.filter(m => m.employeeId !== member.employeeId));
+                                if (confirm(`Are you sure you want to remove ${member.employeeName} from the team?`)) {
+                                  removeTeamMemberMutation.mutate({
+                                    teamId: editingTeam.id,
+                                    employeeId: member.employeeId
+                                  });
+                                }
                               }}
+                              disabled={removeTeamMemberMutation.isPending}
                               className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
                               title="Remove from team"
                             >

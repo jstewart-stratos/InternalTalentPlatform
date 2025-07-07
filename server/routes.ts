@@ -3230,6 +3230,70 @@ Respond with JSON in this exact format:
     }
   });
 
+  // Get team members (Admin version)
+  app.get("/api/admin/teams/:teamId/members", authMiddleware, requireAdminRole, async (req: any, res) => {
+    try {
+      const teamId = parseInt(req.params.teamId);
+
+      console.log(`=== ADMIN: Getting team members ===`);
+      console.log(`Team: ${teamId}`);
+
+      const members = await storage.getTeamMembers(teamId);
+      res.json(members);
+    } catch (error) {
+      console.error("Error fetching team members:", error);
+      res.status(500).json({ error: "Failed to fetch team members" });
+    }
+  });
+
+  // Add team member (Admin version)
+  app.post("/api/admin/teams/:teamId/members", authMiddleware, requireAdminRole, async (req: any, res) => {
+    try {
+      const teamId = parseInt(req.params.teamId);
+      const { employeeId, role = 'member' } = req.body;
+
+      console.log(`=== ADMIN: Adding team member ===`);
+      console.log(`Team: ${teamId}, Employee: ${employeeId}, Role: ${role}`);
+
+      if (!employeeId) {
+        return res.status(400).json({ error: "Employee ID is required" });
+      }
+
+      const success = await storage.addTeamMember(teamId, employeeId, role);
+      
+      if (!success) {
+        return res.status(400).json({ error: "Failed to add team member. Member may already exist in team." });
+      }
+
+      res.json({ message: "Team member added successfully" });
+    } catch (error) {
+      console.error("Error adding team member:", error);
+      res.status(500).json({ error: "Failed to add team member" });
+    }
+  });
+
+  // Remove team member (Admin version)
+  app.delete("/api/admin/teams/:teamId/members/:employeeId", authMiddleware, requireAdminRole, async (req: any, res) => {
+    try {
+      const teamId = parseInt(req.params.teamId);
+      const employeeId = parseInt(req.params.employeeId);
+
+      console.log(`=== ADMIN: Removing team member ===`);
+      console.log(`Team: ${teamId}, Employee: ${employeeId}`);
+
+      const success = await storage.removeTeamMember(teamId, employeeId);
+      
+      if (!success) {
+        return res.status(404).json({ error: "Team member not found" });
+      }
+
+      res.json({ message: "Team member removed successfully" });
+    } catch (error) {
+      console.error("Error removing team member:", error);
+      res.status(500).json({ error: "Failed to remove team member" });
+    }
+  });
+
   // Update team member role (Admin version)
   app.put("/api/admin/teams/:teamId/members/:employeeId/role", authMiddleware, requireAdminRole, async (req: any, res) => {
     try {
