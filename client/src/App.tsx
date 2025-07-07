@@ -12,7 +12,7 @@ import Home from "@/pages/home";
 import Profile from "@/pages/profile";
 import CreateProfile from "@/pages/create-profile";
 import Analytics from "@/pages/analytics";
-import Admin from "@/pages/admin";
+import Admin from "@/pages/admin-fixed";
 import Skills from "@/pages/skills";
 import Projects from "@/pages/projects";
 import MyProjects from "@/pages/my-projects";

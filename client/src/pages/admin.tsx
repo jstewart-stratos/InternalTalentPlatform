@@ -63,6 +63,8 @@ export default function Admin() {
   const [editUserPassword, setEditUserPassword] = useState("");
   const [resetPassword, setResetPassword] = useState(false);
   const [editUserDialogOpen, setEditUserDialogOpen] = useState(false);
+  const [createUserDialogOpen, setCreateUserDialogOpen] = useState(false);
+  const [createTeamDialogOpen, setCreateTeamDialogOpen] = useState(false);
 
   // Fetch admin data
   const { data: users = [], isLoading: usersLoading } = useQuery({
@@ -277,31 +279,14 @@ export default function Admin() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid grid-cols-6 w-full">
+        <TabsList className="grid grid-cols-4 w-full">
           <TabsTrigger value="users" className="flex items-center space-x-2">
             <Users className="h-4 w-4" />
-            <span>Users</span>
+            <span>Users & Teams</span>
           </TabsTrigger>
-          <TabsTrigger value="create-user" className="flex items-center space-x-2">
-            <Plus className="h-4 w-4" />
-            <span>Add User</span>
-          </TabsTrigger>
-          <TabsTrigger value="teams" className="flex items-center space-x-2">
-            <Users className="h-4 w-4" />
-            <span>Teams</span>
-          </TabsTrigger>
-          <TabsTrigger value="create-team" className="flex items-center space-x-2">
-            <Plus className="h-4 w-4" />
-            <span>Add Team</span>
-          </TabsTrigger>
-
           <TabsTrigger value="service-categories" className="flex items-center space-x-2">
             <Settings className="h-4 w-4" />
             <span>Service Categories</span>
-          </TabsTrigger>
-          <TabsTrigger value="settings" className="flex items-center space-x-2">
-            <Settings className="h-4 w-4" />
-            <span>Settings</span>
           </TabsTrigger>
           <TabsTrigger value="audit" className="flex items-center space-x-2">
             <Shield className="h-4 w-4" />
@@ -323,7 +308,17 @@ export default function Admin() {
                   Manage user accounts, roles, and permissions
                 </CardDescription>
               </div>
-              <Button onClick={() => setActiveTab('create-user')} className="ml-auto">
+              <Button 
+                onClick={() => {
+                  setNewUserEmail("");
+                  setNewUserFirstName("");
+                  setNewUserLastName("");
+                  setNewUserPassword("");
+                  setNewUserRole("user");
+                  setCreateUserDialogOpen(true);
+                }}
+                className="ml-auto bg-[rgb(248,153,59)] hover:bg-[rgb(228,133,39)] text-white"
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Add User
               </Button>
@@ -419,17 +414,102 @@ export default function Admin() {
               )}
             </CardContent>
           </Card>
+
+          {/* Teams Section */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <div className="space-y-1">
+                <CardTitle>Team Management</CardTitle>
+                <CardDescription>
+                  Manage teams and their members
+                </CardDescription>
+              </div>
+              <Button 
+                onClick={() => {
+                  setNewTeamName("");
+                  setNewTeamDescription("");
+                  setNewTeamExpertiseAreas("");
+                  setNewTeamVisibility("public");
+                  setSelectedTeamMembers([]);
+                  setCreateTeamDialogOpen(true);
+                }}
+                className="ml-auto bg-[rgb(248,153,59)] hover:bg-[rgb(228,133,39)] text-white"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Team
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {teamsLoading ? (
+                <div className="text-center py-8">Loading teams...</div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Team Name</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead>Members</TableHead>
+                      <TableHead>Visibility</TableHead>
+                      <TableHead>Created</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {teams.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center text-gray-500 py-8">
+                          No teams found. Create a team to get started.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      teams.map((team: any) => (
+                        <TableRow key={team.id}>
+                          <TableCell className="font-medium">{team.name}</TableCell>
+                          <TableCell>{team.description || '-'}</TableCell>
+                          <TableCell>
+                            <Badge variant="secondary">{team.memberCount || 0} members</Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={team.visibility === 'public' ? 'default' : 'secondary'}>
+                              {team.visibility}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center space-x-1 text-sm text-gray-500">
+                              <Clock className="h-3 w-4" />
+                              <span>
+                                {new Date(team.createdAt).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => {
+                                setEditingTeam(team);
+                                setEditTeamName(team.name);
+                                setEditTeamDescription(team.description);
+                                setEditTeamExpertiseAreas(team.specialties?.join(', ') || '');
+                                setEditTeamVisibility(team.visibility || 'public');
+                                setCurrentTeamMembers([]);
+                                setEditSelectedMembers([]);
+                                setEditTeamDialogOpen(true);
+                              }}
+                            >
+                              Edit
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
-        {/* Create User Tab */}
-        <TabsContent value="create-user" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Add New User</CardTitle>
-              <CardDescription>
-                Create a new user account with email and password authentication
-              </CardDescription>
-            </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
@@ -1392,6 +1472,252 @@ export default function Admin() {
               >
                 <Save className="h-4 w-4 mr-2" />
                 {updateTeamMutation.isPending ? "Updating..." : "Update Team"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create User Dialog */}
+      <Dialog open={createUserDialogOpen} onOpenChange={setCreateUserDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Add New User</DialogTitle>
+            <DialogDescription>
+              Create a new user account with email and password authentication
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="newUserFirstName">First Name</Label>
+                <Input
+                  id="newUserFirstName"
+                  value={newUserFirstName}
+                  onChange={(e) => setNewUserFirstName(e.target.value)}
+                  placeholder="First name"
+                />
+              </div>
+              <div>
+                <Label htmlFor="newUserLastName">Last Name</Label>
+                <Input
+                  id="newUserLastName"
+                  value={newUserLastName}
+                  onChange={(e) => setNewUserLastName(e.target.value)}
+                  placeholder="Last name"
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="newUserEmail">Email Address</Label>
+              <Input
+                id="newUserEmail"
+                type="email"
+                value={newUserEmail}
+                onChange={(e) => setNewUserEmail(e.target.value)}
+                placeholder="user@company.com"
+              />
+            </div>
+            <div>
+              <Label htmlFor="newUserPassword">Password</Label>
+              <Input
+                id="newUserPassword"
+                type="password"
+                value={newUserPassword}
+                onChange={(e) => setNewUserPassword(e.target.value)}
+                placeholder="Minimum 8 characters"
+              />
+            </div>
+            <div>
+              <Label htmlFor="newUserRole">Role</Label>
+              <Select value={newUserRole} onValueChange={setNewUserRole}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="user">User</SelectItem>
+                  <SelectItem value="team-manager">Team Manager</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button 
+                variant="outline"
+                onClick={() => {
+                  setNewUserEmail("");
+                  setNewUserFirstName("");
+                  setNewUserLastName("");
+                  setNewUserPassword("");
+                  setNewUserRole("user");
+                  setCreateUserDialogOpen(false);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={() => {
+                  if (!newUserEmail || !newUserPassword || !newUserFirstName || !newUserLastName) {
+                    toast({ title: "Error", description: "Please fill in all required fields", variant: "destructive" });
+                    return;
+                  }
+                  createUserMutation.mutate({
+                    email: newUserEmail,
+                    password: newUserPassword,
+                    firstName: newUserFirstName,
+                    lastName: newUserLastName,
+                    role: newUserRole
+                  });
+                }}
+                disabled={createUserMutation.isPending}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                {createUserMutation.isPending ? "Creating..." : "Create User"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Team Dialog */}
+      <Dialog open={createTeamDialogOpen} onOpenChange={setCreateTeamDialogOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add New Team</DialogTitle>
+            <DialogDescription>
+              Create a new team with members and expertise areas
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="newTeamName">Team Name</Label>
+                <Input
+                  id="newTeamName"
+                  value={newTeamName}
+                  onChange={(e) => setNewTeamName(e.target.value)}
+                  placeholder="Enter team name"
+                />
+              </div>
+              <div>
+                <Label htmlFor="newTeamVisibility">Team Visibility</Label>
+                <Select value={newTeamVisibility} onValueChange={setNewTeamVisibility}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select visibility" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="public">Public</SelectItem>
+                    <SelectItem value="private">Private</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="newTeamDescription">Description</Label>
+              <Input
+                id="newTeamDescription"
+                value={newTeamDescription}
+                onChange={(e) => setNewTeamDescription(e.target.value)}
+                placeholder="Brief description of the team"
+              />
+            </div>
+            <div>
+              <Label htmlFor="newTeamExpertiseAreas">Expertise Areas (comma-separated)</Label>
+              <Input
+                id="newTeamExpertiseAreas"
+                value={newTeamExpertiseAreas}
+                onChange={(e) => setNewTeamExpertiseAreas(e.target.value)}
+                placeholder="Finance, Risk Management, Compliance"
+              />
+            </div>
+
+            {/* Team Member Selection */}
+            <div className="space-y-3 border-t pt-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-base font-semibold">Team Members (Optional)</Label>
+                <Badge variant="secondary">
+                  {selectedTeamMembers.length} selected
+                </Badge>
+              </div>
+              
+              <div className="border rounded-lg p-3 max-h-48 overflow-y-auto bg-background">
+                {allUsersLoading ? (
+                  <div className="text-center py-4 text-muted-foreground">Loading users...</div>
+                ) : allUsersForTeams.length === 0 ? (
+                  <div className="text-center py-4 text-muted-foreground">No users available</div>
+                ) : (
+                  <div className="space-y-2">
+                    {(allUsersForTeams as any[])
+                      .filter(user => user.hasEmployeeProfile)
+                      .map((user) => (
+                      <div key={user.id} className="flex items-center space-x-2 p-1 hover:bg-muted/50 rounded">
+                        <input
+                          type="checkbox"
+                          id={`member-${user.id}`}
+                          checked={selectedTeamMembers.includes(user.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedTeamMembers([...selectedTeamMembers, user.id]);
+                            } else {
+                              setSelectedTeamMembers(selectedTeamMembers.filter(id => id !== user.id));
+                            }
+                          }}
+                          className="rounded border-gray-300"
+                        />
+                        <label 
+                          htmlFor={`member-${user.id}`}
+                          className="flex-1 text-sm cursor-pointer flex items-center justify-between"
+                        >
+                          <div>
+                            <span className="font-medium">{user.name}</span>
+                            <span className="text-muted-foreground ml-2">({user.email})</span>
+                          </div>
+                          <Badge variant="outline" className="text-xs">
+                            {user.title || 'No Title'}
+                          </Badge>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">Only users with employee profiles can be added to teams</p>
+            </div>
+            
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button 
+                variant="outline"
+                onClick={() => {
+                  setNewTeamName("");
+                  setNewTeamDescription("");
+                  setNewTeamExpertiseAreas("");
+                  setNewTeamVisibility("public");
+                  setSelectedTeamMembers([]);
+                  setCreateTeamDialogOpen(false);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={() => {
+                  if (!newTeamName || !newTeamDescription) {
+                    toast({ title: "Error", description: "Please fill in required fields", variant: "destructive" });
+                    return;
+                  }
+                  const expertiseAreas = newTeamExpertiseAreas.split(',').map(area => area.trim()).filter(area => area);
+                  createTeamMutation.mutate({
+                    name: newTeamName,
+                    description: newTeamDescription,
+                    expertiseAreas,
+                    visibility: newTeamVisibility,
+                    members: selectedTeamMembers
+                  });
+                }}
+                disabled={createTeamMutation.isPending}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                {createTeamMutation.isPending ? "Creating..." : "Create Team"}
               </Button>
             </div>
           </div>
