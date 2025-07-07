@@ -3259,9 +3259,32 @@ Respond with JSON in this exact format:
         return res.status(400).json({ error: "Employee ID is required" });
       }
 
+      // Check if this is a user ID or employee ID
+      let actualEmployeeId = employeeId;
+      
+      // First, check if this employeeId exists in the employees table
+      const existingEmployee = await storage.getEmployee(employeeId);
+      if (!existingEmployee) {
+        // This might be a user ID, check if user exists and create employee profile
+        const user = await storage.getUser(employeeId);
+        if (user) {
+          console.log(`Creating employee profile for user: ${user.email}`);
+          const newEmployee = await storage.createEmployee({
+            userId: user.id,
+            name: `${user.firstName} ${user.lastName}`,
+            email: user.email,
+            title: 'Team Member',
+            skills: []
+          });
+          actualEmployeeId = newEmployee.id;
+        } else {
+          return res.status(400).json({ error: "User not found" });
+        }
+      }
+
       const member = await storage.addTeamMember({
         teamId,
-        employeeId,
+        employeeId: actualEmployeeId,
         role
       });
       
@@ -3525,9 +3548,32 @@ Respond with JSON in this exact format:
       const teamId = parseInt(req.params.teamId);
       const { employeeId, role = 'member' } = req.body;
 
+      // Check if this is a user ID or employee ID
+      let actualEmployeeId = employeeId;
+      
+      // First, check if this employeeId exists in the employees table
+      const existingEmployee = await storage.getEmployee(employeeId);
+      if (!existingEmployee) {
+        // This might be a user ID, check if user exists and create employee profile
+        const user = await storage.getUser(employeeId);
+        if (user) {
+          console.log(`Creating employee profile for user: ${user.email}`);
+          const newEmployee = await storage.createEmployee({
+            userId: user.id,
+            name: `${user.firstName} ${user.lastName}`,
+            email: user.email,
+            title: 'Team Member',
+            skills: []
+          });
+          actualEmployeeId = newEmployee.id;
+        } else {
+          return res.status(400).json({ error: "User not found" });
+        }
+      }
+
       const member = await storage.addTeamMember({
         teamId,
-        employeeId,
+        employeeId: actualEmployeeId,
         role
       });
       
