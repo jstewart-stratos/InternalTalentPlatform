@@ -3155,6 +3155,48 @@ Respond with JSON in this exact format:
     }
   });
 
+  // Admin: Create employee profile for any user
+  app.post("/api/admin/employees", authMiddleware, requireAdminRole, async (req, res) => {
+    try {
+      const { userId, ...employeeData } = req.body;
+      
+      if (!userId) {
+        return res.status(400).json({ error: "userId is required" });
+      }
+
+      // Check if user exists
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Check if employee profile already exists
+      const existingEmployee = await storage.getEmployeeByUserId(userId);
+      if (existingEmployee) {
+        return res.status(400).json({ error: "Employee profile already exists for this user" });
+      }
+
+      // Create employee profile with provided data
+      const newEmployeeData = {
+        ...employeeData,
+        userId: userId,
+        name: employeeData.name || `${user.firstName} ${user.lastName}`,
+        email: employeeData.email || user.email
+      };
+
+      const employee = await storage.createEmployee(newEmployeeData);
+      
+      if (!employee) {
+        return res.status(500).json({ error: "Failed to create employee profile" });
+      }
+
+      res.json(employee);
+    } catch (error) {
+      console.error("Error creating employee profile:", error);
+      res.status(500).json({ error: "Failed to create employee profile" });
+    }
+  });
+
   // Get all users for team member selection
   app.get("/api/admin/all-users-for-teams", authMiddleware, requireAdminRole, async (req, res) => {
     try {
