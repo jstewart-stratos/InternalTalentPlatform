@@ -3130,15 +3130,21 @@ Respond with JSON in this exact format:
           }
         }
         
-        // Add new members
+        // Add new members - but only if they have employee profiles
         for (const memberId of members) {
           if (!currentMemberIds.includes(memberId)) {
-            await storage.addTeamMember({
-              teamId,
-              employeeId: memberId,
-              role: 'member',
-              isActive: true
-            });
+            // Check if this ID corresponds to an employee
+            const employee = await storage.getEmployee(memberId);
+            if (employee) {
+              await storage.addTeamMember({
+                teamId,
+                employeeId: memberId,
+                role: 'member',
+                isActive: true
+              });
+            } else {
+              console.warn(`Skipping user ID ${memberId} - no employee profile found`);
+            }
           }
         }
       }

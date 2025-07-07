@@ -616,6 +616,7 @@ export default function Admin() {
               {/* Team Members Selection */}
               <div className="space-y-4">
                 <Label>Team Members (Optional)</Label>
+                <p className="text-xs text-muted-foreground">Only users with employee profiles can be added to teams</p>
                 <div className="border rounded-lg p-4 max-h-64 overflow-y-auto">
                   {allUsersLoading ? (
                     <div className="text-center py-4 text-muted-foreground">Loading users...</div>
@@ -623,7 +624,7 @@ export default function Admin() {
                     <div className="text-center py-4 text-muted-foreground">No users available</div>
                   ) : (
                     <div className="space-y-2">
-                      {(allUsersForTeams as any[]).map((user) => (
+                      {(allUsersForTeams as any[]).filter(user => user.hasEmployeeProfile).map((user) => (
                         <div key={user.id} className="flex items-center space-x-2">
                           <input
                             type="checkbox"
@@ -789,6 +790,7 @@ export default function Admin() {
                   {/* Add New Members */}
                   <div className="space-y-2">
                     <Label className="text-sm font-medium text-muted-foreground">Add New Members</Label>
+                    <p className="text-xs text-muted-foreground">Only users with employee profiles can be added to teams</p>
                     <div className="border rounded-lg p-3 max-h-48 overflow-y-auto bg-background">
                       {allUsersLoading ? (
                         <div className="text-center py-4 text-muted-foreground">Loading users...</div>
@@ -797,7 +799,7 @@ export default function Admin() {
                       ) : (
                         <div className="space-y-2">
                           {(allUsersForTeams as any[])
-                            .filter(user => !editSelectedMembers.includes(user.id))
+                            .filter(user => user.hasEmployeeProfile && !editSelectedMembers.includes(user.id))
                             .map((user) => (
                             <div key={user.id} className="flex items-center space-x-2 p-1 hover:bg-muted/50 rounded">
                               <input
