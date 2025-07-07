@@ -3,14 +3,16 @@ import { db } from "./db";
 import { eq, or, and, ilike, sql, desc } from "drizzle-orm";
 
 export interface IStorage {
-  // User authentication methods (required for Replit Auth)
-  getUser(id: string): Promise<User | undefined>;
-  upsertUser(user: UpsertUser): Promise<User>;
+  // User authentication methods (for custom auth)
+  getUser(id: number): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  createUser(user: Omit<User, 'id' | 'createdAt' | 'updatedAt' | 'lastLoginAt'>): Promise<User>;
+  updateUserLastLogin(id: number): Promise<void>;
 
   // Employee methods
   getEmployee(id: number): Promise<Employee | undefined>;
   getEmployeeByEmail(email: string): Promise<Employee | undefined>;
-  getEmployeeByUserId(userId: string): Promise<Employee | undefined>;
+  getEmployeeByUserId(userId: number): Promise<Employee | undefined>;
   createEmployee(employee: InsertEmployee): Promise<Employee>;
   updateEmployee(id: number, employee: Partial<InsertEmployee>): Promise<Employee | undefined>;
   deleteEmployee(id: number): Promise<boolean>;
@@ -188,12 +190,40 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
-  // User authentication methods (required for Replit Auth)
-  async getUser(id: string): Promise<User | undefined> {
+  // User authentication methods (for custom auth)
+  async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user || undefined;
   }
 
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user || undefined;
+  }
+
+  async createUser(userData: Omit<User, 'id' | 'createdAt' | 'updatedAt' | 'lastLoginAt'>): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values({
+        ...userData,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
+    return user;
+  }
+
+  async updateUserLastLogin(id: number): Promise<void> {
+    await db
+      .update(users)
+      .set({ 
+        lastLoginAt: new Date(),
+        updatedAt: new Date() 
+      })
+      .where(eq(users.id, id));
+  }
+
+  // Legacy upsert method for compatibility
   async upsertUser(userData: UpsertUser): Promise<User> {
     const [user] = await db
       .insert(users)
@@ -219,7 +249,7 @@ export class DatabaseStorage implements IStorage {
     return employee || undefined;
   }
 
-  async getEmployeeByUserId(userId: string): Promise<Employee | undefined> {
+  async getEmployeeByUserId(userId: number): Promise<Employee | undefined> {
     const [employee] = await db.select().from(employees).where(eq(employees.userId, userId));
     return employee || undefined;
   }

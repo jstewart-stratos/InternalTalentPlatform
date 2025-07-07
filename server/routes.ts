@@ -7,7 +7,7 @@ import { getProjectRecommendationsForEmployee, getEmployeeRecommendationsForProj
 import OpenAI from "openai";
 import { getProjectRecommendationsForEmployee as getSkillBasedProjectRecs, getEmployeeRecommendationsForProject as getSkillBasedEmployeeRecs } from "./skill-matching";
 import { seedEmployeeSkills, getSkillLevelSummary } from "./seed-employee-skills";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupCustomAuth, requireAuth, requireAdmin } from "./auth";
 import { securityHeaders, sanitizeInput, rateLimit, validateRequest } from "./middleware/security";
 import { cacheMiddleware, clearCache } from "./middleware/cache";
 import { z } from "zod";
@@ -18,10 +18,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(sanitizeInput);
   
   // Auth middleware setup
-  await setupAuth(app);
+  setupCustomAuth(app);
   
-  // Use production authentication middleware
-  const authMiddleware = isAuthenticated;
+  // Use custom authentication middleware
+  const authMiddleware = requireAuth;
 
   // Initialize OpenAI
   const openai = new OpenAI({
@@ -47,37 +47,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Auth routes
-  app.get('/api/auth/user', authMiddleware, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      
-      if (!user) {
-        return res.status(404).json({ error: "User not found" });
-      }
-      
-      // Update last login
-      await storage.updateUserLastLogin(userId);
-      
-      // Check if user has an employee profile
-      const employeeProfile = await storage.getEmployeeByEmail(user.email || '');
-      
-      res.json({
-        ...user,
-        hasEmployeeProfile: !!employeeProfile,
-        employeeProfile
-      });
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
-    }
-  });
+  // Auth routes are handled in auth.ts module
 
   // Get current user's employee profile
   app.get('/api/employees/current', authMiddleware, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       if (!user) {
         return res.status(404).json({ error: "User not found" });
@@ -145,11 +120,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Add userId from authenticated user
       const employeeData = {
         ...employeeBody,
-        userId: req.user.claims.sub
+        userId: req.user.id
       };
       
       // Check if employee already exists for this user
-      const existingEmployee = await storage.getEmployeeByUserId(req.user.claims.sub);
+      const existingEmployee = await storage.getEmployeeByUserId(req.user.id);
       
       let employee;
       if (existingEmployee) {
@@ -214,7 +189,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/employees/:id", isAuthenticated, async (req: any, res) => {
+  app.put("/api/employees/:id", requireAuth, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
       const validatedData = insertEmployeeSchema.parse(req.body);
@@ -222,7 +197,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Add userId from authenticated user
       const employeeData = {
         ...validatedData,
-        userId: req.user.claims.sub
+        userId: req.user.id
       };
       
       const employee = await storage.updateEmployee(id, employeeData);
@@ -323,7 +298,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/employees/:id/skills", isAuthenticated, async (req: any, res) => {
+  app.post("/api/employees/:id/skills", requireAuth, async (req: any, res) => {
     try {
       const employeeId = parseInt(req.params.id);
       const userId = req.user?.claims?.sub;
@@ -384,7 +359,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/employees/:id/skills/:skillId", isAuthenticated, async (req: any, res) => {
+  app.put("/api/employees/:id/skills/:skillId", requireAuth, async (req: any, res) => {
     try {
       const employeeId = parseInt(req.params.id);
       const skillId = parseInt(req.params.skillId);
@@ -414,7 +389,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/employees/:id/skills/:skillId", isAuthenticated, async (req: any, res) => {
+  app.delete("/api/employees/:id/skills/:skillId", requireAuth, async (req: any, res) => {
     try {
       const employeeId = parseInt(req.params.id);
       const skillId = parseInt(req.params.skillId);
@@ -889,7 +864,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Learning step completion routes
-  app.get("/api/learning-steps/completions/:recommendationId", isAuthenticated, async (req: any, res) => {
+  app.get("/api/learning-steps/completions/:recommendationId", requireAuth, async (req: any, res) => {
     try {
       const recommendationId = parseInt(req.params.recommendationId);
       const stepCompletions = await storage.getLearningStepCompletions(recommendationId);
@@ -900,7 +875,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/learning-steps/complete", isAuthenticated, async (req: any, res) => {
+  app.post("/api/learning-steps/complete", requireAuth, async (req: any, res) => {
     try {
       const { savedRecommendationId, stepIndex, stepTitle, notes, resourcesCompleted } = req.body;
       
@@ -929,7 +904,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/learning-steps/complete", isAuthenticated, async (req: any, res) => {
+  app.delete("/api/learning-steps/complete", requireAuth, async (req: any, res) => {
     try {
       const { savedRecommendationId, stepIndex } = req.body;
       
@@ -952,7 +927,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/learning-paths/advanced-material", isAuthenticated, async (req: any, res) => {
+  app.post("/api/learning-paths/advanced-material", requireAuth, async (req: any, res) => {
     try {
       const { skill, currentLevel = 'intermediate', targetLevel = 'advanced' } = req.body;
       
@@ -980,7 +955,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin middleware to check user role
   const requireAdminRole = async (req: any, res: any, next: any) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       if (!user || user.role !== 'admin') {
@@ -1032,7 +1007,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Log admin action
       await storage.logAdminAction({
-        userId: req.user.claims.sub,
+        userId: req.user.id,
         action: "user_role_updated",
         targetType: "user",
         targetId: userId,
@@ -1059,7 +1034,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Log admin action
       await storage.logAdminAction({
-        userId: req.user.claims.sub,
+        userId: req.user.id,
         action: "user_deactivated",
         targetType: "user",
         targetId: userId,
@@ -1085,7 +1060,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Log admin action
       await storage.logAdminAction({
-        userId: req.user.claims.sub,
+        userId: req.user.id,
         action: "user_activated",
         targetType: "user",
         targetId: userId,
@@ -1112,16 +1087,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/admin/settings/:key", isAuthenticated, requireAdminRole, async (req: any, res) => {
+  app.put("/api/admin/settings/:key", requireAuth, requireAdminRole, async (req: any, res) => {
     try {
       const { key } = req.params;
       const { value } = req.body;
       
-      const setting = await storage.updateSiteSetting(key, value, req.user.claims.sub);
+      const setting = await storage.updateSiteSetting(key, value, req.user.id);
 
       // Log admin action
       await storage.logAdminAction({
-        userId: req.user.claims.sub,
+        userId: req.user.id,
         action: "setting_updated",
         targetType: "setting",
         targetId: key,
@@ -1137,18 +1112,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/admin/settings", isAuthenticated, requireAdminRole, async (req: any, res) => {
+  app.post("/api/admin/settings", requireAuth, requireAdminRole, async (req: any, res) => {
     try {
       const settingData = insertSiteSettingSchema.parse({
         ...req.body,
-        updatedBy: req.user.claims.sub
+        updatedBy: req.user.id
       });
       
       const setting = await storage.createSiteSetting(settingData);
 
       // Log admin action
       await storage.logAdminAction({
-        userId: req.user.claims.sub,
+        userId: req.user.id,
         action: "setting_created",
         targetType: "setting",
         targetId: setting.key,
@@ -1180,7 +1155,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/admin/audit-logs/:userId", isAuthenticated, requireAdminRole, async (req, res) => {
+  app.get("/api/admin/audit-logs/:userId", requireAuth, requireAdminRole, async (req, res) => {
     try {
       const { userId } = req.params;
       const logs = await storage.getAuditLogsByUser(userId);
@@ -1192,7 +1167,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // User permissions routes
-  app.get("/api/admin/users/:userId/permissions", isAuthenticated, requireAdminRole, async (req, res) => {
+  app.get("/api/admin/users/:userId/permissions", requireAuth, requireAdminRole, async (req, res) => {
     try {
       const { userId } = req.params;
       const permissions = await storage.getUserPermissions(userId);
@@ -1203,7 +1178,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/admin/users/:userId/permissions", isAuthenticated, requireAdminRole, async (req: any, res) => {
+  app.post("/api/admin/users/:userId/permissions", requireAuth, requireAdminRole, async (req: any, res) => {
     try {
       const { userId } = req.params;
       const { permission } = req.body;
@@ -1211,12 +1186,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const newPermission = await storage.grantUserPermission({
         userId,
         permission,
-        grantedBy: req.user.claims.sub
+        grantedBy: req.user.id
       });
 
       // Log admin action
       await storage.logAdminAction({
-        userId: req.user.claims.sub,
+        userId: req.user.id,
         action: "permission_granted",
         targetType: "user",
         targetId: userId,
@@ -1232,7 +1207,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/admin/users/:userId/permissions/:permission", isAuthenticated, requireAdminRole, async (req: any, res) => {
+  app.delete("/api/admin/users/:userId/permissions/:permission", requireAuth, requireAdminRole, async (req: any, res) => {
     try {
       const { userId, permission } = req.params;
       
@@ -1243,7 +1218,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Log admin action
       await storage.logAdminAction({
-        userId: req.user.claims.sub,
+        userId: req.user.id,
         action: "permission_revoked",
         targetType: "user",
         targetId: userId,
@@ -1547,7 +1522,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/experts/request", isAuthenticated, async (req, res) => {
+  app.post("/api/experts/request", requireAuth, async (req, res) => {
     try {
       const userId = req.user?.claims?.sub;
       const requester = await storage.getEmployeeByUserId(userId);
@@ -1569,7 +1544,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/experts/requests", isAuthenticated, async (req, res) => {
+  app.get("/api/experts/requests", requireAuth, async (req, res) => {
     try {
       const userId = req.user?.claims?.sub;
       const employee = await storage.getEmployeeByUserId(userId);
@@ -1592,10 +1567,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   // Admin endpoint to populate individual skill experience levels
-  app.post("/api/admin/seed-skill-levels", isAuthenticated, async (req: any, res) => {
+  app.post("/api/admin/seed-skill-levels", requireAuth, async (req: any, res) => {
     try {
       // Check if user is admin
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(req.user.id);
       if (!user || user.role !== 'admin') {
         return res.status(403).json({ error: "Admin access required" });
       }
@@ -1725,10 +1700,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get skill level summary
-  app.get("/api/admin/skill-levels-summary", isAuthenticated, async (req: any, res) => {
+  app.get("/api/admin/skill-levels-summary", requireAuth, async (req: any, res) => {
     try {
       // Check if user is admin
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(req.user.id);
       if (!user || user.role !== 'admin') {
         return res.status(403).json({ error: "Admin access required" });
       }
@@ -2200,7 +2175,7 @@ Respond with JSON in this exact format:
 
   app.post("/api/admin/service-categories", authMiddleware, requireAdminRole, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const validatedData = insertServiceCategorySchema.parse(req.body);
       const category = await storage.createServiceCategory(validatedData);
       
@@ -2228,7 +2203,7 @@ Respond with JSON in this exact format:
 
   app.patch("/api/admin/service-categories/:id", authMiddleware, requireAdminRole, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
 
       const id = parseInt(req.params.id);
       const existingCategory = await storage.getServiceCategory(id);
@@ -2260,7 +2235,7 @@ Respond with JSON in this exact format:
 
   app.delete("/api/admin/service-categories/:id", authMiddleware, requireAdminRole, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
 
       const id = parseInt(req.params.id);
       const existingCategory = await storage.getServiceCategory(id);
@@ -2298,10 +2273,10 @@ Respond with JSON in this exact format:
     }
   });
 
-  app.post("/api/service-categories", isAuthenticated, async (req: any, res) => {
+  app.post("/api/service-categories", requireAuth, async (req: any, res) => {
     try {
       // Check if user is admin
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(req.user.id);
       if (!user || user.role !== 'admin') {
         return res.status(403).json({ error: "Admin access required" });
       }
@@ -2362,9 +2337,9 @@ Respond with JSON in this exact format:
     }
   });
 
-  app.post("/api/professional-services", isAuthenticated, async (req: any, res) => {
+  app.post("/api/professional-services", requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const employee = await storage.getEmployeeByUserId(userId);
       
       if (!employee) {
@@ -2388,10 +2363,10 @@ Respond with JSON in this exact format:
     }
   });
 
-  app.patch("/api/professional-services/:id", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/professional-services/:id", requireAuth, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const employee = await storage.getEmployeeByUserId(userId);
       
       if (!employee) {
@@ -2419,10 +2394,10 @@ Respond with JSON in this exact format:
     }
   });
 
-  app.delete("/api/professional-services/:id", isAuthenticated, async (req: any, res) => {
+  app.delete("/api/professional-services/:id", requireAuth, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const employee = await storage.getEmployeeByUserId(userId);
       
       if (!employee) {
@@ -2452,9 +2427,9 @@ Respond with JSON in this exact format:
   });
 
   // Get user's own services
-  app.get("/api/my-services", isAuthenticated, async (req: any, res) => {
+  app.get("/api/my-services", requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const employee = await storage.getEmployeeByUserId(userId);
       
       if (!employee) {
@@ -2470,9 +2445,9 @@ Respond with JSON in this exact format:
   });
 
   // Service Bookings Management
-  app.post("/api/service-bookings", isAuthenticated, async (req: any, res) => {
+  app.post("/api/service-bookings", requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const employee = await storage.getEmployeeByUserId(userId);
       
       if (!employee) {
@@ -2496,9 +2471,9 @@ Respond with JSON in this exact format:
     }
   });
 
-  app.get("/api/my-bookings", isAuthenticated, async (req: any, res) => {
+  app.get("/api/my-bookings", requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const employee = await storage.getEmployeeByUserId(userId);
       
       if (!employee) {
@@ -2531,10 +2506,10 @@ Respond with JSON in this exact format:
     }
   });
 
-  app.patch("/api/service-bookings/:id", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/service-bookings/:id", requireAuth, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const employee = await storage.getEmployeeByUserId(userId);
       
       if (!employee) {
@@ -2566,9 +2541,9 @@ Respond with JSON in this exact format:
   });
 
   // Service Reviews Management
-  app.post("/api/service-reviews", isAuthenticated, async (req: any, res) => {
+  app.post("/api/service-reviews", requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const employee = await storage.getEmployeeByUserId(userId);
       
       if (!employee) {
@@ -2604,9 +2579,9 @@ Respond with JSON in this exact format:
   });
 
   // Service Portfolios Management
-  app.post("/api/service-portfolios", isAuthenticated, async (req: any, res) => {
+  app.post("/api/service-portfolios", requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const employee = await storage.getEmployeeByUserId(userId);
       
       if (!employee) {
@@ -2641,9 +2616,9 @@ Respond with JSON in this exact format:
     }
   });
 
-  app.get("/api/my-portfolios", isAuthenticated, async (req: any, res) => {
+  app.get("/api/my-portfolios", requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const employee = await storage.getEmployeeByUserId(userId);
       
       if (!employee) {
@@ -2658,10 +2633,10 @@ Respond with JSON in this exact format:
     }
   });
 
-  app.patch("/api/service-portfolios/:id", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/service-portfolios/:id", requireAuth, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const employee = await storage.getEmployeeByUserId(userId);
       
       if (!employee) {
@@ -2683,7 +2658,7 @@ Respond with JSON in this exact format:
     }
   });
 
-  app.delete("/api/service-portfolios/:id", isAuthenticated, async (req: any, res) => {
+  app.delete("/api/service-portfolios/:id", requireAuth, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
       const success = await storage.deleteServicePortfolio(id);
@@ -2713,7 +2688,7 @@ Respond with JSON in this exact format:
 
   app.post("/api/admin/service-categories", authMiddleware, requireAdminRole, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
 
       const categoryData = req.body;
       const category = await storage.createServiceCategory(categoryData);
@@ -2724,9 +2699,9 @@ Respond with JSON in this exact format:
     }
   });
 
-  app.patch("/api/admin/service-categories/:id", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/admin/service-categories/:id", requireAuth, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(req.user.id);
       if (!user || user.role !== 'admin') {
         return res.status(403).json({ error: "Admin access required" });
       }
@@ -2746,9 +2721,9 @@ Respond with JSON in this exact format:
     }
   });
 
-  app.delete("/api/admin/service-categories/:id", isAuthenticated, async (req: any, res) => {
+  app.delete("/api/admin/service-categories/:id", requireAuth, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(req.user.id);
       if (!user || user.role !== 'admin') {
         return res.status(403).json({ error: "Admin access required" });
       }
@@ -2826,14 +2801,14 @@ Respond with JSON in this exact format:
   // Create team (Admin only)
   app.post("/api/teams", authMiddleware, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(req.user.id);
       if (!user || user.role !== 'admin') {
         return res.status(403).json({ error: "Admin access required" });
       }
 
       const validatedData = insertTeamSchema.parse({
         ...req.body,
-        createdBy: req.user.claims.sub
+        createdBy: req.user.id
       });
       
       const team = await storage.createTeam(validatedData);
@@ -2852,8 +2827,8 @@ Respond with JSON in this exact format:
   app.put("/api/teams/:id", authMiddleware, async (req: any, res) => {
     try {
       const teamId = parseInt(req.params.id);
-      const user = await storage.getUser(req.user.claims.sub);
-      const employee = await storage.getEmployeeByUserId(req.user.claims.sub);
+      const user = await storage.getUser(req.user.id);
+      const employee = await storage.getEmployeeByUserId(req.user.id);
       
       if (!employee) {
         return res.status(404).json({ error: "Employee profile not found" });
@@ -2893,7 +2868,7 @@ Respond with JSON in this exact format:
   app.post("/api/teams/:id/join", authMiddleware, async (req: any, res) => {
     try {
       const teamId = parseInt(req.params.id);
-      const employee = await storage.getEmployeeByUserId(req.user.claims.sub);
+      const employee = await storage.getEmployeeByUserId(req.user.id);
       
       if (!employee) {
         return res.status(404).json({ error: "Employee profile not found" });
@@ -2919,8 +2894,8 @@ Respond with JSON in this exact format:
     try {
       const teamId = parseInt(req.params.teamId);
       const employeeId = parseInt(req.params.employeeId);
-      const user = await storage.getUser(req.user.claims.sub);
-      const approver = await storage.getEmployeeByUserId(req.user.claims.sub);
+      const user = await storage.getUser(req.user.id);
+      const approver = await storage.getEmployeeByUserId(req.user.id);
       
       if (!approver) {
         return res.status(404).json({ error: "Employee profile not found" });
@@ -2957,8 +2932,8 @@ Respond with JSON in this exact format:
       const teamId = parseInt(req.params.teamId);
       const employeeId = parseInt(req.params.employeeId);
       const { role } = req.body;
-      const user = await storage.getUser(req.user.claims.sub);
-      const updater = await storage.getEmployeeByUserId(req.user.claims.sub);
+      const user = await storage.getUser(req.user.id);
+      const updater = await storage.getEmployeeByUserId(req.user.id);
       
       if (!updater) {
         return res.status(404).json({ error: "Employee profile not found" });
@@ -2994,8 +2969,8 @@ Respond with JSON in this exact format:
     try {
       const teamId = parseInt(req.params.teamId);
       const employeeId = parseInt(req.params.employeeId);
-      const user = await storage.getUser(req.user.claims.sub);
-      const remover = await storage.getEmployeeByUserId(req.user.claims.sub);
+      const user = await storage.getUser(req.user.id);
+      const remover = await storage.getEmployeeByUserId(req.user.id);
       
       if (!remover) {
         return res.status(404).json({ error: "Employee profile not found" });
@@ -3044,8 +3019,8 @@ Respond with JSON in this exact format:
   app.post("/api/teams/:id/service-categories", authMiddleware, async (req: any, res) => {
     try {
       const teamId = parseInt(req.params.id);
-      const user = await storage.getUser(req.user.claims.sub);
-      const employee = await storage.getEmployeeByUserId(req.user.claims.sub);
+      const user = await storage.getUser(req.user.id);
+      const employee = await storage.getEmployeeByUserId(req.user.id);
       
       if (!employee) {
         return res.status(404).json({ error: "Employee profile not found" });

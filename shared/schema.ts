@@ -15,13 +15,15 @@ export const sessions = pgTable(
 
 // User storage table for authentication
 export const users = pgTable("users", {
-  id: varchar("id").primaryKey().notNull(),
-  email: varchar("email").unique(),
+  id: serial("id").primaryKey(),
+  email: varchar("email").unique().notNull(),
+  password: varchar("password").notNull(),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
   role: varchar("role").notNull().default("user"), // admin, user
   isActive: boolean("is_active").notNull().default(true),
+  emailVerified: boolean("email_verified").notNull().default(false),
   lastLoginAt: timestamp("last_login_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -29,7 +31,7 @@ export const users = pgTable("users", {
 
 export const employees = pgTable("employees", {
   id: serial("id").primaryKey(),
-  userId: varchar("user_id").references(() => users.id),
+  userId: integer("user_id").references(() => users.id),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
   title: text("title").notNull(),
@@ -312,11 +314,7 @@ export const learningStepCompletions = pgTable("learning_step_completions", {
   index("learning_step_completions_recommendation_idx").on(table.savedRecommendationId),
 ]);
 
-// User authentication schemas
-export const insertUserSchema = createInsertSchema(users).omit({
-  createdAt: true,
-  updatedAt: true,
-});
+// User authentication schemas - removed duplicate
 
 export const insertSavedSkillRecommendationSchema = createInsertSchema(savedSkillRecommendations).omit({
   id: true,
@@ -602,3 +600,29 @@ export const devLogoutState = pgTable("dev_logout_state", {
 });
 
 export type DevLogoutState = typeof devLogoutState.$inferSelect;
+
+// User authentication schemas
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  lastLoginAt: true,
+});
+
+export const loginUserSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(1, "Password is required"),
+});
+
+export const registerUserSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+});
+
+// User types
+export type User = typeof users.$inferSelect;
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type LoginUser = z.infer<typeof loginUserSchema>;
+export type RegisterUser = z.infer<typeof registerUserSchema>;

@@ -7,6 +7,7 @@ import { UserProvider } from "@/contexts/user-context";
 import { useAuth } from "@/hooks/useAuth";
 import Navigation from "@/components/navigation";
 import Landing from "@/pages/landing";
+import AuthPage from "@/pages/auth";
 import Home from "@/pages/home";
 import Profile from "@/pages/profile";
 import CreateProfile from "@/pages/create-profile";
@@ -27,11 +28,11 @@ import NotFound from "@/pages/not-found";
 function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
 
-  // Show landing page for non-authenticated users
+  // Show auth page for non-authenticated users
   if (isLoading || !isAuthenticated) {
     return (
       <Switch>
-        <Route path="/" component={Landing} />
+        <Route path="/" component={AuthPage} />
         <Route component={NotFound} />
       </Switch>
     );
