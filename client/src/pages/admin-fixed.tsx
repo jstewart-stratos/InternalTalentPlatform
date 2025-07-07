@@ -80,7 +80,7 @@ export default function Admin() {
   // User mutations
   const createUserMutation = useMutation({
     mutationFn: async (userData: any) => {
-      const response = await apiRequest('POST', '/api/admin/users', userData);
+      const response = await apiRequest('/api/admin/users', 'POST', userData);
       return response.json();
     },
     onSuccess: () => {
@@ -101,7 +101,7 @@ export default function Admin() {
 
   const updateUserMutation = useMutation({
     mutationFn: async ({ userId, userData }: { userId: string, userData: any }) => {
-      const response = await apiRequest('PUT', `/api/admin/users/${userId}`, userData);
+      const response = await apiRequest(`/api/admin/users/${userId}`, 'PUT', userData);
       return response.json();
     },
     onSuccess: () => {
@@ -119,7 +119,7 @@ export default function Admin() {
   // Team mutations
   const createTeamMutation = useMutation({
     mutationFn: async (teamData: any) => {
-      const response = await apiRequest('POST', '/api/admin/teams', teamData);
+      const response = await apiRequest('/api/admin/teams', 'POST', teamData);
       return response.json();
     },
     onSuccess: () => {
@@ -139,7 +139,7 @@ export default function Admin() {
 
   const updateTeamMutation = useMutation({
     mutationFn: async ({ teamId, teamData }: { teamId: number, teamData: any }) => {
-      const response = await apiRequest('PUT', `/api/admin/teams/${teamId}`, teamData);
+      const response = await apiRequest(`/api/admin/teams/${teamId}`, 'PUT', teamData);
       return response.json();
     },
     onSuccess: () => {
@@ -156,7 +156,7 @@ export default function Admin() {
   // Service category mutations
   const createCategoryMutation = useMutation({
     mutationFn: async (categoryData: any) => {
-      const response = await apiRequest('POST', '/api/service-categories', categoryData);
+      const response = await apiRequest('/api/service-categories', 'POST', categoryData);
       return response.json();
     },
     onSuccess: () => {
@@ -172,7 +172,7 @@ export default function Admin() {
 
   const updateCategoryMutation = useMutation({
     mutationFn: async ({ categoryId, categoryData }: { categoryId: number, categoryData: any }) => {
-      const response = await apiRequest('PUT', `/api/service-categories/${categoryId}`, categoryData);
+      const response = await apiRequest(`/api/service-categories/${categoryId}`, 'PUT', categoryData);
       return response.json();
     },
     onSuccess: () => {
@@ -187,7 +187,7 @@ export default function Admin() {
 
   const deleteCategoryMutation = useMutation({
     mutationFn: async (categoryId: number) => {
-      await apiRequest('DELETE', `/api/service-categories/${categoryId}`);
+      await apiRequest(`/api/service-categories/${categoryId}`, 'DELETE');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/service-categories'] });
