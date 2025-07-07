@@ -428,7 +428,8 @@ export default function Admin() {
                                   });
                                   if (response.ok) {
                                     const members = await response.json();
-                                    const memberIds = members.map((member: any) => member.userId);
+                                    // Use employeeId for team member selection, not userId
+                                    const memberIds = members.map((member: any) => member.employeeId);
                                     setEditSelectedMembers(memberIds);
                                     setCurrentTeamMembers(members);
                                   } else {
@@ -1188,26 +1189,26 @@ export default function Admin() {
               {/* Current Members List */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Current Members:</Label>
-                {editSelectedMembers.length === 0 ? (
+                {currentTeamMembers.length === 0 ? (
                   <div className="text-center py-4 text-muted-foreground text-sm border rounded-lg">
-                    No members selected
+                    No members in this team
                   </div>
                 ) : (
                   <div className="border rounded-lg p-2 max-h-32 overflow-y-auto bg-background">
-                    {editSelectedMembers.map((userId) => {
-                      const user = (allUsersForTeams as any[]).find(u => u.userId === userId);
-                      if (!user) return null;
+                    {currentTeamMembers.map((member) => {
                       return (
-                        <div key={userId} className="flex items-center justify-between p-1 hover:bg-muted/25 rounded">
+                        <div key={member.employeeId} className="flex items-center justify-between p-1 hover:bg-muted/25 rounded">
                           <div>
-                            <span className="font-medium text-sm">{user.name}</span>
-                            <span className="text-muted-foreground ml-2 text-xs">({user.email})</span>
+                            <span className="font-medium text-sm">{member.employeeName}</span>
+                            <span className="text-muted-foreground ml-2 text-xs">({member.employeeEmail})</span>
+                            <Badge variant="outline" className="ml-2 text-xs">{member.role}</Badge>
                           </div>
                           <Button
                             size="sm"
                             variant="ghost"
                             onClick={() => {
-                              setEditSelectedMembers(editSelectedMembers.filter(id => id !== userId));
+                              setEditSelectedMembers(editSelectedMembers.filter(id => id !== member.employeeId));
+                              setCurrentTeamMembers(currentTeamMembers.filter(m => m.employeeId !== member.employeeId));
                             }}
                             className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
                           >

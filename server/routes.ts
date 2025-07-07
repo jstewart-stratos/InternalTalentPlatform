@@ -3225,6 +3225,11 @@ Respond with JSON in this exact format:
         
         // Add new members - but only if they have employee profiles
         for (const memberId of members) {
+          if (memberId === null || memberId === undefined) {
+            console.warn("Skipping null/undefined member ID");
+            continue;
+          }
+          
           if (!currentMemberIds.includes(memberId)) {
             // Check if this ID corresponds to an employee
             const employee = await storage.getEmployee(memberId);
