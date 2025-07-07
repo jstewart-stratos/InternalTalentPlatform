@@ -991,6 +991,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Create new user (Admin only)
+  app.post("/api/admin/users", authMiddleware, requireAdminRole, async (req: any, res) => {
+    try {
+      const { email, password, firstName, lastName, role = 'user' } = req.body;
+
+      // Validate required fields
+      if (!email || !password || !firstName || !lastName) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ error: "User with this email already exists" });
+      }
+
+      // Hash password using the same method as registration
+      const { scrypt, randomBytes } = require('crypto');
+      const { promisify } = require('util');
+      const scryptAsync = promisify(scrypt);
+      
+      const salt = randomBytes(16).toString('hex');
+      const buf = await scryptAsync(password, salt, 64);
+      const hashedPassword = `${buf.toString('hex')}.${salt}`;
+
+      // Create user
+      const user = await storage.createUser({
+        email,
+        password: hashedPassword,
+        firstName,
+        lastName,
+        role,
+        isActive: true,
+        emailVerified: true
+      });
+
+      // Log admin action
+      await storage.logAdminAction({
+        userId: req.user.id,
+        action: "user_created",
+        targetType: "user",
+        targetId: user.id.toString(),
+        changes: { email, firstName, lastName, role },
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent')
+      });
+
+      // Return user without password
+      const { password: _, ...userResponse } = user;
+      res.status(201).json(userResponse);
+    } catch (error) {
+      console.error("Error creating user:", error);
+      res.status(500).json({ error: "Failed to create user" });
+    }
+  });
+
   app.put("/api/admin/users/:userId/role", authMiddleware, requireAdminRole, async (req: any, res) => {
     try {
       const { userId } = req.params;
@@ -2998,6 +3054,53 @@ Respond with JSON in this exact format:
     } catch (error) {
       console.error("Error removing team member:", error);
       res.status(500).json({ error: "Failed to remove team member" });
+    }
+  });
+
+  // Admin team management routes
+  app.get("/api/admin/teams", authMiddleware, requireAdminRole, async (req, res) => {
+    try {
+      const teams = await storage.getAllTeamsWithMemberCount();
+      res.json(teams);
+    } catch (error) {
+      console.error("Error fetching teams:", error);
+      res.status(500).json({ error: "Failed to fetch teams" });
+    }
+  });
+
+  // Create new team (Admin only)
+  app.post("/api/admin/teams", authMiddleware, requireAdminRole, async (req: any, res) => {
+    try {
+      const { name, description, expertiseAreas = [], visibility = 'public' } = req.body;
+
+      // Validate required fields
+      if (!name || !description) {
+        return res.status(400).json({ error: "Team name and description are required" });
+      }
+
+      // Create team
+      const team = await storage.createTeam({
+        name,
+        description,
+        specialties: expertiseAreas,
+        createdBy: req.user.id.toString()
+      });
+
+      // Log admin action
+      await storage.logAdminAction({
+        userId: req.user.id,
+        action: "team_created",
+        targetType: "team",
+        targetId: team.id.toString(),
+        changes: { name, description, expertiseAreas, visibility },
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent')
+      });
+
+      res.status(201).json(team);
+    } catch (error) {
+      console.error("Error creating team:", error);
+      res.status(500).json({ error: "Failed to create team" });
     }
   });
 

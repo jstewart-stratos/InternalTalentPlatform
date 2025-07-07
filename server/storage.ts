@@ -125,6 +125,7 @@ export interface IStorage {
   getTeam(id: number): Promise<Team | undefined>;
   getTeamsByMember(employeeId: number): Promise<Team[]>;
   getAllTeams(): Promise<Team[]>;
+  getAllTeamsWithMemberCount(): Promise<any[]>;
   updateTeam(id: number, team: Partial<InsertTeam>): Promise<Team | undefined>;
   deleteTeam(id: number): Promise<boolean>;
   
@@ -1554,6 +1555,31 @@ export class DatabaseStorage implements IStorage {
       .from(professionalServices)
       .where(and(...whereConditions))
       .orderBy(professionalServices.createdAt);
+  }
+
+  async getAllTeamsWithMemberCount(): Promise<any[]> {
+    const teamsWithCounts = await db
+      .select({
+        id: teams.id,
+        name: teams.name,
+        description: teams.description,
+        profileImage: teams.profileImage,
+        website: teams.website,
+        specialties: teams.specialties,
+        isActive: teams.isActive,
+        createdBy: teams.createdBy,
+        createdAt: teams.createdAt,
+        updatedAt: teams.updatedAt,
+        memberCount: sql<number>`COUNT(CASE WHEN ${teamMembers.isActive} = true THEN 1 END)`.as('memberCount'),
+        visibility: sql<string>`'public'`.as('visibility')
+      })
+      .from(teams)
+      .leftJoin(teamMembers, eq(teams.id, teamMembers.teamId))
+      .where(eq(teams.isActive, true))
+      .groupBy(teams.id)
+      .orderBy(teams.createdAt);
+    
+    return teamsWithCounts;
   }
 
 }
