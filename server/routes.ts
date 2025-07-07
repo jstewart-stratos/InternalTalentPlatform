@@ -3230,12 +3230,18 @@ Respond with JSON in this exact format:
         return res.status(404).json({ error: "Employee profile not found" });
       }
 
+      console.log(`Debug: User ${req.user.id}, Employee ${employee.id}, Role: ${req.user.role}`);
+
       // Get all teams where user is a manager
       const allTeams = await storage.getAllTeams();
+      console.log(`Debug: Found ${allTeams.length} total teams`);
+      
       const managedTeams = [];
       
       for (const team of allTeams) {
         const isManager = await storage.isTeamManager(team.id, employee.id);
+        console.log(`Debug: Team ${team.id} (${team.name}) - isManager: ${isManager}, userRole: ${req.user.role}`);
+        
         if (isManager || req.user.role === 'admin') {
           const members = await storage.getTeamMembers(team.id);
           managedTeams.push({
@@ -3245,6 +3251,7 @@ Respond with JSON in this exact format:
         }
       }
 
+      console.log(`Debug: Returning ${managedTeams.length} managed teams`);
       res.json(managedTeams);
     } catch (error) {
       console.error("Error fetching managed teams:", error);

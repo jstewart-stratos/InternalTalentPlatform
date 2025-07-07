@@ -1502,6 +1502,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async isTeamManager(teamId: number, employeeId: number): Promise<boolean> {
+    console.log(`Debug isTeamManager: teamId=${teamId}, employeeId=${employeeId}`);
+    
+    // Query all team members for this employee to debug
+    const allMemberships = await db
+      .select()
+      .from(teamMembers)
+      .where(eq(teamMembers.employeeId, employeeId));
+    
+    console.log(`Debug: All memberships for employee ${employeeId}:`, allMemberships);
+    
     const [member] = await db
       .select()
       .from(teamMembers)
@@ -1511,6 +1521,8 @@ export class DatabaseStorage implements IStorage {
         eq(teamMembers.role, 'manager'),
         eq(teamMembers.isActive, true)
       ));
+      
+    console.log(`Debug isTeamManager result for team ${teamId}:`, member);
     return !!member;
   }
 
