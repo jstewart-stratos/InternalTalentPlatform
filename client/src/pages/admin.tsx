@@ -8,8 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
-import { Users, Activity, Settings, Shield, Lock, Unlock, UserCheck, Clock, AlertTriangle, Plus, Save } from "lucide-react";
+import { Users, Activity, Settings, Shield, Lock, Unlock, UserCheck, Clock, AlertTriangle, Plus, Save, X } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { User, SiteSetting, AuditLog, ServiceCategory } from "@shared/schema";
 
@@ -51,6 +52,7 @@ export default function Admin() {
   const [editTeamVisibility, setEditTeamVisibility] = useState("public");
   const [currentTeamMembers, setCurrentTeamMembers] = useState<any[]>([]);
   const [editSelectedMembers, setEditSelectedMembers] = useState<number[]>([]);
+  const [editTeamDialogOpen, setEditTeamDialogOpen] = useState(false);
 
   // User editing state
   const [editingUser, setEditingUser] = useState<any>(null);
@@ -60,6 +62,7 @@ export default function Admin() {
   const [editUserRole, setEditUserRole] = useState("user");
   const [editUserPassword, setEditUserPassword] = useState("");
   const [resetPassword, setResetPassword] = useState(false);
+  const [editUserDialogOpen, setEditUserDialogOpen] = useState(false);
 
   // Fetch admin data
   const { data: users = [], isLoading: usersLoading } = useQuery({
@@ -192,7 +195,7 @@ export default function Admin() {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/teams'] });
       queryClient.invalidateQueries({ queryKey: ['/api/teams', editingTeam?.id] });
       setEditingTeam(null);
-      setActiveTab("teams");
+      setEditTeamDialogOpen(false);
       setCurrentTeamMembers([]);
       setEditSelectedMembers([]);
       toast({ title: "Success", description: "Team updated successfully" });
@@ -210,7 +213,9 @@ export default function Admin() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
       setEditingUser(null);
-      setActiveTab("users");
+      setEditUserDialogOpen(false);
+      setEditUserPassword("");
+      setResetPassword(false);
       toast({ title: "Success", description: "User updated successfully" });
     },
     onError: (error) => {
@@ -272,7 +277,7 @@ export default function Admin() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className={`grid ${editingTeam || editingUser ? 'grid-cols-8' : 'grid-cols-7'} w-full`}>
+        <TabsList className="grid grid-cols-6 w-full">
           <TabsTrigger value="users" className="flex items-center space-x-2">
             <Users className="h-4 w-4" />
             <span>Users</span>
@@ -289,18 +294,7 @@ export default function Admin() {
             <Plus className="h-4 w-4" />
             <span>Add Team</span>
           </TabsTrigger>
-          {editingTeam && (
-            <TabsTrigger value="edit-team" className="flex items-center space-x-2">
-              <Settings className="h-4 w-4" />
-              <span>Edit Team</span>
-            </TabsTrigger>
-          )}
-          {editingUser && (
-            <TabsTrigger value="edit-user" className="flex items-center space-x-2">
-              <Settings className="h-4 w-4" />
-              <span>Edit User</span>
-            </TabsTrigger>
-          )}
+
           <TabsTrigger value="service-categories" className="flex items-center space-x-2">
             <Settings className="h-4 w-4" />
             <span>Service Categories</span>
@@ -401,7 +395,7 @@ export default function Admin() {
                                   setEditUserRole(user.role || 'user');
                                   setEditUserPassword("");
                                   setResetPassword(false);
-                                  setActiveTab("edit-user");
+                                  setEditUserDialogOpen(true);
                                 }}
                               >
                                 Edit
@@ -520,147 +514,7 @@ export default function Admin() {
           </Card>
         </TabsContent>
 
-        {/* Edit User Tab */}
-        {editingUser && (
-          <TabsContent value="edit-user" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Edit User: {editingUser.firstName} {editingUser.lastName}</CardTitle>
-                <CardDescription>
-                  Update user information and settings
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="editUserFirstName">First Name</Label>
-                      <Input
-                        id="editUserFirstName"
-                        value={editUserFirstName}
-                        onChange={(e) => setEditUserFirstName(e.target.value)}
-                        placeholder="First name"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="editUserLastName">Last Name</Label>
-                      <Input
-                        id="editUserLastName"
-                        value={editUserLastName}
-                        onChange={(e) => setEditUserLastName(e.target.value)}
-                        placeholder="Last name"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="editUserEmail">Email Address</Label>
-                      <Input
-                        id="editUserEmail"
-                        type="email"
-                        value={editUserEmail}
-                        onChange={(e) => setEditUserEmail(e.target.value)}
-                        placeholder="user@example.com"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="editUserRole">Role</Label>
-                      <Select value={editUserRole} onValueChange={setEditUserRole}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select role" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="user">User</SelectItem>
-                          <SelectItem value="team-manager">Team Manager</SelectItem>
-                          <SelectItem value="admin">Admin</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Password Reset Section */}
-                <div className="space-y-4 border-t pt-4">
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="resetPassword"
-                      checked={resetPassword}
-                      onChange={(e) => {
-                        setResetPassword(e.target.checked);
-                        if (!e.target.checked) {
-                          setEditUserPassword("");
-                        }
-                      }}
-                      className="rounded border-gray-300"
-                    />
-                    <Label htmlFor="resetPassword" className="text-sm font-medium">
-                      Reset user password
-                    </Label>
-                  </div>
-                  
-                  {resetPassword && (
-                    <div>
-                      <Label htmlFor="editUserPassword">New Password</Label>
-                      <Input
-                        id="editUserPassword"
-                        type="password"
-                        value={editUserPassword}
-                        onChange={(e) => setEditUserPassword(e.target.value)}
-                        placeholder="Enter new password"
-                        className="mt-1"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">
-                        Leave blank to keep current password unchanged
-                      </p>
-                    </div>
-                  )}
-                </div>
-                <div className="flex justify-between">
-                  <Button 
-                    variant="outline"
-                    onClick={() => {
-                      setEditingUser(null);
-                      setEditUserPassword("");
-                      setResetPassword(false);
-                      setActiveTab("users");
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button 
-                    onClick={() => {
-                      if (!editUserFirstName || !editUserLastName || !editUserEmail) {
-                        toast({ title: "Error", description: "Please fill in all required fields", variant: "destructive" });
-                        return;
-                      }
-                      if (resetPassword && !editUserPassword) {
-                        toast({ title: "Error", description: "Please enter a new password", variant: "destructive" });
-                        return;
-                      }
-                      const updateData: any = {
-                        id: editingUser.id,
-                        firstName: editUserFirstName,
-                        lastName: editUserLastName,
-                        email: editUserEmail,
-                        role: editUserRole
-                      };
-                      if (resetPassword && editUserPassword) {
-                        updateData.password = editUserPassword;
-                      }
-                      updateUserMutation.mutate(updateData);
-                    }}
-                    disabled={updateUserMutation.isPending}
-                    className="px-8"
-                  >
-                    <Save className="h-4 w-4 mr-2" />
-                    {updateUserMutation.isPending ? "Updating..." : "Update User"}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        )}
+
 
         {/* Teams Tab */}
         <TabsContent value="teams" className="space-y-6">
@@ -732,7 +586,7 @@ export default function Admin() {
                                 setEditTeamVisibility(team.visibility || 'public');
                                 setCurrentTeamMembers([]);
                                 setEditSelectedMembers([]);
-                                setActiveTab("edit-team");
+                                setEditTeamDialogOpen(true);
                               }}
                             >
                               Edit
@@ -1266,6 +1120,284 @@ export default function Admin() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Edit User Dialog */}
+      <Dialog open={editUserDialogOpen} onOpenChange={setEditUserDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Edit User: {editingUser?.firstName} {editingUser?.lastName}</DialogTitle>
+            <DialogDescription>
+              Update user information and settings
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="editUserFirstName">First Name</Label>
+                <Input
+                  id="editUserFirstName"
+                  value={editUserFirstName}
+                  onChange={(e) => setEditUserFirstName(e.target.value)}
+                  placeholder="First name"
+                />
+              </div>
+              <div>
+                <Label htmlFor="editUserLastName">Last Name</Label>
+                <Input
+                  id="editUserLastName"
+                  value={editUserLastName}
+                  onChange={(e) => setEditUserLastName(e.target.value)}
+                  placeholder="Last name"
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="editUserEmail">Email Address</Label>
+              <Input
+                id="editUserEmail"
+                type="email"
+                value={editUserEmail}
+                onChange={(e) => setEditUserEmail(e.target.value)}
+                placeholder="user@example.com"
+              />
+            </div>
+            <div>
+              <Label htmlFor="editUserRole">Role</Label>
+              <Select value={editUserRole} onValueChange={setEditUserRole}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="user">User</SelectItem>
+                  <SelectItem value="team-manager">Team Manager</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {/* Password Reset Section */}
+            <div className="space-y-3 border-t pt-4">
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="resetPassword"
+                  checked={resetPassword}
+                  onChange={(e) => {
+                    setResetPassword(e.target.checked);
+                    if (!e.target.checked) {
+                      setEditUserPassword("");
+                    }
+                  }}
+                  className="rounded border-gray-300"
+                />
+                <Label htmlFor="resetPassword" className="text-sm font-medium">
+                  Reset user password
+                </Label>
+              </div>
+              
+              {resetPassword && (
+                <div>
+                  <Label htmlFor="editUserPassword">New Password</Label>
+                  <Input
+                    id="editUserPassword"
+                    type="password"
+                    value={editUserPassword}
+                    onChange={(e) => setEditUserPassword(e.target.value)}
+                    placeholder="Enter new password"
+                    className="mt-1"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Enter a new password for this user
+                  </p>
+                </div>
+              )}
+            </div>
+            
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button 
+                variant="outline"
+                onClick={() => {
+                  setEditingUser(null);
+                  setEditUserPassword("");
+                  setResetPassword(false);
+                  setEditUserDialogOpen(false);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={() => {
+                  if (!editUserFirstName || !editUserLastName || !editUserEmail) {
+                    toast({ title: "Error", description: "Please fill in all required fields", variant: "destructive" });
+                    return;
+                  }
+                  if (resetPassword && !editUserPassword) {
+                    toast({ title: "Error", description: "Please enter a new password", variant: "destructive" });
+                    return;
+                  }
+                  const updateData: any = {
+                    id: editingUser.id,
+                    firstName: editUserFirstName,
+                    lastName: editUserLastName,
+                    email: editUserEmail,
+                    role: editUserRole
+                  };
+                  if (resetPassword && editUserPassword) {
+                    updateData.password = editUserPassword;
+                  }
+                  updateUserMutation.mutate(updateData);
+                }}
+                disabled={updateUserMutation.isPending}
+              >
+                <Save className="h-4 w-4 mr-2" />
+                {updateUserMutation.isPending ? "Updating..." : "Update User"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Team Dialog */}
+      <Dialog open={editTeamDialogOpen} onOpenChange={setEditTeamDialogOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Team: {editingTeam?.name}</DialogTitle>
+            <DialogDescription>
+              Update team information and settings
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="editTeamName">Team Name</Label>
+                <Input
+                  id="editTeamName"
+                  value={editTeamName}
+                  onChange={(e) => setEditTeamName(e.target.value)}
+                  placeholder="Enter team name"
+                />
+              </div>
+              <div>
+                <Label htmlFor="editTeamVisibility">Team Visibility</Label>
+                <Select value={editTeamVisibility} onValueChange={setEditTeamVisibility}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select visibility" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="public">Public</SelectItem>
+                    <SelectItem value="private">Private</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="editTeamDescription">Description</Label>
+              <Input
+                id="editTeamDescription"
+                value={editTeamDescription}
+                onChange={(e) => setEditTeamDescription(e.target.value)}
+                placeholder="Brief description of the team"
+              />
+            </div>
+            <div>
+              <Label htmlFor="editTeamExpertiseAreas">Expertise Areas (comma-separated)</Label>
+              <Input
+                id="editTeamExpertiseAreas"
+                value={editTeamExpertiseAreas}
+                onChange={(e) => setEditTeamExpertiseAreas(e.target.value)}
+                placeholder="Finance, Risk Management, Compliance"
+              />
+            </div>
+
+            {/* Team Member Management */}
+            <div className="space-y-3 border-t pt-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-base font-semibold">Team Members</Label>
+                <Badge variant="secondary">
+                  {editSelectedMembers.length} selected
+                </Badge>
+              </div>
+              
+              <div className="border rounded-lg p-3 max-h-48 overflow-y-auto bg-background">
+                {allUsersLoading ? (
+                  <div className="text-center py-4 text-muted-foreground">Loading users...</div>
+                ) : allUsersForTeams.length === 0 ? (
+                  <div className="text-center py-4 text-muted-foreground">No users available</div>
+                ) : (
+                  <div className="space-y-2">
+                    {(allUsersForTeams as any[])
+                      .filter(user => user.hasEmployeeProfile)
+                      .map((user) => (
+                      <div key={user.id} className="flex items-center space-x-2 p-1 hover:bg-muted/50 rounded">
+                        <input
+                          type="checkbox"
+                          id={`edit-member-${user.id}`}
+                          checked={editSelectedMembers.includes(user.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setEditSelectedMembers([...editSelectedMembers, user.id]);
+                            } else {
+                              setEditSelectedMembers(editSelectedMembers.filter(id => id !== user.id));
+                            }
+                          }}
+                          className="rounded border-gray-300"
+                        />
+                        <label 
+                          htmlFor={`edit-member-${user.id}`}
+                          className="flex-1 text-sm cursor-pointer flex items-center justify-between"
+                        >
+                          <div>
+                            <span className="font-medium">{user.name}</span>
+                            <span className="text-muted-foreground ml-2">({user.email})</span>
+                          </div>
+                          <Badge variant="outline" className="text-xs">
+                            {user.title || 'No Title'}
+                          </Badge>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">Only users with employee profiles can be added to teams</p>
+            </div>
+            
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button 
+                variant="outline"
+                onClick={() => {
+                  setEditingTeam(null);
+                  setEditTeamDialogOpen(false);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={() => {
+                  if (!editTeamName || !editTeamDescription) {
+                    toast({ title: "Error", description: "Please fill in required fields", variant: "destructive" });
+                    return;
+                  }
+                  const expertiseAreas = editTeamExpertiseAreas.split(',').map(area => area.trim()).filter(area => area);
+                  updateTeamMutation.mutate({
+                    id: editingTeam.id,
+                    name: editTeamName,
+                    description: editTeamDescription,
+                    expertiseAreas,
+                    visibility: editTeamVisibility,
+                    members: editSelectedMembers
+                  });
+                }}
+                disabled={updateTeamMutation.isPending}
+              >
+                <Save className="h-4 w-4 mr-2" />
+                {updateTeamMutation.isPending ? "Updating..." : "Update Team"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
