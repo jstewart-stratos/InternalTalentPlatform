@@ -3229,12 +3229,15 @@ Respond with JSON in this exact format:
             // Check if this ID corresponds to an employee
             const employee = await storage.getEmployee(memberId);
             if (employee) {
-              await storage.addTeamMember({
-                teamId,
-                employeeId: memberId,
-                role: 'member',
-                isActive: true
-              });
+              // Add team member directly with explicit values for admin
+              await db
+                .insert(teamMembers)
+                .values({
+                  teamId: teamId,
+                  employeeId: memberId,
+                  role: 'member',
+                  isActive: true
+                });
             } else {
               console.warn(`Skipping user ID ${memberId} - no employee profile found`);
             }
@@ -3282,13 +3285,15 @@ Respond with JSON in this exact format:
       if (members && Array.isArray(members) && members.length > 0) {
         for (const employeeId of members) {
           try {
-            await storage.addTeamMember({
-              teamId: team.id,
-              employeeId: employeeId,
-              role: "member",
-              approvedBy: null,
-              approvedAt: new Date()
-            });
+            // Add team member directly with explicit values for admin
+            await db
+              .insert(teamMembers)
+              .values({
+                teamId: team.id,
+                employeeId: employeeId,
+                role: "member",
+                isActive: true
+              });
           } catch (memberError) {
             console.error(`Error adding member ${employeeId} to team:`, memberError);
             // Continue adding other members even if one fails
