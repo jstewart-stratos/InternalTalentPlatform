@@ -17,6 +17,7 @@ export default function Admin() {
   const [newSettingKey, setNewSettingKey] = useState("");
   const [newSettingValue, setNewSettingValue] = useState("");
   const [newSettingDescription, setNewSettingDescription] = useState("");
+  const [activeTab, setActiveTab] = useState("users");
   const [selectedCategory, setSelectedCategory] = useState("general");
   const [editingSetting, setEditingSetting] = useState<SiteSetting | null>(null);
   const [editingValue, setEditingValue] = useState("");
@@ -194,7 +195,7 @@ export default function Admin() {
         </div>
       </div>
 
-      <Tabs defaultValue="users" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid grid-cols-7 w-full">
           <TabsTrigger value="users" className="flex items-center space-x-2">
             <Users className="h-4 w-4" />
@@ -233,11 +234,17 @@ export default function Admin() {
         {/* Users Tab */}
         <TabsContent value="users" className="space-y-6">
           <Card>
-            <CardHeader>
-              <CardTitle>User Management</CardTitle>
-              <CardDescription>
-                Manage user accounts, roles, and permissions
-              </CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <div className="space-y-1">
+                <CardTitle>User Management</CardTitle>
+                <CardDescription>
+                  Manage user accounts, roles, and permissions
+                </CardDescription>
+              </div>
+              <Button onClick={() => setActiveTab('create-user')} className="ml-auto">
+                <Plus className="h-4 w-4 mr-2" />
+                Add User
+              </Button>
             </CardHeader>
             <CardContent>
               {usersLoading ? (
@@ -408,11 +415,17 @@ export default function Admin() {
         {/* Teams Tab */}
         <TabsContent value="teams" className="space-y-6">
           <Card>
-            <CardHeader>
-              <CardTitle>Team Management</CardTitle>
-              <CardDescription>
-                Manage teams and their members
-              </CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <div className="space-y-1">
+                <CardTitle>Team Management</CardTitle>
+                <CardDescription>
+                  Manage teams and their members
+                </CardDescription>
+              </div>
+              <Button onClick={() => setActiveTab('create-team')} className="ml-auto">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Team
+              </Button>
             </CardHeader>
             <CardContent>
               {teamsLoading ? (
