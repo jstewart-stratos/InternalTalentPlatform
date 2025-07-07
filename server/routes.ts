@@ -118,10 +118,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { skillsWithExperience, ...employeeBody } = req.body;
       
-      // Debug logging to understand what data is being received
-      console.log("Received employee data:", req.body);
-      console.log("Skills with experience:", skillsWithExperience);
-      console.log("Employee body (excluding skills):", employeeBody);
+      // Debug logging (can be removed in production)
+      // console.log("Received employee data:", req.body);
       
       // Add userId from authenticated user
       const employeeData = {
@@ -198,11 +196,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/employees/:id", requireAuth, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
-      const validatedData = insertEmployeeSchema.parse(req.body);
+      const { skillsWithExperience, ...employeeBody } = req.body;
+      
+      // Debug logging (can be removed in production)
+      // console.log("PUT - Received employee update data:", req.body);
       
       // Add userId from authenticated user
       const employeeData = {
-        ...validatedData,
+        ...employeeBody,
         userId: req.user.id
       };
       
@@ -211,9 +212,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!employee) {
         return res.status(404).json({ error: "Employee not found" });
       }
+
+      // Handle individual skills with experience levels if provided
+      if (skillsWithExperience && Array.isArray(skillsWithExperience)) {
+        // First, remove existing skills for this employee
+        try {
+          await storage.deleteEmployeeSkills(id);
+        } catch (deleteError) {
+          console.warn("Failed to delete existing skills:", deleteError);
+        }
+        
+        // Create new individual skill records
+        for (const skillData of skillsWithExperience) {
+          try {
+            await storage.createEmployeeSkill({
+              employeeId: employee.id,
+              skillName: skillData.skillName,
+              experienceLevel: skillData.experienceLevel,
+              yearsOfExperience: skillData.yearsOfExperience,
+              lastUsed: new Date(),
+              isEndorsed: false,
+              endorsementCount: 0
+            });
+          } catch (skillError) {
+            console.error(`Failed to create skill ${skillData.skillName}:`, skillError);
+          }
+        }
+      }
+      
+      // Clear employee cache
+      clearCache('/api/employees');
       
       res.json(employee);
     } catch (error) {
+      console.error("Employee update error:", error);
       if (error instanceof z.ZodError) {
         res.status(400).json({ error: "Invalid employee data", details: error.errors });
       } else {

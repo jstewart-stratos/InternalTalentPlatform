@@ -138,10 +138,8 @@ export default function CreateProfile() {
       skillsWithExperience: data.skillsWithExperience || []
     };
     
-    // Debug logging to understand what data is being submitted
-    console.log("Form submission data:", submissionData);
-    console.log("Skills:", submissionData.skills);
-    console.log("Skills with experience:", submissionData.skillsWithExperience);
+    // Debug logging (can be removed in production)
+    // console.log("Form submission data:", submissionData);
     
     createEmployee.mutate(submissionData);
   };

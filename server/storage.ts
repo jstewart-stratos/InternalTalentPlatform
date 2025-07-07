@@ -32,6 +32,7 @@ export interface IStorage {
   getEmployeeSkills(employeeId: number): Promise<EmployeeSkill[]>;
   updateEmployeeSkill(id: number, skill: Partial<InsertEmployeeSkill>): Promise<EmployeeSkill | undefined>;
   deleteEmployeeSkill(id: number): Promise<boolean>;
+  deleteEmployeeSkills(employeeId: number): Promise<boolean>;
   getEmployeeSkillByName(employeeId: number, skillName: string): Promise<EmployeeSkill | undefined>;
 
   // Skill search tracking methods
@@ -489,6 +490,13 @@ export class DatabaseStorage implements IStorage {
       .delete(employeeSkills)
       .where(eq(employeeSkills.id, id));
     return result.rowCount > 0;
+  }
+
+  async deleteEmployeeSkills(employeeId: number): Promise<boolean> {
+    const result = await db
+      .delete(employeeSkills)
+      .where(eq(employeeSkills.employeeId, employeeId));
+    return result.rowCount >= 0; // Return true even if no skills existed
   }
 
   async getEmployeeSkillByName(employeeId: number, skillName: string): Promise<EmployeeSkill | undefined> {

@@ -140,6 +140,7 @@ Changelog:
 - January 8, 2025. Team management system completed - Fixed API route conflicts (teams/available vs teams/:id), resolved database insertion issues with team member creation, implemented complete user team management (join/leave teams), fixed admin team member addition functionality, all team operations now working correctly with proper isActive status management
 - January 8, 2025. Admin team member display issue resolved - Fixed frontend display logic to show actual current team members from database instead of empty selection state, corrected employeeId vs userId mapping, implemented proper member information display with role badges and remove functionality
 - January 8, 2025. Enhanced team management interface completed - Implemented visual expertise area management with individual badge display and removal, added dedicated input fields for adding new expertise areas, enhanced description editing with textarea, character counter, and current description display for both team creation and editing workflows
+- January 8, 2025. Profile creation data capture issues resolved - Fixed critical bugs where full names and skills were not being properly saved during profile creation/editing, implemented proper auto-population of user names from authentication data, enhanced PUT endpoint to handle detailed skills with experience levels, added missing deleteEmployeeSkills storage method, verified both basic skills array and detailed employee_skills table records are created correctly
 
 ## User Preferences
 
