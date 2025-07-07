@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute, useLocation, Link } from "wouter";
-import { Mail, MapPin, Calendar, Award, Edit, ThumbsUp, Users, Plus, Settings, Building, Briefcase, Star, DollarSign, ChevronDown, ChevronUp, Grid, List } from "lucide-react";
+import { Mail, MapPin, Calendar, Award, Edit, ThumbsUp, Users, Plus, Settings, Building, Briefcase, Star, DollarSign, ChevronDown, ChevronUp, Grid, List, Search, UserPlus, UserMinus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import ProfileAvatar from "@/components/profile-avatar";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
@@ -22,6 +24,8 @@ export default function Profile() {
   const [isEditingSkills, setIsEditingSkills] = useState(false);
   const [showAllServices, setShowAllServices] = useState(false);
   const [servicesViewMode, setServicesViewMode] = useState<'grid' | 'list'>('grid');
+  const [showAvailableTeams, setShowAvailableTeams] = useState(false);
+  const [teamSearchQuery, setTeamSearchQuery] = useState("");
   
   // Get current employee data to determine the actual employee ID
   const { data: currentEmployee } = useQuery({
@@ -62,6 +66,17 @@ export default function Profile() {
       if (!response.ok) throw new Error("Failed to fetch user services");
       return response.json();
     },
+  });
+
+  // Team-related queries (only for own profile)
+  const { data: userTeams = [], refetch: refetchUserTeams } = useQuery({
+    queryKey: ["/api/users/my-teams"],
+    enabled: isOwnProfile,
+  });
+
+  const { data: availableTeams = [] } = useQuery({
+    queryKey: ["/api/teams/available"],
+    enabled: isOwnProfile && showAvailableTeams,
   });
 
 
@@ -122,7 +137,50 @@ export default function Profile() {
     },
   });
 
+  // Team management mutations
+  const joinTeamMutation = useMutation({
+    mutationFn: async (teamId: number) => {
+      const response = await apiRequest("POST", `/api/teams/${teamId}/join`);
+      return response;
+    },
+    onSuccess: () => {
+      refetchUserTeams();
+      queryClient.invalidateQueries({ queryKey: ["/api/teams/available"] });
+      toast({
+        title: "Team joined",
+        description: "Successfully joined the team!",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to join team. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
 
+  const leaveTeamMutation = useMutation({
+    mutationFn: async (teamId: number) => {
+      const response = await apiRequest("DELETE", `/api/teams/${teamId}/leave`);
+      return response;
+    },
+    onSuccess: () => {
+      refetchUserTeams();
+      queryClient.invalidateQueries({ queryKey: ["/api/teams/available"] });
+      toast({
+        title: "Team left",
+        description: "Successfully left the team.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to leave team. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
 
   if (isLoading) {
     return (
@@ -203,6 +261,12 @@ export default function Profile() {
       endorseMutation.mutate({ skill });
     }
   };
+
+  // Helper functions for teams
+  const filteredAvailableTeams = availableTeams.filter((team: any) =>
+    team.name.toLowerCase().includes(teamSearchQuery.toLowerCase()) ||
+    team.description?.toLowerCase().includes(teamSearchQuery.toLowerCase())
+  );
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -447,6 +511,145 @@ export default function Profile() {
                     </>
                   )}
                 </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Teams Section - Only show for own profile */}
+      {isOwnProfile && (
+        <Card className="mb-8">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center">
+                <Users className="h-5 w-5 mr-2" />
+                My Teams
+                <Badge variant="secondary" className="ml-2">
+                  {userTeams.length}
+                </Badge>
+              </CardTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowAvailableTeams(!showAvailableTeams)}
+                className="bg-orange-500 hover:bg-orange-600 text-white border-orange-500"
+              >
+                <UserPlus className="h-4 w-4 mr-2" />
+                {showAvailableTeams ? 'Hide Available Teams' : 'Browse Teams'}
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {/* Current Teams */}
+            {userTeams.length > 0 ? (
+              <div className="space-y-3 mb-6">
+                <Label className="text-sm font-medium text-muted-foreground">Current Teams</Label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {userTeams.map((team: any) => (
+                    <Card key={team.id} className="border-l-4 border-l-orange-500">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <h3 className="font-semibold text-base">{team.name}</h3>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => leaveTeamMutation.mutate(team.id)}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <UserMinus className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        {team.description && (
+                          <p className="text-sm text-gray-600 mb-2 line-clamp-2">
+                            {team.description}
+                          </p>
+                        )}
+                        {team.specialties && team.specialties.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {team.specialties.slice(0, 3).map((specialty: string, index: number) => (
+                              <Badge key={index} variant="outline" className="text-xs">
+                                {specialty}
+                              </Badge>
+                            ))}
+                            {team.specialties.length > 3 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{team.specialties.length - 3} more
+                              </Badge>
+                            )}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-6 mb-6">
+                <Users className="h-12 w-12 mx-auto text-gray-400 mb-2" />
+                <p className="text-gray-500">You're not a member of any teams yet.</p>
+                <p className="text-sm text-gray-400">Browse available teams to join your first team!</p>
+              </div>
+            )}
+
+            {/* Available Teams Search */}
+            {showAvailableTeams && (
+              <div className="border-t pt-6">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium text-muted-foreground">Available Teams</Label>
+                    <Badge variant="secondary">
+                      {filteredAvailableTeams.length} teams
+                    </Badge>
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    <div className="flex-1">
+                      <Input
+                        placeholder="Search teams to join..."
+                        value={teamSearchQuery}
+                        onChange={(e) => setTeamSearchQuery(e.target.value)}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* Search Results */}
+                  {filteredAvailableTeams.length > 0 ? (
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                      {filteredAvailableTeams.map((team: any) => (
+                        <div
+                          key={team.id}
+                          className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50"
+                        >
+                          <div className="flex-1">
+                            <div className="font-medium text-sm">{team.name}</div>
+                            {team.description && (
+                              <div className="text-xs text-muted-foreground line-clamp-1">
+                                {team.description}
+                              </div>
+                            )}
+                          </div>
+                          <Button
+                            size="sm"
+                            onClick={() => joinTeamMutation.mutate(team.id)}
+                            className="bg-orange-500 hover:bg-orange-600 text-white ml-2"
+                            disabled={joinTeamMutation.isPending}
+                          >
+                            <UserPlus className="h-4 w-4 mr-1" />
+                            Join
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-4">
+                      <p className="text-sm text-muted-foreground">
+                        {teamSearchQuery ? 'No teams match your search.' : 'No available teams to join.'}
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </CardContent>

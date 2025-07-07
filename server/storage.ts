@@ -132,10 +132,11 @@ export interface IStorage {
   deleteTeam(id: number): Promise<boolean>;
   
   // Team member management
-  addTeamMember(member: InsertTeamMember): Promise<TeamMember>;
+  addTeamMember(teamId: number, employeeId: number, role: string): Promise<boolean>;
   removeTeamMember(teamId: number, employeeId: number): Promise<boolean>;
   getTeamMembers(teamId: number): Promise<TeamMember[]>;
   getTeamMembersByEmployee(employeeId: number): Promise<TeamMember[]>;
+  getEmployeeTeams(employeeId: number): Promise<Team[]>;
   updateTeamMemberRole(teamId: number, employeeId: number, role: string): Promise<TeamMember | undefined>;
   approveTeamMember(teamId: number, employeeId: number, approvedBy: number): Promise<TeamMember | undefined>;
   
@@ -1426,11 +1427,23 @@ export class DatabaseStorage implements IStorage {
 
   // Team member management
   async addTeamMember(insertMember: InsertTeamMember): Promise<TeamMember> {
-    const [member] = await db
-      .insert(teamMembers)
-      .values(insertMember)
-      .returning();
-    return member;
+    try {
+      const [member] = await db
+        .insert(teamMembers)
+        .values({
+          teamId: insertMember.teamId,
+          employeeId: insertMember.employeeId,
+          role: insertMember.role || 'member',
+          isActive: true,
+          approvedBy: insertMember.approvedBy || null,
+          approvedAt: insertMember.approvedAt || null
+        })
+        .returning();
+      return member;
+    } catch (error) {
+      console.error("Error adding team member:", error);
+      throw error;
+    }
   }
 
   async removeTeamMember(teamId: number, employeeId: number): Promise<boolean> {
@@ -1713,6 +1726,33 @@ export class DatabaseStorage implements IStorage {
       console.error("Error removing team member:", error);
       return false;
     }
+  }
+
+
+
+  // Get teams that an employee is a member of
+  async getEmployeeTeams(employeeId: number): Promise<Team[]> {
+    return await db
+      .select({
+        id: teams.id,
+        name: teams.name,
+        description: teams.description,
+        profileImage: teams.profileImage,
+        website: teams.website,
+        specialties: teams.specialties,
+        isActive: teams.isActive,
+        createdBy: teams.createdBy,
+        createdAt: teams.createdAt,
+        updatedAt: teams.updatedAt,
+      })
+      .from(teams)
+      .innerJoin(teamMembers, eq(teams.id, teamMembers.teamId))
+      .where(and(
+        eq(teamMembers.employeeId, employeeId),
+        eq(teamMembers.isActive, true),
+        eq(teams.isActive, true)
+      ))
+      .orderBy(teams.name);
   }
 
 }

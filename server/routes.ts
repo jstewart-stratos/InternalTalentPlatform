@@ -1,7 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertEmployeeSchema, insertSkillEndorsementSchema, insertProjectSchema, insertSiteSettingSchema, insertAuditLogSchema, insertUserPermissionSchema, insertTeamSchema, insertTeamMemberSchema, insertTeamServiceCategorySchema, insertServiceCategorySchema, insertProfessionalServiceSchema, insertServiceBookingSchema, insertServiceReviewSchema, insertServicePortfolioSchema, insertSavedSkillRecommendationSchema } from "@shared/schema";
+import { insertEmployeeSchema, insertSkillEndorsementSchema, insertProjectSchema, insertSiteSettingSchema, insertAuditLogSchema, insertUserPermissionSchema, insertTeamSchema, insertTeamMemberSchema, insertTeamServiceCategorySchema, insertServiceCategorySchema, insertProfessionalServiceSchema, insertServiceBookingSchema, insertServiceReviewSchema, insertServicePortfolioSchema, insertSavedSkillRecommendationSchema, teamMembers } from "@shared/schema";
+import { db } from "./db";
 import { sendEmail } from "./sendgrid";
 import { getProjectRecommendationsForEmployee, getEmployeeRecommendationsForProject, getSkillGapAnalysis } from "./ai-recommendations";
 import OpenAI from "openai";
@@ -2876,10 +2877,35 @@ Respond with JSON in this exact format:
     }
   });
 
+  // Get available teams for user to join (must come before /api/teams/:id)
+  app.get("/api/teams/available", requireAuth, async (req, res) => {
+    try {
+      const employee = await storage.getEmployeeByUserId(req.user.id);
+      if (!employee) {
+        return res.status(404).json({ error: "Employee profile not found" });
+      }
+      
+      const allTeams = await storage.getAllTeams();
+      const userTeams = await storage.getEmployeeTeams(employee.id);
+      
+      const userTeamIds = userTeams.map(t => t.id);
+      
+      // Filter out teams user is already a member of
+      const availableTeams = allTeams.filter(team => !userTeamIds.includes(team.id));
+      res.json(availableTeams);
+    } catch (error) {
+      console.error("Error fetching available teams:", error);
+      res.status(500).json({ error: "Failed to fetch available teams" });
+    }
+  });
+
   // Get team details
   app.get("/api/teams/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid team ID" });
+      }
       const team = await storage.getTeam(id);
       
       if (!team) {
@@ -3459,6 +3485,74 @@ Respond with JSON in this exact format:
     } catch (error) {
       console.error("Error removing team member:", error);
       res.status(500).json({ error: "Failed to remove team member" });
+    }
+  });
+
+  // User team management endpoints
+  app.get("/api/users/my-teams", requireAuth, async (req, res) => {
+    try {
+      const employee = await storage.getEmployeeByUserId(req.user.id);
+      if (!employee) {
+        return res.status(404).json({ error: "Employee profile not found" });
+      }
+      
+      const teams = await storage.getEmployeeTeams(employee.id);
+      res.json(teams);
+    } catch (error) {
+      console.error("Error fetching user teams:", error);
+      res.status(500).json({ error: "Failed to fetch teams" });
+    }
+  });
+
+  app.post("/api/teams/:teamId/join", requireAuth, async (req, res) => {
+    try {
+      const teamId = parseInt(req.params.teamId);
+      const employee = await storage.getEmployeeByUserId(req.user.id);
+      
+      if (!employee) {
+        return res.status(404).json({ error: "Employee profile not found" });
+      }
+
+      // Add team member directly with explicit values
+      const [newMember] = await db
+        .insert(teamMembers)
+        .values({
+          teamId: teamId,
+          employeeId: employee.id,
+          role: 'member',
+          isActive: true
+        })
+        .returning();
+      
+      if (newMember) {
+        res.json({ message: "Successfully joined team" });
+      } else {
+        res.status(500).json({ error: "Failed to join team" });
+      }
+    } catch (error) {
+      console.error("Error joining team:", error);
+      res.status(500).json({ error: "Failed to join team" });
+    }
+  });
+
+  app.delete("/api/teams/:teamId/leave", requireAuth, async (req, res) => {
+    try {
+      const teamId = parseInt(req.params.teamId);
+      const employee = await storage.getEmployeeByUserId(req.user.id);
+      
+      if (!employee) {
+        return res.status(404).json({ error: "Employee profile not found" });
+      }
+
+      const success = await storage.removeTeamMember(teamId, employee.id);
+      if (success) {
+        res.json({ message: "Successfully left team" });
+      } else {
+        res.status(500).json({ error: "Failed to leave team" });
+      }
+    } catch (error) {
+      console.error("Error leaving team:", error);
+      res.status(500).json({ error: "Failed to leave team" });
     }
   });
 
