@@ -25,6 +25,8 @@ export default function TeamManagement() {
   console.log("=== About to fetch managed teams from /api/team-manager/my-teams ===");
   const { data: managedTeams, isLoading: teamsLoading } = useQuery({
     queryKey: ["/api/team-manager/my-teams"],
+    staleTime: 0, // Always fetch fresh data
+    cacheTime: 0, // Don't cache results
   });
 
   // Fetch team members for selected team

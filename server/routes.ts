@@ -3247,10 +3247,14 @@ Respond with JSON in this exact format:
 
   // Get teams managed by current user
   app.get("/api/team-manager/my-teams", authMiddleware, requireTeamManagerOrAdmin, async (req: any, res) => {
+    console.log(`=== TEAM MANAGER MY-TEAMS API CALLED ===`);
+    console.log(`Request received at ${new Date().toISOString()}`);
+    
     try {
       const employee = await storage.getEmployeeByUserId(req.user.id);
       
       if (!employee) {
+        console.log(`ERROR: Employee profile not found for user ${req.user.id}`);
         return res.status(404).json({ error: "Employee profile not found" });
       }
 
