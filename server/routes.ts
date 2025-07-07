@@ -3259,9 +3259,13 @@ Respond with JSON in this exact format:
         return res.status(400).json({ error: "Employee ID is required" });
       }
 
-      const success = await storage.addTeamMember(teamId, employeeId, role);
+      const member = await storage.addTeamMember({
+        teamId,
+        employeeId,
+        role
+      });
       
-      if (!success) {
+      if (!member) {
         return res.status(400).json({ error: "Failed to add team member. Member may already exist in team." });
       }
 
@@ -3521,9 +3525,13 @@ Respond with JSON in this exact format:
       const teamId = parseInt(req.params.teamId);
       const { employeeId, role = 'member' } = req.body;
 
-      const success = await storage.addTeamMember(teamId, employeeId, role);
+      const member = await storage.addTeamMember({
+        teamId,
+        employeeId,
+        role
+      });
       
-      if (!success) {
+      if (!member) {
         return res.status(400).json({ error: "Failed to add team member" });
       }
 
