@@ -49,6 +49,8 @@ export default function Admin() {
   const [editTeamDescription, setEditTeamDescription] = useState("");
   const [editTeamExpertiseAreas, setEditTeamExpertiseAreas] = useState("");
   const [editTeamVisibility, setEditTeamVisibility] = useState("public");
+  const [currentTeamMembers, setCurrentTeamMembers] = useState<any[]>([]);
+  const [editSelectedMembers, setEditSelectedMembers] = useState<number[]>([]);
 
   // Fetch admin data
   const { data: users = [], isLoading: usersLoading } = useQuery({
@@ -78,6 +80,18 @@ export default function Admin() {
   // For team member selection, we should show all users, not just employees with profiles
   const { data: allUsersForTeams = [], isLoading: allUsersLoading } = useQuery({
     queryKey: ['/api/admin/users-for-teams']
+  });
+
+  // Fetch current team members when editing a team
+  const { data: teamDetails, refetch: refetchTeamDetails } = useQuery({
+    queryKey: ['/api/teams', editingTeam?.id],
+    enabled: !!editingTeam,
+    onSuccess: (data: any) => {
+      if (data && data.members) {
+        setCurrentTeamMembers(data.members);
+        setEditSelectedMembers(data.members.map((m: any) => m.employeeId));
+      }
+    }
   });
 
   // Admin mutations
@@ -162,13 +176,16 @@ export default function Admin() {
   });
 
   const updateTeamMutation = useMutation({
-    mutationFn: async (teamData: { id: number; name: string; description: string; expertiseAreas: string[]; visibility: string }) => {
+    mutationFn: async (teamData: { id: number; name: string; description: string; expertiseAreas: string[]; visibility: string; members?: number[] }) => {
       return await apiRequest(`/api/admin/teams/${teamData.id}`, 'PUT', teamData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/teams'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/teams', editingTeam?.id] });
       setEditingTeam(null);
       setActiveTab("teams");
+      setCurrentTeamMembers([]);
+      setEditSelectedMembers([]);
       toast({ title: "Success", description: "Team updated successfully" });
     },
     onError: (error) => {
@@ -522,6 +539,8 @@ export default function Admin() {
                                 setEditTeamDescription(team.description);
                                 setEditTeamExpertiseAreas(team.specialties?.join(', ') || '');
                                 setEditTeamVisibility(team.visibility || 'public');
+                                setCurrentTeamMembers([]);
+                                setEditSelectedMembers([]);
                                 setActiveTab("edit-team");
                               }}
                             >
@@ -728,6 +747,94 @@ export default function Admin() {
                     </div>
                   </div>
                 </div>
+
+                {/* Member Management Section */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-base font-semibold">Team Members</Label>
+                    <Badge variant="secondary">
+                      {editSelectedMembers.length} selected
+                    </Badge>
+                  </div>
+                  
+                  {/* Current Members */}
+                  {currentTeamMembers.length > 0 && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-muted-foreground">Current Members</Label>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {currentTeamMembers.map((member: any) => (
+                          <div key={member.employeeId} className="flex items-center justify-between p-2 border rounded-lg bg-muted/30">
+                            <div className="flex items-center space-x-2">
+                              <span className="text-sm font-medium">{member.employee?.name || 'Unknown'}</span>
+                              <Badge variant="outline" className="text-xs">
+                                {member.role}
+                              </Badge>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setEditSelectedMembers(editSelectedMembers.filter(id => id !== member.employeeId));
+                              }}
+                              className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                            >
+                              ×
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Add New Members */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-muted-foreground">Add New Members</Label>
+                    <div className="border rounded-lg p-3 max-h-48 overflow-y-auto bg-background">
+                      {allUsersLoading ? (
+                        <div className="text-center py-4 text-muted-foreground">Loading users...</div>
+                      ) : allUsersForTeams.length === 0 ? (
+                        <div className="text-center py-4 text-muted-foreground">No users available</div>
+                      ) : (
+                        <div className="space-y-2">
+                          {(allUsersForTeams as any[])
+                            .filter(user => !editSelectedMembers.includes(user.id))
+                            .map((user) => (
+                            <div key={user.id} className="flex items-center space-x-2 p-1 hover:bg-muted/50 rounded">
+                              <input
+                                type="checkbox"
+                                id={`edit-member-${user.id}`}
+                                checked={editSelectedMembers.includes(user.id)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setEditSelectedMembers([...editSelectedMembers, user.id]);
+                                  } else {
+                                    setEditSelectedMembers(editSelectedMembers.filter(id => id !== user.id));
+                                  }
+                                }}
+                                className="rounded border-gray-300"
+                              />
+                              <label 
+                                htmlFor={`edit-member-${user.id}`}
+                                className="flex-1 text-sm cursor-pointer flex items-center justify-between"
+                              >
+                                <div>
+                                  <span className="font-medium">{user.name}</span>
+                                  <span className="text-muted-foreground ml-2">({user.email})</span>
+                                </div>
+                                <div className="text-xs">
+                                  <Badge variant={user.hasEmployeeProfile ? "default" : "secondary"} className="text-xs">
+                                    {user.hasEmployeeProfile ? "Employee" : "User"}
+                                  </Badge>
+                                </div>
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
                 <div className="flex justify-between">
                   <Button 
                     variant="outline"
@@ -750,7 +857,8 @@ export default function Admin() {
                         name: editTeamName,
                         description: editTeamDescription,
                         expertiseAreas,
-                        visibility: editTeamVisibility
+                        visibility: editTeamVisibility,
+                        members: editSelectedMembers
                       });
                     }}
                     disabled={updateTeamMutation.isPending}

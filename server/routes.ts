@@ -3099,7 +3099,7 @@ Respond with JSON in this exact format:
   app.put("/api/admin/teams/:id", authMiddleware, requireAdminRole, async (req: any, res) => {
     try {
       const teamId = parseInt(req.params.id);
-      const { name, description, expertiseAreas = [], visibility = 'public' } = req.body;
+      const { name, description, expertiseAreas = [], visibility = 'public', members = [] } = req.body;
 
       // Validate required fields
       if (!name || !description) {
@@ -3117,13 +3117,39 @@ Respond with JSON in this exact format:
         return res.status(404).json({ error: "Team not found" });
       }
 
+      // Update team members if provided
+      if (members && members.length >= 0) {
+        // Get current team members
+        const currentMembers = await storage.getTeamMembers(teamId);
+        const currentMemberIds = currentMembers.map(m => m.employeeId);
+        
+        // Remove members not in the new list
+        for (const memberId of currentMemberIds) {
+          if (!members.includes(memberId)) {
+            await storage.removeTeamMember(teamId, memberId);
+          }
+        }
+        
+        // Add new members
+        for (const memberId of members) {
+          if (!currentMemberIds.includes(memberId)) {
+            await storage.addTeamMember({
+              teamId,
+              employeeId: memberId,
+              role: 'member',
+              isActive: true
+            });
+          }
+        }
+      }
+
       // Log admin action
       await storage.logAdminAction({
         userId: req.user.id,
         action: "team_updated",
         targetType: "team",
         targetId: teamId.toString(),
-        changes: { name, description, expertiseAreas, visibility },
+        changes: { name, description, expertiseAreas, visibility, members },
         ipAddress: req.ip,
         userAgent: req.get('User-Agent')
       });
