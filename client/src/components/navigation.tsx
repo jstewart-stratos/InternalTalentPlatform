@@ -26,9 +26,6 @@ export default function Navigation() {
   const navItems = [
     { path: "/", label: "Talent Directory", active: location === "/" || location === "/skills" || location === "/experts" },
     { path: "/teams", label: "Teams", active: location === "/teams" },
-    ...(isTeamManager || isAdmin ? [
-      { path: "/team-management", label: "Manage Teams", active: location === "/team-management" },
-    ] : []),
     { path: "/projects", label: "Projects Hub", active: location === "/projects" },
     { path: "/marketplace", label: "Marketplace", active: location === "/marketplace" },
     { path: "/skills-gap-analysis", label: "Career Growth", active: location === "/skills-gap-analysis" },
@@ -154,6 +151,14 @@ export default function Navigation() {
                       My Services
                     </Link>
                   </DropdownMenuItem>
+                  {(isTeamManager || isAdmin) && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/team-management" className="flex items-center">
+                        <Users className="h-4 w-4 mr-2" />
+                        My Teams
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
 
                   <DropdownMenuItem onClick={handleLogout} className="flex items-center text-red-600">
                     <LogOut className="h-4 w-4 mr-2" />
@@ -241,6 +246,16 @@ export default function Navigation() {
                     <Briefcase className="h-5 w-5 mr-3" />
                     My Services
                   </Link>
+                  {(isTeamManager || isAdmin) && (
+                    <Link
+                      href="/team-management"
+                      onClick={closeMobileMenu}
+                      className="flex items-center px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                    >
+                      <Users className="h-5 w-5 mr-3" />
+                      My Teams
+                    </Link>
+                  )}
 
                   <button
                     onClick={() => {
