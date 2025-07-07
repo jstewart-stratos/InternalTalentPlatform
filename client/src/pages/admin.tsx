@@ -68,6 +68,11 @@ export default function Admin() {
     queryKey: ['/api/employees']
   });
 
+  // For team member selection, we should show all users, not just employees with profiles
+  const { data: allUsersForTeams = [], isLoading: allUsersLoading } = useQuery({
+    queryKey: ['/api/admin/users-for-teams']
+  });
+
   // Admin mutations
   const updateUserRoleMutation = useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
@@ -553,33 +558,41 @@ export default function Admin() {
               <div className="space-y-4">
                 <Label>Team Members (Optional)</Label>
                 <div className="border rounded-lg p-4 max-h-64 overflow-y-auto">
-                  {employeesLoading ? (
-                    <div className="text-center py-4 text-muted-foreground">Loading employees...</div>
-                  ) : employees.length === 0 ? (
-                    <div className="text-center py-4 text-muted-foreground">No employees available</div>
+                  {allUsersLoading ? (
+                    <div className="text-center py-4 text-muted-foreground">Loading users...</div>
+                  ) : allUsersForTeams.length === 0 ? (
+                    <div className="text-center py-4 text-muted-foreground">No users available</div>
                   ) : (
                     <div className="space-y-2">
-                      {(employees as any[]).map((employee) => (
-                        <div key={employee.id} className="flex items-center space-x-2">
+                      {(allUsersForTeams as any[]).map((user) => (
+                        <div key={user.id} className="flex items-center space-x-2">
                           <input
                             type="checkbox"
-                            id={`member-${employee.id}`}
-                            checked={selectedTeamMembers.includes(employee.id)}
+                            id={`member-${user.id}`}
+                            checked={selectedTeamMembers.includes(user.id)}
                             onChange={(e) => {
                               if (e.target.checked) {
-                                setSelectedTeamMembers([...selectedTeamMembers, employee.id]);
+                                setSelectedTeamMembers([...selectedTeamMembers, user.id]);
                               } else {
-                                setSelectedTeamMembers(selectedTeamMembers.filter(id => id !== employee.id));
+                                setSelectedTeamMembers(selectedTeamMembers.filter(id => id !== user.id));
                               }
                             }}
                             className="rounded border-gray-300"
                           />
                           <label 
-                            htmlFor={`member-${employee.id}`}
+                            htmlFor={`member-${user.id}`}
                             className="flex-1 text-sm cursor-pointer"
                           >
-                            <div className="font-medium">{employee.name}</div>
-                            <div className="text-muted-foreground text-xs">{employee.title} • {employee.skills?.slice(0, 3).join(', ')}</div>
+                            <div className="font-medium">
+                              {user.name}
+                              {!user.hasEmployeeProfile && (
+                                <span className="ml-2 text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">No Profile</span>
+                              )}
+                            </div>
+                            <div className="text-muted-foreground text-xs">
+                              {user.title} • {user.email}
+                              {user.skills?.length > 0 && ` • ${user.skills.slice(0, 3).join(', ')}`}
+                            </div>
                           </label>
                         </div>
                       ))}
