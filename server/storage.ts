@@ -1,4 +1,4 @@
-import { employees, skillEndorsements, skillSearches, projects, projectApplications, users, siteSettings, adminAuditLog, userPermissions, expertiseRequests, skillExpertise, employeeSkills, serviceCategories, professionalServices, serviceBookings, serviceReviews, servicePortfolios, savedSkillRecommendations, learningPathCache, learningStepCompletions, devLogoutState, type Employee, type InsertEmployee, type SkillEndorsement, type InsertSkillEndorsement, type Project, type InsertProject, type ProjectApplication, type InsertProjectApplication, type User, type UpsertUser, type SiteSetting, type InsertSiteSetting, type AuditLog, type InsertAuditLog, type UserPermission, type InsertUserPermission, type ExpertiseRequest, type InsertExpertiseRequest, type SkillExpertise, type InsertSkillExpertise, type EmployeeSkill, type InsertEmployeeSkill, type ServiceCategory, type InsertServiceCategory, type ProfessionalService, type InsertProfessionalService, type ServiceBooking, type InsertServiceBooking, type ServiceReview, type InsertServiceReview, type ServicePortfolio, type InsertServicePortfolio, type SavedSkillRecommendation, type InsertSavedSkillRecommendation, type LearningPathCache, type InsertLearningPathCache } from "@shared/schema";
+import { employees, skillEndorsements, skillSearches, projects, projectApplications, users, siteSettings, adminAuditLog, userPermissions, expertiseRequests, skillExpertise, employeeSkills, teams, teamMembers, teamServiceCategories, serviceCategories, professionalServices, serviceBookings, serviceReviews, servicePortfolios, savedSkillRecommendations, learningPathCache, learningStepCompletions, devLogoutState, type Employee, type InsertEmployee, type SkillEndorsement, type InsertSkillEndorsement, type Project, type InsertProject, type ProjectApplication, type InsertProjectApplication, type User, type UpsertUser, type SiteSetting, type InsertSiteSetting, type AuditLog, type InsertAuditLog, type UserPermission, type InsertUserPermission, type ExpertiseRequest, type InsertExpertiseRequest, type SkillExpertise, type InsertSkillExpertise, type EmployeeSkill, type InsertEmployeeSkill, type Team, type InsertTeam, type TeamMember, type InsertTeamMember, type TeamServiceCategory, type InsertTeamServiceCategory, type ServiceCategory, type InsertServiceCategory, type ProfessionalService, type InsertProfessionalService, type ServiceBooking, type InsertServiceBooking, type ServiceReview, type InsertServiceReview, type ServicePortfolio, type InsertServicePortfolio, type SavedSkillRecommendation, type InsertSavedSkillRecommendation, type LearningPathCache, type InsertLearningPathCache } from "@shared/schema";
 import { db } from "./db";
 import { eq, or, and, ilike, sql, desc } from "drizzle-orm";
 
@@ -117,6 +117,32 @@ export interface IStorage {
   
   // Service bookings
   createServiceBooking(booking: InsertServiceBooking): Promise<ServiceBooking>;
+
+  // Team management methods
+  createTeam(team: InsertTeam): Promise<Team>;
+  getTeam(id: number): Promise<Team | undefined>;
+  getTeamsByMember(employeeId: number): Promise<Team[]>;
+  getAllTeams(): Promise<Team[]>;
+  updateTeam(id: number, team: Partial<InsertTeam>): Promise<Team | undefined>;
+  deleteTeam(id: number): Promise<boolean>;
+  
+  // Team member management
+  addTeamMember(member: InsertTeamMember): Promise<TeamMember>;
+  removeTeamMember(teamId: number, employeeId: number): Promise<boolean>;
+  getTeamMembers(teamId: number): Promise<TeamMember[]>;
+  getTeamMembersByEmployee(employeeId: number): Promise<TeamMember[]>;
+  updateTeamMemberRole(teamId: number, employeeId: number, role: string): Promise<TeamMember | undefined>;
+  approveTeamMember(teamId: number, employeeId: number, approvedBy: number): Promise<TeamMember | undefined>;
+  
+  // Team service categories
+  createTeamServiceCategory(category: InsertTeamServiceCategory): Promise<TeamServiceCategory>;
+  getTeamServiceCategories(teamId: number): Promise<TeamServiceCategory[]>;
+  updateTeamServiceCategory(id: number, category: Partial<InsertTeamServiceCategory>): Promise<TeamServiceCategory | undefined>;
+  deleteTeamServiceCategory(id: number): Promise<boolean>;
+  
+  // Team services
+  getProfessionalServicesByTeam(teamId: number): Promise<ProfessionalService[]>;
+  searchTeamServices(query?: string, teamId?: number, categoryId?: number): Promise<ProfessionalService[]>;
 
   // Saved skill recommendations methods
   saveSkillRecommendation(recommendation: InsertSavedSkillRecommendation): Promise<SavedSkillRecommendation>;
@@ -1284,6 +1310,220 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.log('[AUTH] Error setting logout state:', error);
     }
+  }
+
+  // Team management methods
+  async createTeam(insertTeam: InsertTeam): Promise<Team> {
+    const [team] = await db
+      .insert(teams)
+      .values(insertTeam)
+      .returning();
+    return team;
+  }
+
+  async getTeam(id: number): Promise<Team | undefined> {
+    const [team] = await db
+      .select()
+      .from(teams)
+      .where(eq(teams.id, id));
+    return team;
+  }
+
+  async getTeamsByMember(employeeId: number): Promise<Team[]> {
+    return await db
+      .select({
+        id: teams.id,
+        name: teams.name,
+        description: teams.description,
+        profileImage: teams.profileImage,
+        website: teams.website,
+        specialties: teams.specialties,
+        isActive: teams.isActive,
+        createdBy: teams.createdBy,
+        createdAt: teams.createdAt,
+        updatedAt: teams.updatedAt,
+      })
+      .from(teams)
+      .innerJoin(teamMembers, eq(teams.id, teamMembers.teamId))
+      .where(and(
+        eq(teamMembers.employeeId, employeeId),
+        eq(teamMembers.isActive, true),
+        eq(teams.isActive, true)
+      ));
+  }
+
+  async getAllTeams(): Promise<Team[]> {
+    return await db
+      .select()
+      .from(teams)
+      .where(eq(teams.isActive, true))
+      .orderBy(teams.name);
+  }
+
+  async updateTeam(id: number, insertTeam: Partial<InsertTeam>): Promise<Team | undefined> {
+    const [team] = await db
+      .update(teams)
+      .set({ ...insertTeam, updatedAt: new Date() })
+      .where(eq(teams.id, id))
+      .returning();
+    return team;
+  }
+
+  async deleteTeam(id: number): Promise<boolean> {
+    const [result] = await db
+      .update(teams)
+      .set({ isActive: false, updatedAt: new Date() })
+      .where(eq(teams.id, id))
+      .returning({ id: teams.id });
+    return !!result;
+  }
+
+  // Team member management
+  async addTeamMember(insertMember: InsertTeamMember): Promise<TeamMember> {
+    const [member] = await db
+      .insert(teamMembers)
+      .values(insertMember)
+      .returning();
+    return member;
+  }
+
+  async removeTeamMember(teamId: number, employeeId: number): Promise<boolean> {
+    const [result] = await db
+      .update(teamMembers)
+      .set({ isActive: false })
+      .where(and(
+        eq(teamMembers.teamId, teamId),
+        eq(teamMembers.employeeId, employeeId)
+      ))
+      .returning({ id: teamMembers.id });
+    return !!result;
+  }
+
+  async getTeamMembers(teamId: number): Promise<TeamMember[]> {
+    return await db
+      .select()
+      .from(teamMembers)
+      .where(and(
+        eq(teamMembers.teamId, teamId),
+        eq(teamMembers.isActive, true)
+      ))
+      .orderBy(teamMembers.joinedAt);
+  }
+
+  async getTeamMembersByEmployee(employeeId: number): Promise<TeamMember[]> {
+    return await db
+      .select()
+      .from(teamMembers)
+      .where(and(
+        eq(teamMembers.employeeId, employeeId),
+        eq(teamMembers.isActive, true)
+      ))
+      .orderBy(teamMembers.joinedAt);
+  }
+
+  async updateTeamMemberRole(teamId: number, employeeId: number, role: string): Promise<TeamMember | undefined> {
+    const [member] = await db
+      .update(teamMembers)
+      .set({ role })
+      .where(and(
+        eq(teamMembers.teamId, teamId),
+        eq(teamMembers.employeeId, employeeId)
+      ))
+      .returning();
+    return member;
+  }
+
+  async approveTeamMember(teamId: number, employeeId: number, approvedBy: number): Promise<TeamMember | undefined> {
+    const [member] = await db
+      .update(teamMembers)
+      .set({ 
+        approvedBy,
+        approvedAt: new Date(),
+        isActive: true
+      })
+      .where(and(
+        eq(teamMembers.teamId, teamId),
+        eq(teamMembers.employeeId, employeeId)
+      ))
+      .returning();
+    return member;
+  }
+
+  // Team service categories
+  async createTeamServiceCategory(insertCategory: InsertTeamServiceCategory): Promise<TeamServiceCategory> {
+    const [category] = await db
+      .insert(teamServiceCategories)
+      .values(insertCategory)
+      .returning();
+    return category;
+  }
+
+  async getTeamServiceCategories(teamId: number): Promise<TeamServiceCategory[]> {
+    return await db
+      .select()
+      .from(teamServiceCategories)
+      .where(and(
+        eq(teamServiceCategories.teamId, teamId),
+        eq(teamServiceCategories.isActive, true)
+      ))
+      .orderBy(teamServiceCategories.name);
+  }
+
+  async updateTeamServiceCategory(id: number, insertCategory: Partial<InsertTeamServiceCategory>): Promise<TeamServiceCategory | undefined> {
+    const [category] = await db
+      .update(teamServiceCategories)
+      .set(insertCategory)
+      .where(eq(teamServiceCategories.id, id))
+      .returning();
+    return category;
+  }
+
+  async deleteTeamServiceCategory(id: number): Promise<boolean> {
+    const [result] = await db
+      .update(teamServiceCategories)
+      .set({ isActive: false })
+      .where(eq(teamServiceCategories.id, id))
+      .returning({ id: teamServiceCategories.id });
+    return !!result;
+  }
+
+  // Team services
+  async getProfessionalServicesByTeam(teamId: number): Promise<ProfessionalService[]> {
+    return await db
+      .select()
+      .from(professionalServices)
+      .where(and(
+        eq(professionalServices.teamId, teamId),
+        eq(professionalServices.isActive, true)
+      ))
+      .orderBy(professionalServices.createdAt);
+  }
+
+  async searchTeamServices(query?: string, teamId?: number, categoryId?: number): Promise<ProfessionalService[]> {
+    let whereConditions = [eq(professionalServices.isActive, true)];
+    
+    if (teamId) {
+      whereConditions.push(eq(professionalServices.teamId, teamId));
+    }
+    
+    if (categoryId) {
+      whereConditions.push(eq(professionalServices.teamCategoryId, categoryId));
+    }
+    
+    if (query) {
+      whereConditions.push(
+        or(
+          sql`${professionalServices.title} ILIKE ${`%${query}%`}`,
+          sql`${professionalServices.description} ILIKE ${`%${query}%`}`
+        )
+      );
+    }
+
+    return await db
+      .select()
+      .from(professionalServices)
+      .where(and(...whereConditions))
+      .orderBy(professionalServices.createdAt);
   }
 
 }

@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertEmployeeSchema, insertSkillEndorsementSchema, insertProjectSchema, insertSiteSettingSchema, insertAuditLogSchema, insertUserPermissionSchema, insertServiceCategorySchema, insertProfessionalServiceSchema, insertServiceBookingSchema, insertServiceReviewSchema, insertServicePortfolioSchema, insertSavedSkillRecommendationSchema } from "@shared/schema";
+import { insertEmployeeSchema, insertSkillEndorsementSchema, insertProjectSchema, insertSiteSettingSchema, insertAuditLogSchema, insertUserPermissionSchema, insertTeamSchema, insertTeamMemberSchema, insertTeamServiceCategorySchema, insertServiceCategorySchema, insertProfessionalServiceSchema, insertServiceBookingSchema, insertServiceReviewSchema, insertServicePortfolioSchema, insertSavedSkillRecommendationSchema } from "@shared/schema";
 import { sendEmail } from "./sendgrid";
 import { getProjectRecommendationsForEmployee, getEmployeeRecommendationsForProject, getSkillGapAnalysis } from "./ai-recommendations";
 import OpenAI from "openai";
@@ -2768,6 +2768,327 @@ Respond with JSON in this exact format:
       } else {
         res.status(500).json({ error: "Failed to delete service category" });
       }
+    }
+  });
+
+  // Team Management Routes
+  
+  // Get all teams
+  app.get("/api/teams", async (req, res) => {
+    try {
+      const teams = await storage.getAllTeams();
+      res.json(teams);
+    } catch (error) {
+      console.error("Error fetching teams:", error);
+      res.status(500).json({ error: "Failed to fetch teams" });
+    }
+  });
+
+  // Get teams by member
+  app.get("/api/teams/member/:employeeId", async (req, res) => {
+    try {
+      const employeeId = parseInt(req.params.employeeId);
+      const teams = await storage.getTeamsByMember(employeeId);
+      res.json(teams);
+    } catch (error) {
+      console.error("Error fetching teams by member:", error);
+      res.status(500).json({ error: "Failed to fetch teams" });
+    }
+  });
+
+  // Get team details
+  app.get("/api/teams/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const team = await storage.getTeam(id);
+      
+      if (!team) {
+        return res.status(404).json({ error: "Team not found" });
+      }
+      
+      // Get team members with employee details
+      const members = await storage.getTeamMembers(id);
+      const teamServices = await storage.getProfessionalServicesByTeam(id);
+      const serviceCategories = await storage.getTeamServiceCategories(id);
+      
+      res.json({
+        ...team,
+        members,
+        services: teamServices,
+        serviceCategories
+      });
+    } catch (error) {
+      console.error("Error fetching team:", error);
+      res.status(500).json({ error: "Failed to fetch team" });
+    }
+  });
+
+  // Create team (Admin only)
+  app.post("/api/teams", authMiddleware, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const validatedData = insertTeamSchema.parse({
+        ...req.body,
+        createdBy: req.user.claims.sub
+      });
+      
+      const team = await storage.createTeam(validatedData);
+      res.status(201).json(team);
+    } catch (error) {
+      console.error("Error creating team:", error);
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: "Invalid team data", details: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to create team" });
+      }
+    }
+  });
+
+  // Update team (Admin or Team Leader)
+  app.put("/api/teams/:id", authMiddleware, async (req: any, res) => {
+    try {
+      const teamId = parseInt(req.params.id);
+      const user = await storage.getUser(req.user.claims.sub);
+      const employee = await storage.getEmployeeByUserId(req.user.claims.sub);
+      
+      if (!employee) {
+        return res.status(404).json({ error: "Employee profile not found" });
+      }
+
+      // Check if user is admin or team leader
+      let hasPermission = user?.role === 'admin';
+      if (!hasPermission) {
+        const teamMembers = await storage.getTeamMembers(teamId);
+        const userMembership = teamMembers.find(m => m.employeeId === employee.id);
+        hasPermission = userMembership?.role === 'leader';
+      }
+
+      if (!hasPermission) {
+        return res.status(403).json({ error: "Admin or team leader access required" });
+      }
+
+      const validatedData = insertTeamSchema.partial().parse(req.body);
+      const team = await storage.updateTeam(teamId, validatedData);
+      
+      if (!team) {
+        return res.status(404).json({ error: "Team not found" });
+      }
+      
+      res.json(team);
+    } catch (error) {
+      console.error("Error updating team:", error);
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: "Invalid team data", details: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to update team" });
+      }
+    }
+  });
+
+  // Join team (request membership)
+  app.post("/api/teams/:id/join", authMiddleware, async (req: any, res) => {
+    try {
+      const teamId = parseInt(req.params.id);
+      const employee = await storage.getEmployeeByUserId(req.user.claims.sub);
+      
+      if (!employee) {
+        return res.status(404).json({ error: "Employee profile not found" });
+      }
+
+      const memberData = {
+        teamId,
+        employeeId: employee.id,
+        role: 'member',
+        isActive: false // Requires approval
+      };
+      
+      const member = await storage.addTeamMember(memberData);
+      res.status(201).json(member);
+    } catch (error) {
+      console.error("Error joining team:", error);
+      res.status(500).json({ error: "Failed to join team" });
+    }
+  });
+
+  // Approve team member (Admin or Team Leader)
+  app.post("/api/teams/:teamId/members/:employeeId/approve", authMiddleware, async (req: any, res) => {
+    try {
+      const teamId = parseInt(req.params.teamId);
+      const employeeId = parseInt(req.params.employeeId);
+      const user = await storage.getUser(req.user.claims.sub);
+      const approver = await storage.getEmployeeByUserId(req.user.claims.sub);
+      
+      if (!approver) {
+        return res.status(404).json({ error: "Employee profile not found" });
+      }
+
+      // Check if user is admin or team leader
+      let hasPermission = user?.role === 'admin';
+      if (!hasPermission) {
+        const teamMembers = await storage.getTeamMembers(teamId);
+        const userMembership = teamMembers.find(m => m.employeeId === approver.id);
+        hasPermission = userMembership?.role === 'leader';
+      }
+
+      if (!hasPermission) {
+        return res.status(403).json({ error: "Admin or team leader access required" });
+      }
+
+      const member = await storage.approveTeamMember(teamId, employeeId, approver.id);
+      
+      if (!member) {
+        return res.status(404).json({ error: "Team member not found" });
+      }
+      
+      res.json(member);
+    } catch (error) {
+      console.error("Error approving team member:", error);
+      res.status(500).json({ error: "Failed to approve team member" });
+    }
+  });
+
+  // Update team member role (Admin or Team Leader)
+  app.put("/api/teams/:teamId/members/:employeeId/role", authMiddleware, async (req: any, res) => {
+    try {
+      const teamId = parseInt(req.params.teamId);
+      const employeeId = parseInt(req.params.employeeId);
+      const { role } = req.body;
+      const user = await storage.getUser(req.user.claims.sub);
+      const updater = await storage.getEmployeeByUserId(req.user.claims.sub);
+      
+      if (!updater) {
+        return res.status(404).json({ error: "Employee profile not found" });
+      }
+
+      // Check if user is admin or team leader
+      let hasPermission = user?.role === 'admin';
+      if (!hasPermission) {
+        const teamMembers = await storage.getTeamMembers(teamId);
+        const userMembership = teamMembers.find(m => m.employeeId === updater.id);
+        hasPermission = userMembership?.role === 'leader';
+      }
+
+      if (!hasPermission) {
+        return res.status(403).json({ error: "Admin or team leader access required" });
+      }
+
+      const member = await storage.updateTeamMemberRole(teamId, employeeId, role);
+      
+      if (!member) {
+        return res.status(404).json({ error: "Team member not found" });
+      }
+      
+      res.json(member);
+    } catch (error) {
+      console.error("Error updating team member role:", error);
+      res.status(500).json({ error: "Failed to update team member role" });
+    }
+  });
+
+  // Remove team member
+  app.delete("/api/teams/:teamId/members/:employeeId", authMiddleware, async (req: any, res) => {
+    try {
+      const teamId = parseInt(req.params.teamId);
+      const employeeId = parseInt(req.params.employeeId);
+      const user = await storage.getUser(req.user.claims.sub);
+      const remover = await storage.getEmployeeByUserId(req.user.claims.sub);
+      
+      if (!remover) {
+        return res.status(404).json({ error: "Employee profile not found" });
+      }
+
+      // Check if user is admin, team leader, or removing themselves
+      let hasPermission = user?.role === 'admin' || remover.id === employeeId;
+      if (!hasPermission) {
+        const teamMembers = await storage.getTeamMembers(teamId);
+        const userMembership = teamMembers.find(m => m.employeeId === remover.id);
+        hasPermission = userMembership?.role === 'leader';
+      }
+
+      if (!hasPermission) {
+        return res.status(403).json({ error: "Admin, team leader access, or self-removal required" });
+      }
+
+      const success = await storage.removeTeamMember(teamId, employeeId);
+      
+      if (!success) {
+        return res.status(404).json({ error: "Team member not found" });
+      }
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error removing team member:", error);
+      res.status(500).json({ error: "Failed to remove team member" });
+    }
+  });
+
+  // Team Service Categories
+  
+  // Get team service categories
+  app.get("/api/teams/:id/service-categories", async (req, res) => {
+    try {
+      const teamId = parseInt(req.params.id);
+      const categories = await storage.getTeamServiceCategories(teamId);
+      res.json(categories);
+    } catch (error) {
+      console.error("Error fetching team service categories:", error);
+      res.status(500).json({ error: "Failed to fetch team service categories" });
+    }
+  });
+
+  // Create team service category (Team Leader or Admin)
+  app.post("/api/teams/:id/service-categories", authMiddleware, async (req: any, res) => {
+    try {
+      const teamId = parseInt(req.params.id);
+      const user = await storage.getUser(req.user.claims.sub);
+      const employee = await storage.getEmployeeByUserId(req.user.claims.sub);
+      
+      if (!employee) {
+        return res.status(404).json({ error: "Employee profile not found" });
+      }
+
+      // Check if user is admin or team leader
+      let hasPermission = user?.role === 'admin';
+      if (!hasPermission) {
+        const teamMembers = await storage.getTeamMembers(teamId);
+        const userMembership = teamMembers.find(m => m.employeeId === employee.id);
+        hasPermission = userMembership?.role === 'leader';
+      }
+
+      if (!hasPermission) {
+        return res.status(403).json({ error: "Admin or team leader access required" });
+      }
+
+      const validatedData = insertTeamServiceCategorySchema.parse({
+        ...req.body,
+        teamId
+      });
+      
+      const category = await storage.createTeamServiceCategory(validatedData);
+      res.status(201).json(category);
+    } catch (error) {
+      console.error("Error creating team service category:", error);
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: "Invalid category data", details: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to create team service category" });
+      }
+    }
+  });
+
+  // Get team services
+  app.get("/api/teams/:id/services", async (req, res) => {
+    try {
+      const teamId = parseInt(req.params.id);
+      const services = await storage.getProfessionalServicesByTeam(teamId);
+      res.json(services);
+    } catch (error) {
+      console.error("Error fetching team services:", error);
+      res.status(500).json({ error: "Failed to fetch team services" });
     }
   });
 

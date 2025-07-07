@@ -125,6 +125,42 @@ export const userPermissions = pgTable("user_permissions", {
   grantedAt: timestamp("granted_at").defaultNow(),
 });
 
+// Teams table
+export const teams = pgTable("teams", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  description: text("description"),
+  profileImage: text("profile_image"),
+  website: text("website"),
+  specialties: text("specialties").array().default([]),
+  isActive: boolean("is_active").default(true),
+  createdBy: varchar("created_by").references(() => users.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Team members table
+export const teamMembers = pgTable("team_members", {
+  id: serial("id").primaryKey(),
+  teamId: integer("team_id").references(() => teams.id).notNull(),
+  employeeId: integer("employee_id").references(() => employees.id).notNull(),
+  role: text("role").default("member"), // leader, member
+  joinedAt: timestamp("joined_at").defaultNow().notNull(),
+  isActive: boolean("is_active").default(true),
+  approvedBy: integer("approved_by").references(() => employees.id),
+  approvedAt: timestamp("approved_at"),
+});
+
+// Team service categories
+export const teamServiceCategories = pgTable("team_service_categories", {
+  id: serial("id").primaryKey(),
+  teamId: integer("team_id").references(() => teams.id).notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 
 
 export const expertiseRequests = pgTable("expertise_requests", {
@@ -344,10 +380,13 @@ export const serviceCategories = pgTable("service_categories", {
 export const professionalServices = pgTable("professional_services", {
   id: serial("id").primaryKey(),
   providerId: integer("provider_id").notNull().references(() => employees.id),
+  teamId: integer("team_id").references(() => teams.id), // Optional: service offered by team
+  teamCategoryId: integer("team_category_id").references(() => teamServiceCategories.id), // Team-specific categories
   categoryId: integer("category_id").notNull().references(() => serviceCategories.id),
   title: text("title").notNull(),
   description: text("description").notNull(),
   shortDescription: text("short_description"), // Brief summary for cards
+  serviceType: text("service_type").notNull().default("individual"), // individual, team
   
   // Pricing structure
   pricingType: text("pricing_type").notNull().default("hourly"), // hourly, fixed, consultation, package
@@ -517,6 +556,24 @@ export const insertServicePortfolioSchema = createInsertSchema(servicePortfolios
   updatedAt: true,
 });
 
+// Team schemas
+export const insertTeamSchema = createInsertSchema(teams).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertTeamMemberSchema = createInsertSchema(teamMembers).omit({
+  id: true,
+  joinedAt: true,
+  approvedAt: true,
+});
+
+export const insertTeamServiceCategorySchema = createInsertSchema(teamServiceCategories).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type InsertServiceCategory = z.infer<typeof insertServiceCategorySchema>;
 export type ServiceCategory = typeof serviceCategories.$inferSelect;
@@ -528,6 +585,14 @@ export type InsertServiceReview = z.infer<typeof insertServiceReviewSchema>;
 export type ServiceReview = typeof serviceReviews.$inferSelect;
 export type InsertServicePortfolio = z.infer<typeof insertServicePortfolioSchema>;
 export type ServicePortfolio = typeof servicePortfolios.$inferSelect;
+
+// Team types
+export type InsertTeam = z.infer<typeof insertTeamSchema>;
+export type Team = typeof teams.$inferSelect;
+export type InsertTeamMember = z.infer<typeof insertTeamMemberSchema>;
+export type TeamMember = typeof teamMembers.$inferSelect;
+export type InsertTeamServiceCategory = z.infer<typeof insertTeamServiceCategorySchema>;
+export type TeamServiceCategory = typeof teamServiceCategories.$inferSelect;
 
 // Development logout state table for proper persistence
 export const devLogoutState = pgTable("dev_logout_state", {
