@@ -3192,6 +3192,32 @@ Respond with JSON in this exact format:
     }
   });
 
+  // Update team member role (Admin version)
+  app.put("/api/admin/teams/:teamId/members/:employeeId/role", authMiddleware, requireAdminRole, async (req: any, res) => {
+    try {
+      const teamId = parseInt(req.params.teamId);
+      const employeeId = parseInt(req.params.employeeId);
+      const { role } = req.body;
+      
+      // Validate role
+      if (!['member', 'manager'].includes(role)) {
+        return res.status(400).json({ error: "Invalid role. Must be 'member' or 'manager'" });
+      }
+
+      // Update team member role
+      const updated = await storage.updateTeamMemberRole(teamId, employeeId, role);
+      
+      if (!updated) {
+        return res.status(404).json({ error: "Team member not found" });
+      }
+
+      res.json({ message: "Team member role updated successfully", role });
+    } catch (error) {
+      console.error("Error updating team member role:", error);
+      res.status(500).json({ error: "Failed to update team member role" });
+    }
+  });
+
   // Admin: Create employee profile for any user
   app.post("/api/admin/employees", authMiddleware, requireAdminRole, async (req, res) => {
     try {

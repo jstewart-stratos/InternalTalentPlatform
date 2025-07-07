@@ -956,9 +956,17 @@ export default function Admin() {
                       if (!user) return null;
                       return (
                         <div key={userId} className="flex items-center justify-between p-1 hover:bg-muted/25 rounded">
-                          <div>
-                            <span className="font-medium text-sm">{user.name}</span>
-                            <span className="text-muted-foreground ml-2 text-xs">({user.email})</span>
+                          <div className="flex items-center gap-2">
+                            <div>
+                              <span className="font-medium text-sm">{user.name}</span>
+                              <span className="text-muted-foreground ml-2 text-xs">({user.email})</span>
+                            </div>
+                            <Badge 
+                              variant={user.role === 'team-manager' ? 'default' : 'outline'} 
+                              className={`text-xs ${user.role === 'team-manager' ? 'bg-[rgb(248,153,59)] hover:bg-[rgb(228,133,39)] text-white' : ''}`}
+                            >
+                              {user.role === 'team-manager' ? 'Team Manager' : 'Member'}
+                            </Badge>
                           </div>
                           <Button
                             size="sm"
@@ -1373,23 +1381,78 @@ export default function Admin() {
                   <div className="border rounded-lg p-2 max-h-32 overflow-y-auto bg-background">
                     {currentTeamMembers.map((member) => {
                       return (
-                        <div key={member.employeeId} className="flex items-center justify-between p-1 hover:bg-muted/25 rounded">
-                          <div>
-                            <span className="font-medium text-sm">{member.employeeName}</span>
-                            <span className="text-muted-foreground ml-2 text-xs">({member.employeeEmail})</span>
-                            <Badge variant="outline" className="ml-2 text-xs">{member.role}</Badge>
+                        <div key={member.employeeId} className="flex items-center justify-between p-2 hover:bg-muted/25 rounded border-b last:border-b-0">
+                          <div className="flex items-center gap-2">
+                            <div>
+                              <span className="font-medium text-sm">{member.employeeName}</span>
+                              <span className="text-muted-foreground ml-2 text-xs">({member.employeeEmail})</span>
+                            </div>
+                            <Badge 
+                              variant={member.role === 'manager' ? 'default' : 'outline'} 
+                              className={`text-xs ${member.role === 'manager' ? 'bg-[rgb(248,153,59)] hover:bg-[rgb(228,133,39)] text-white' : ''}`}
+                            >
+                              {member.role === 'manager' ? 'Team Manager' : 'Member'}
+                            </Badge>
                           </div>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => {
-                              setEditSelectedMembers(editSelectedMembers.filter(id => id !== member.employeeId));
-                              setCurrentTeamMembers(currentTeamMembers.filter(m => m.employeeId !== member.employeeId));
-                            }}
-                            className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
-                          >
-                            ×
-                          </Button>
+                          <div className="flex items-center gap-1">
+                            {/* Role toggle button */}
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={async () => {
+                                const newRole = member.role === 'manager' ? 'member' : 'manager';
+                                try {
+                                  const response = await fetch(`/api/admin/teams/${editingTeam.id}/members/${member.employeeId}/role`, {
+                                    method: 'PUT',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ role: newRole })
+                                  });
+                                  
+                                  if (response.ok) {
+                                    // Update local state
+                                    setCurrentTeamMembers(currentTeamMembers.map(m => 
+                                      m.employeeId === member.employeeId 
+                                        ? { ...m, role: newRole }
+                                        : m
+                                    ));
+                                    toast({
+                                      title: "Success",
+                                      description: `${member.employeeName} is now a ${newRole === 'manager' ? 'team manager' : 'team member'}`,
+                                    });
+                                  } else {
+                                    toast({
+                                      title: "Error",
+                                      description: "Failed to update member role",
+                                      variant: "destructive"
+                                    });
+                                  }
+                                } catch (error) {
+                                  toast({
+                                    title: "Error",
+                                    description: "Failed to update member role",
+                                    variant: "destructive"
+                                  });
+                                }
+                              }}
+                              className="h-6 px-2 text-xs text-muted-foreground hover:text-[rgb(248,153,59)]"
+                              title={member.role === 'manager' ? 'Demote to Member' : 'Promote to Manager'}
+                            >
+                              {member.role === 'manager' ? '↓' : '↑'}
+                            </Button>
+                            {/* Remove button */}
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setEditSelectedMembers(editSelectedMembers.filter(id => id !== member.employeeId));
+                                setCurrentTeamMembers(currentTeamMembers.filter(m => m.employeeId !== member.employeeId));
+                              }}
+                              className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                              title="Remove from team"
+                            >
+                              ×
+                            </Button>
+                          </div>
                         </div>
                       );
                     })}

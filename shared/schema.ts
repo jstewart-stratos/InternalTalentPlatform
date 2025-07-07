@@ -146,7 +146,7 @@ export const teamMembers = pgTable("team_members", {
   id: serial("id").primaryKey(),
   teamId: integer("team_id").references(() => teams.id).notNull(),
   employeeId: integer("employee_id").references(() => employees.id).notNull(),
-  role: text("role").default("member"), // leader, member
+  role: text("role").default("member"), // manager, member
   joinedAt: timestamp("joined_at").defaultNow().notNull(),
   isActive: boolean("is_active").default(true),
   approvedBy: integer("approved_by").references(() => employees.id),
