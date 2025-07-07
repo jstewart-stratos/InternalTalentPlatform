@@ -118,6 +118,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { skillsWithExperience, ...employeeBody } = req.body;
       
+      // Debug logging to understand what data is being received
+      console.log("Received employee data:", req.body);
+      console.log("Skills with experience:", skillsWithExperience);
+      console.log("Employee body (excluding skills):", employeeBody);
+      
       // Add userId from authenticated user
       const employeeData = {
         ...employeeBody,

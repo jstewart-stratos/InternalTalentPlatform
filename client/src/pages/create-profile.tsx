@@ -95,6 +95,10 @@ export default function CreateProfile() {
       form.setValue("experienceLevel", currentEmployee.experienceLevel || "Mid-Level");
       form.setValue("yearsExperience", currentEmployee.yearsExperience || 0);
       form.setValue("profileImage", currentEmployee.profileImage || "");
+    } else if (user && !currentEmployee) {
+      // Auto-populate fields for new profile creation with user's authentication data
+      form.setValue("name", `${user.firstName || ""} ${user.lastName || ""}`.trim() || "");
+      form.setValue("email", user.email || "");
     }
   }, [user, currentEmployee, form]);
 
@@ -133,6 +137,12 @@ export default function CreateProfile() {
       skills: data.skills || [],
       skillsWithExperience: data.skillsWithExperience || []
     };
+    
+    // Debug logging to understand what data is being submitted
+    console.log("Form submission data:", submissionData);
+    console.log("Skills:", submissionData.skills);
+    console.log("Skills with experience:", submissionData.skillsWithExperience);
+    
     createEmployee.mutate(submissionData);
   };
 
