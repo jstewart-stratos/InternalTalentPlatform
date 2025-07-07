@@ -58,6 +58,8 @@ export default function Admin() {
   const [editUserLastName, setEditUserLastName] = useState("");
   const [editUserEmail, setEditUserEmail] = useState("");
   const [editUserRole, setEditUserRole] = useState("user");
+  const [editUserPassword, setEditUserPassword] = useState("");
+  const [resetPassword, setResetPassword] = useState(false);
 
   // Fetch admin data
   const { data: users = [], isLoading: usersLoading } = useQuery({
@@ -202,7 +204,7 @@ export default function Admin() {
   });
 
   const updateUserMutation = useMutation({
-    mutationFn: async (userData: { id: number; firstName: string; lastName: string; email: string; role: string }) => {
+    mutationFn: async (userData: { id: number; firstName: string; lastName: string; email: string; role: string; password?: string }) => {
       return await apiRequest(`/api/admin/users/${userData.id}`, 'PUT', userData);
     },
     onSuccess: () => {
@@ -397,6 +399,8 @@ export default function Admin() {
                                   setEditUserLastName(user.lastName);
                                   setEditUserEmail(user.email);
                                   setEditUserRole(user.role || 'user');
+                                  setEditUserPassword("");
+                                  setResetPassword(false);
                                   setActiveTab("edit-user");
                                 }}
                               >
@@ -574,11 +578,51 @@ export default function Admin() {
                     </div>
                   </div>
                 </div>
+                
+                {/* Password Reset Section */}
+                <div className="space-y-4 border-t pt-4">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="resetPassword"
+                      checked={resetPassword}
+                      onChange={(e) => {
+                        setResetPassword(e.target.checked);
+                        if (!e.target.checked) {
+                          setEditUserPassword("");
+                        }
+                      }}
+                      className="rounded border-gray-300"
+                    />
+                    <Label htmlFor="resetPassword" className="text-sm font-medium">
+                      Reset user password
+                    </Label>
+                  </div>
+                  
+                  {resetPassword && (
+                    <div>
+                      <Label htmlFor="editUserPassword">New Password</Label>
+                      <Input
+                        id="editUserPassword"
+                        type="password"
+                        value={editUserPassword}
+                        onChange={(e) => setEditUserPassword(e.target.value)}
+                        placeholder="Enter new password"
+                        className="mt-1"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Leave blank to keep current password unchanged
+                      </p>
+                    </div>
+                  )}
+                </div>
                 <div className="flex justify-between">
                   <Button 
                     variant="outline"
                     onClick={() => {
                       setEditingUser(null);
+                      setEditUserPassword("");
+                      setResetPassword(false);
                       setActiveTab("users");
                     }}
                   >
@@ -590,13 +634,21 @@ export default function Admin() {
                         toast({ title: "Error", description: "Please fill in all required fields", variant: "destructive" });
                         return;
                       }
-                      updateUserMutation.mutate({
+                      if (resetPassword && !editUserPassword) {
+                        toast({ title: "Error", description: "Please enter a new password", variant: "destructive" });
+                        return;
+                      }
+                      const updateData: any = {
                         id: editingUser.id,
                         firstName: editUserFirstName,
                         lastName: editUserLastName,
                         email: editUserEmail,
                         role: editUserRole
-                      });
+                      };
+                      if (resetPassword && editUserPassword) {
+                        updateData.password = editUserPassword;
+                      }
+                      updateUserMutation.mutate(updateData);
                     }}
                     disabled={updateUserMutation.isPending}
                     className="px-8"

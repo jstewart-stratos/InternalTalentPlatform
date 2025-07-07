@@ -995,7 +995,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/admin/users/:id", authMiddleware, requireAdminRole, async (req: any, res) => {
     try {
       const userId = parseInt(req.params.id);
-      const { firstName, lastName, email, role } = req.body;
+      const { firstName, lastName, email, role, password } = req.body;
 
       // Validate required fields
       if (!firstName || !lastName || !email || !role) {
@@ -1008,13 +1008,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Email already in use by another user" });
       }
 
-      // Update user information
-      const updatedUser = await storage.updateUser(userId, {
+      // Prepare update data
+      const updateData: any = {
         firstName,
         lastName,
         email,
         role
-      });
+      };
+
+      // Hash password if provided
+      if (password) {
+        updateData.password = await hashPassword(password);
+      }
+
+      // Update user information
+      const updatedUser = await storage.updateUser(userId, updateData);
 
       if (!updatedUser) {
         return res.status(404).json({ error: "User not found" });
@@ -1026,7 +1034,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         action: "user_updated",
         targetType: "user",
         targetId: userId.toString(),
-        changes: { firstName, lastName, email, role },
+        changes: { firstName, lastName, email, role, passwordChanged: !!password },
         ipAddress: req.ip,
         userAgent: req.get('User-Agent')
       });
