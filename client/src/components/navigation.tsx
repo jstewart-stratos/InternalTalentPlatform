@@ -21,10 +21,14 @@ export default function Navigation() {
   });
 
   const isAdmin = (user as any)?.role === "admin";
+  const isTeamManager = (user as any)?.role === "team-manager";
 
   const navItems = [
     { path: "/", label: "Talent Directory", active: location === "/" || location === "/skills" || location === "/experts" },
     { path: "/teams", label: "Teams", active: location === "/teams" },
+    ...(isTeamManager || isAdmin ? [
+      { path: "/team-management", label: "Manage Teams", active: location === "/team-management" },
+    ] : []),
     { path: "/projects", label: "Projects Hub", active: location === "/projects" },
     { path: "/marketplace", label: "Marketplace", active: location === "/marketplace" },
     { path: "/skills-gap-analysis", label: "Career Growth", active: location === "/skills-gap-analysis" },

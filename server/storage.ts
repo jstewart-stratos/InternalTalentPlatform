@@ -140,6 +140,7 @@ export interface IStorage {
   getEmployeeTeams(employeeId: number): Promise<Team[]>;
   updateTeamMemberRole(teamId: number, employeeId: number, role: string): Promise<TeamMember | undefined>;
   approveTeamMember(teamId: number, employeeId: number, approvedBy: number): Promise<TeamMember | undefined>;
+  isTeamManager(teamId: number, employeeId: number): Promise<boolean>;
   
   // Team service categories
   createTeamServiceCategory(category: InsertTeamServiceCategory): Promise<TeamServiceCategory>;
@@ -1498,6 +1499,19 @@ export class DatabaseStorage implements IStorage {
       ))
       .returning();
     return member;
+  }
+
+  async isTeamManager(teamId: number, employeeId: number): Promise<boolean> {
+    const [member] = await db
+      .select()
+      .from(teamMembers)
+      .where(and(
+        eq(teamMembers.teamId, teamId),
+        eq(teamMembers.employeeId, employeeId),
+        eq(teamMembers.role, 'manager'),
+        eq(teamMembers.isActive, true)
+      ));
+    return !!member;
   }
 
   async approveTeamMember(teamId: number, employeeId: number, approvedBy: number): Promise<TeamMember | undefined> {

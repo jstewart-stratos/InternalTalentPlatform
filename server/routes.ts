@@ -8,7 +8,7 @@ import { getProjectRecommendationsForEmployee, getEmployeeRecommendationsForProj
 import OpenAI from "openai";
 import { getProjectRecommendationsForEmployee as getSkillBasedProjectRecs, getEmployeeRecommendationsForProject as getSkillBasedEmployeeRecs } from "./skill-matching";
 import { seedEmployeeSkills, getSkillLevelSummary } from "./seed-employee-skills";
-import { setupCustomAuth, requireAuth, requireAdmin, requireTeamManager, requireTeamManagerOrAdmin, hashPassword } from "./auth";
+import { setupCustomAuth, requireAuth, requireAdmin, requireTeamManager, requireTeamManagerOrAdmin, requireTeamManagerAccess, hashPassword } from "./auth";
 import { securityHeaders, sanitizeInput, rateLimit, validateRequest } from "./middleware/security";
 import { cacheMiddleware, clearCache } from "./middleware/cache";
 import { z } from "zod";
@@ -3215,6 +3215,162 @@ Respond with JSON in this exact format:
     } catch (error) {
       console.error("Error updating team member role:", error);
       res.status(500).json({ error: "Failed to update team member role" });
+    }
+  });
+
+  // ==================== TEAM MANAGER ROUTES ====================
+  // These routes allow team managers to manage their own teams
+
+  // Get teams managed by current user
+  app.get("/api/team-manager/my-teams", authMiddleware, requireTeamManagerOrAdmin, async (req: any, res) => {
+    try {
+      const employee = await storage.getEmployeeByUserId(req.user.id);
+      
+      if (!employee) {
+        return res.status(404).json({ error: "Employee profile not found" });
+      }
+
+      // Get all teams where user is a manager
+      const allTeams = await storage.getAllTeams();
+      const managedTeams = [];
+      
+      for (const team of allTeams) {
+        const isManager = await storage.isTeamManager(team.id, employee.id);
+        if (isManager || req.user.role === 'admin') {
+          const members = await storage.getTeamMembers(team.id);
+          managedTeams.push({
+            ...team,
+            memberCount: members.length
+          });
+        }
+      }
+
+      res.json(managedTeams);
+    } catch (error) {
+      console.error("Error fetching managed teams:", error);
+      res.status(500).json({ error: "Failed to fetch managed teams" });
+    }
+  });
+
+  // Get team details for team manager
+  app.get("/api/team-manager/teams/:teamId", authMiddleware, requireTeamManagerAccess, async (req, res) => {
+    try {
+      const teamId = parseInt(req.params.teamId);
+      const team = await storage.getTeam(teamId);
+      
+      if (!team) {
+        return res.status(404).json({ error: "Team not found" });
+      }
+
+      const members = await storage.getTeamMembers(teamId);
+      res.json({ ...team, members });
+    } catch (error) {
+      console.error("Error fetching team details:", error);
+      res.status(500).json({ error: "Failed to fetch team details" });
+    }
+  });
+
+  // Update team details (team managers)
+  app.put("/api/team-manager/teams/:teamId", authMiddleware, requireTeamManagerAccess, async (req: any, res) => {
+    try {
+      const teamId = parseInt(req.params.teamId);
+      const { name, description, expertiseAreas = [], visibility = 'public' } = req.body;
+
+      if (!name || !description) {
+        return res.status(400).json({ error: "Name and description are required" });
+      }
+
+      const updatedTeam = await storage.updateTeam(teamId, {
+        name,
+        description,
+        expertiseAreas,
+        visibility
+      });
+
+      if (!updatedTeam) {
+        return res.status(404).json({ error: "Team not found" });
+      }
+
+      res.json(updatedTeam);
+    } catch (error) {
+      console.error("Error updating team:", error);
+      res.status(500).json({ error: "Failed to update team" });
+    }
+  });
+
+  // Get team members (team managers)
+  app.get("/api/team-manager/teams/:teamId/members", authMiddleware, requireTeamManagerAccess, async (req, res) => {
+    try {
+      const teamId = parseInt(req.params.teamId);
+      const members = await storage.getTeamMembers(teamId);
+      res.json(members);
+    } catch (error) {
+      console.error("Error fetching team members:", error);
+      res.status(500).json({ error: "Failed to fetch team members" });
+    }
+  });
+
+  // Add team member (team managers)
+  app.post("/api/team-manager/teams/:teamId/members", authMiddleware, requireTeamManagerAccess, async (req: any, res) => {
+    try {
+      const teamId = parseInt(req.params.teamId);
+      const { employeeId, role = 'member' } = req.body;
+
+      const success = await storage.addTeamMember(teamId, employeeId, role);
+      
+      if (!success) {
+        return res.status(400).json({ error: "Failed to add team member" });
+      }
+
+      res.json({ message: "Team member added successfully" });
+    } catch (error) {
+      console.error("Error adding team member:", error);
+      res.status(500).json({ error: "Failed to add team member" });
+    }
+  });
+
+  // Update team member role (team managers)
+  app.put("/api/team-manager/teams/:teamId/members/:employeeId/role", authMiddleware, requireTeamManagerAccess, async (req: any, res) => {
+    try {
+      const teamId = parseInt(req.params.teamId);
+      const employeeId = parseInt(req.params.employeeId);
+      const { role } = req.body;
+      
+      // Validate role
+      if (!['member', 'manager'].includes(role)) {
+        return res.status(400).json({ error: "Invalid role. Must be 'member' or 'manager'" });
+      }
+
+      // Update team member role
+      const updated = await storage.updateTeamMemberRole(teamId, employeeId, role);
+      
+      if (!updated) {
+        return res.status(404).json({ error: "Team member not found" });
+      }
+
+      res.json({ message: "Team member role updated successfully", role });
+    } catch (error) {
+      console.error("Error updating team member role:", error);
+      res.status(500).json({ error: "Failed to update team member role" });
+    }
+  });
+
+  // Remove team member (team managers)
+  app.delete("/api/team-manager/teams/:teamId/members/:employeeId", authMiddleware, requireTeamManagerAccess, async (req: any, res) => {
+    try {
+      const teamId = parseInt(req.params.teamId);
+      const employeeId = parseInt(req.params.employeeId);
+
+      const success = await storage.removeTeamMember(teamId, employeeId);
+      
+      if (!success) {
+        return res.status(404).json({ error: "Team member not found" });
+      }
+
+      res.json({ message: "Team member removed successfully" });
+    } catch (error) {
+      console.error("Error removing team member:", error);
+      res.status(500).json({ error: "Failed to remove team member" });
     }
   });
 

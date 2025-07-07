@@ -23,6 +23,7 @@ import ServiceDetails from "@/pages/service-details";
 import SkillsGapAnalysis from "@/pages/skills-gap-analysis";
 import MyLearningPaths from "@/pages/my-learning-paths";
 import Teams from "@/pages/teams";
+import TeamManagement from "@/pages/team-management";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -66,6 +67,7 @@ function Router() {
       <Route path="/marketplace" component={Marketplace} />
       <Route path="/experts" component={ExpertDirectory} />
       <Route path="/teams" component={Teams} />
+      <Route path="/team-management" component={TeamManagement} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -250,3 +250,41 @@ export const requireTeamManagerOrAdmin = (req: Request, res: Response, next: Nex
   
   next();
 };
+
+// Middleware to check if user is a manager of a specific team
+export const requireTeamManagerAccess = async (req: Request, res: Response, next: NextFunction) => {
+  const user = (req as any).user;
+  const teamId = parseInt(req.params.teamId);
+  
+  if (!user) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+
+  // Admin has access to all teams
+  if (user.role === "admin") {
+    return next();
+  }
+
+  // Check if user is a team manager for this specific team
+  if (user.role === "team-manager") {
+    try {
+      const { storage } = await import("./storage");
+      const employee = await storage.getEmployeeByUserId(user.id);
+      
+      if (!employee) {
+        return res.status(403).json({ error: "Employee profile required" });
+      }
+
+      const isTeamManager = await storage.isTeamManager(teamId, employee.id);
+      
+      if (isTeamManager) {
+        return next();
+      }
+    } catch (error) {
+      console.error("Error checking team manager access:", error);
+      return res.status(500).json({ error: "Failed to verify team access" });
+    }
+  }
+
+  return res.status(403).json({ error: "Team manager access required for this team" });
+};
