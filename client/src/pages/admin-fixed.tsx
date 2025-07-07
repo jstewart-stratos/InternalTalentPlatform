@@ -35,6 +35,7 @@ export default function Admin() {
   const [newTeamName, setNewTeamName] = useState("");
   const [newTeamDescription, setNewTeamDescription] = useState("");
   const [newTeamExpertiseAreas, setNewTeamExpertiseAreas] = useState("");
+  const [newExpertiseAreaForCreate, setNewExpertiseAreaForCreate] = useState("");
   const [newTeamVisibility, setNewTeamVisibility] = useState("public");
   const [selectedTeamMembers, setSelectedTeamMembers] = useState<number[]>([]);
   
@@ -43,6 +44,7 @@ export default function Admin() {
   const [editTeamName, setEditTeamName] = useState("");
   const [editTeamDescription, setEditTeamDescription] = useState("");
   const [editTeamExpertiseAreas, setEditTeamExpertiseAreas] = useState("");
+  const [newExpertiseArea, setNewExpertiseArea] = useState("");
   const [editTeamVisibility, setEditTeamVisibility] = useState("public");
   const [currentTeamMembers, setCurrentTeamMembers] = useState<any[]>([]);
   const [editSelectedMembers, setEditSelectedMembers] = useState<number[]>([]);
@@ -781,14 +783,85 @@ export default function Admin() {
                 placeholder="Brief description of the team"
               />
             </div>
-            <div>
-              <Label htmlFor="newTeamExpertiseAreas">Expertise Areas (comma-separated)</Label>
-              <Input
-                id="newTeamExpertiseAreas"
-                value={newTeamExpertiseAreas}
-                onChange={(e) => setNewTeamExpertiseAreas(e.target.value)}
-                placeholder="Finance, Risk Management, Compliance"
-              />
+            {/* Expertise Areas Management */}
+            <div className="space-y-3">
+              <Label className="text-base font-semibold">Expertise Areas</Label>
+              
+              {/* Current Expertise Areas */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Current Expertise:</Label>
+                {newTeamExpertiseAreas.length === 0 ? (
+                  <div className="text-center py-4 text-muted-foreground text-sm border rounded-lg">
+                    No expertise areas defined
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-2 p-2 border rounded-lg bg-background">
+                    {newTeamExpertiseAreas.split(',').map((area, index) => {
+                      const trimmedArea = area.trim();
+                      if (!trimmedArea) return null;
+                      return (
+                        <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                          {trimmedArea}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              const areas = newTeamExpertiseAreas.split(',').map(a => a.trim()).filter(a => a);
+                              const newAreas = areas.filter((_, i) => i !== index);
+                              setNewTeamExpertiseAreas(newAreas.join(', '));
+                            }}
+                            className="h-4 w-4 p-0 text-muted-foreground hover:text-destructive"
+                          >
+                            ×
+                          </Button>
+                        </Badge>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+              
+              {/* Add New Expertise Area */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Add Expertise Area:</Label>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="e.g., Risk Management, Financial Planning"
+                    value={newExpertiseAreaForCreate}
+                    onChange={(e) => setNewExpertiseAreaForCreate(e.target.value)}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter' && newExpertiseAreaForCreate.trim()) {
+                        const currentAreas = newTeamExpertiseAreas.split(',').map(a => a.trim()).filter(a => a);
+                        const newArea = newExpertiseAreaForCreate.trim();
+                        if (!currentAreas.includes(newArea)) {
+                          const updatedAreas = [...currentAreas, newArea];
+                          setNewTeamExpertiseAreas(updatedAreas.join(', '));
+                          setNewExpertiseAreaForCreate('');
+                        }
+                      }
+                    }}
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => {
+                      if (newExpertiseAreaForCreate.trim()) {
+                        const currentAreas = newTeamExpertiseAreas.split(',').map(a => a.trim()).filter(a => a);
+                        const newArea = newExpertiseAreaForCreate.trim();
+                        if (!currentAreas.includes(newArea)) {
+                          const updatedAreas = [...currentAreas, newArea];
+                          setNewTeamExpertiseAreas(updatedAreas.join(', '));
+                          setNewExpertiseAreaForCreate('');
+                        }
+                      }
+                    }}
+                    className="bg-[rgb(248,153,59)] hover:bg-[rgb(228,133,39)] text-white"
+                  >
+                    Add
+                  </Button>
+                </div>
+              </div>
             </div>
 
             {/* Team Member Selection */}
@@ -907,6 +980,7 @@ export default function Admin() {
                   setNewTeamName("");
                   setNewTeamDescription("");
                   setNewTeamExpertiseAreas("");
+                  setNewExpertiseAreaForCreate("");
                   setNewTeamVisibility("public");
                   setSelectedTeamMembers([]);
                   setMemberSearchQuery("");
@@ -1104,14 +1178,85 @@ export default function Admin() {
                 placeholder="Brief description of the team"
               />
             </div>
-            <div>
-              <Label htmlFor="editTeamExpertiseAreas">Expertise Areas (comma-separated)</Label>
-              <Input
-                id="editTeamExpertiseAreas"
-                value={editTeamExpertiseAreas}
-                onChange={(e) => setEditTeamExpertiseAreas(e.target.value)}
-                placeholder="Finance, Risk Management, Compliance"
-              />
+            {/* Expertise Areas Management */}
+            <div className="space-y-3">
+              <Label className="text-base font-semibold">Expertise Areas</Label>
+              
+              {/* Current Expertise Areas */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Current Expertise:</Label>
+                {editTeamExpertiseAreas.length === 0 ? (
+                  <div className="text-center py-4 text-muted-foreground text-sm border rounded-lg">
+                    No expertise areas defined
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-2 p-2 border rounded-lg bg-background">
+                    {editTeamExpertiseAreas.split(',').map((area, index) => {
+                      const trimmedArea = area.trim();
+                      if (!trimmedArea) return null;
+                      return (
+                        <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                          {trimmedArea}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              const areas = editTeamExpertiseAreas.split(',').map(a => a.trim()).filter(a => a);
+                              const newAreas = areas.filter((_, i) => i !== index);
+                              setEditTeamExpertiseAreas(newAreas.join(', '));
+                            }}
+                            className="h-4 w-4 p-0 text-muted-foreground hover:text-destructive"
+                          >
+                            ×
+                          </Button>
+                        </Badge>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+              
+              {/* Add New Expertise Area */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Add Expertise Area:</Label>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="e.g., Risk Management, Financial Planning"
+                    value={newExpertiseArea}
+                    onChange={(e) => setNewExpertiseArea(e.target.value)}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter' && newExpertiseArea.trim()) {
+                        const currentAreas = editTeamExpertiseAreas.split(',').map(a => a.trim()).filter(a => a);
+                        const newArea = newExpertiseArea.trim();
+                        if (!currentAreas.includes(newArea)) {
+                          const updatedAreas = [...currentAreas, newArea];
+                          setEditTeamExpertiseAreas(updatedAreas.join(', '));
+                          setNewExpertiseArea('');
+                        }
+                      }
+                    }}
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => {
+                      if (newExpertiseArea.trim()) {
+                        const currentAreas = editTeamExpertiseAreas.split(',').map(a => a.trim()).filter(a => a);
+                        const newArea = newExpertiseArea.trim();
+                        if (!currentAreas.includes(newArea)) {
+                          const updatedAreas = [...currentAreas, newArea];
+                          setEditTeamExpertiseAreas(updatedAreas.join(', '));
+                          setNewExpertiseArea('');
+                        }
+                      }
+                    }}
+                    className="bg-[rgb(248,153,59)] hover:bg-[rgb(228,133,39)] text-white"
+                  >
+                    Add
+                  </Button>
+                </div>
+              </div>
             </div>
 
             {/* Team Members Management */}
@@ -1229,6 +1374,7 @@ export default function Admin() {
                 onClick={() => {
                   setEditingTeam(null);
                   setMemberSearchQuery("");
+                  setNewExpertiseArea("");
                   setEditTeamDialogOpen(false);
                 }}
               >
