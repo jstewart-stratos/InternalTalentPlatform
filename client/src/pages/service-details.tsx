@@ -55,6 +55,18 @@ export default function ServiceDetailsPage() {
     enabled: !!service?.providerId,
   });
 
+  const { data: team } = useQuery({
+    queryKey: ["/api/teams", service?.teamId],
+    queryFn: async () => {
+      const response = await fetch(`/api/teams/${service.teamId}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch team details");
+      }
+      return response.json();
+    },
+    enabled: !!service?.teamId && service?.serviceType === "team",
+  });
+
   const { data: reviews = [] } = useQuery({
     queryKey: ["/api/professional-services", id, "reviews"],
     queryFn: async () => {
@@ -344,7 +356,52 @@ export default function ServiceDetailsPage() {
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Provider Info */}
-            {provider && (
+            {(service?.serviceType === "team" && team) ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Service Provider</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-start space-x-4">
+                    <Avatar className="h-16 w-16">
+                      <AvatarImage src={team.profileImage} />
+                      <AvatarFallback>
+                        {team.name.split(' ').map((n: string) => n[0]).join('')}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <h3 className="font-semibold">{team.name}</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Team</p>
+                      {team.description && (
+                        <p className="text-sm text-gray-700 dark:text-gray-300 mt-2 line-clamp-3">
+                          {team.description}
+                        </p>
+                      )}
+                      {team.specialties && team.specialties.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {team.specialties.slice(0, 3).map((specialty: string, index: number) => (
+                            <Badge key={index} variant="secondary" className="text-xs">
+                              {specialty}
+                            </Badge>
+                          ))}
+                          {team.specialties.length > 3 && (
+                            <Badge variant="secondary" className="text-xs">
+                              +{team.specialties.length - 3} more
+                            </Badge>
+                          )}
+                        </div>
+                      )}
+                      <Link href={`/teams/${team.id}`}>
+                        <Button variant="outline" size="sm" className="mt-3">
+                          <Users className="h-4 w-4 mr-2" />
+                          View Team
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : provider && (
               <Card>
                 <CardHeader>
                   <CardTitle>Service Provider</CardTitle>
