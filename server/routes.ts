@@ -3130,7 +3130,7 @@ Respond with JSON in this exact format:
   });
 
   // Get all users for team member selection
-  app.get("/api/admin/users-for-teams", authMiddleware, requireAdminRole, async (req, res) => {
+  app.get("/api/admin/all-users-for-teams", authMiddleware, requireAdminRole, async (req, res) => {
     try {
       const users = await storage.getAllUsers();
       const employees = await storage.getAllEmployees();
