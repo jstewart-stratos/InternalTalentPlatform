@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertEmployeeSchema, insertSkillEndorsementSchema, insertProjectSchema, insertSiteSettingSchema, insertAuditLogSchema, insertUserPermissionSchema, insertTeamSchema, insertTeamMemberSchema, insertTeamServiceCategorySchema, insertServiceCategorySchema, insertProfessionalServiceSchema, insertServiceBookingSchema, insertServiceReviewSchema, insertServicePortfolioSchema, insertSavedSkillRecommendationSchema, teamMembers } from "@shared/schema";
+import { eq, and } from "drizzle-orm";
 import { db } from "./db";
 import { sendEmail } from "./sendgrid";
 import { getProjectRecommendationsForEmployee, getEmployeeRecommendationsForProject, getSkillGapAnalysis } from "./ai-recommendations";
@@ -3220,6 +3221,29 @@ Respond with JSON in this exact format:
 
   // ==================== TEAM MANAGER ROUTES ====================
   // These routes allow team managers to manage their own teams
+
+  // Debug endpoint to test team manager functionality
+  app.get("/api/team-manager/debug", authMiddleware, requireTeamManagerOrAdmin, async (req: any, res) => {
+    try {
+      const employee = await storage.getEmployeeByUserId(req.user.id);
+      
+      // Direct database query to check team membership
+      const directQuery = await db
+        .select()
+        .from(teamMembers)
+        .where(eq(teamMembers.employeeId, employee?.id));
+
+      res.json({
+        userId: req.user.id,
+        employeeId: employee?.id,
+        userRole: req.user.role,
+        directMemberships: directQuery
+      });
+    } catch (error) {
+      console.error("Debug endpoint error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
 
   // Get teams managed by current user
   app.get("/api/team-manager/my-teams", authMiddleware, requireTeamManagerOrAdmin, async (req: any, res) => {
