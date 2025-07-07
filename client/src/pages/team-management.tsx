@@ -233,7 +233,7 @@ export default function TeamManagement() {
         consultationRate: serviceData.consultationRate ? Math.round(parseFloat(serviceData.consultationRate) * 100) : null,
         duration: serviceData.duration ? parseInt(serviceData.duration) : null,
         skills: serviceData.skills ? serviceData.skills.split(',').map((s: string) => s.trim()) : [],
-        categoryId: serviceData.categoryId ? parseInt(serviceData.categoryId) : null
+        categoryId: serviceData.categoryId ? parseInt(serviceData.categoryId) : undefined
       });
       return response.json();
     },

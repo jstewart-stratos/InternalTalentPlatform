@@ -2498,10 +2498,23 @@ Respond with JSON in this exact format:
         return res.status(404).json({ error: "Employee profile not found" });
       }
 
-      const validatedData = insertProfessionalServiceSchema.parse({
+      // Handle team services differently - they don't require categoryId if it's null
+      const serviceData = {
         ...req.body,
         providerId: employee.id
-      });
+      };
+
+      // For team services, if categoryId is null/undefined, use a default or make it optional
+      if (serviceData.teamId && (!serviceData.categoryId || serviceData.categoryId === null)) {
+        // Get a default category or create one for team services
+        const categories = await storage.getAllServiceCategories();
+        const defaultCategory = categories.find(c => c.name === 'General') || categories[0];
+        if (defaultCategory) {
+          serviceData.categoryId = defaultCategory.id;
+        }
+      }
+
+      const validatedData = insertProfessionalServiceSchema.parse(serviceData);
       
       const service = await storage.createProfessionalService(validatedData);
       res.status(201).json(service);
