@@ -30,7 +30,7 @@ export default function TeamManagement() {
   console.log("=== Managed Teams Data ===", managedTeams);
 
   // Fetch team members for selected team
-  const { data: teamMembers } = useQuery({
+  const { data: teamMembers, isLoading: membersLoading, error: membersError } = useQuery({
     queryKey: ["/api/team-manager/teams", selectedTeam?.id, "members"],
     enabled: !!selectedTeam,
   });
@@ -38,6 +38,13 @@ export default function TeamManagement() {
   // Debug: Log the team members data and selected team
   console.log("=== Selected Team ===", selectedTeam);
   console.log("=== Team Members Data ===", teamMembers);
+  console.log("=== Members Loading ===", membersLoading);
+  console.log("=== Members Error ===", membersError);
+  
+  // Debug: Log when query should be enabled
+  if (selectedTeam) {
+    console.log(`=== Query enabled for team ${selectedTeam.id} ===`);
+  }
 
   // Update team mutation
   const updateTeamMutation = useMutation({
@@ -194,7 +201,10 @@ export default function TeamManagement() {
                     className={`p-3 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors ${
                       selectedTeam?.id === team.id ? 'border-[rgb(248,153,59)] bg-[rgb(248,153,59)]/5' : ''
                     }`}
-                    onClick={() => setSelectedTeam(team)}
+                    onClick={() => {
+                      console.log(`=== Selecting team ${team.id}: ${team.name} ===`);
+                      setSelectedTeam(team);
+                    }}
                   >
                     <div className="flex items-center justify-between">
                       <div>
