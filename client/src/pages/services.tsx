@@ -570,6 +570,50 @@ export default function ServicesPage() {
 
                   <FormField
                     control={form.control}
+                    name="offeredSkills"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Skills Offered</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="e.g., Financial Analysis, Risk Management, Tax Planning"
+                            value={field.value.join(', ')}
+                            onChange={(e) => {
+                              const skills = e.target.value.split(',').map(s => s.trim()).filter(s => s);
+                              field.onChange(skills);
+                            }}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                        <p className="text-sm text-gray-500">Separate multiple skills with commas</p>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="requiredSkills"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Prerequisites (Optional)</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="e.g., Basic Accounting, Excel Proficiency"
+                            value={field.value.join(', ')}
+                            onChange={(e) => {
+                              const skills = e.target.value.split(',').map(s => s.trim()).filter(s => s);
+                              field.onChange(skills);
+                            }}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                        <p className="text-sm text-gray-500">Skills clients should have before using this service</p>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
                     name="maxClientsPerMonth"
                     render={({ field }) => (
                       <FormItem>
