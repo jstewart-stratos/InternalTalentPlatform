@@ -1502,18 +1502,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async isTeamManager(teamId: number, employeeId: number): Promise<boolean> {
+    console.log(`=== DEBUG isTeamManager START ===`);
+    console.log(`teamId=${teamId}, employeeId=${employeeId}`);
+    
     try {
-      console.log(`Debug isTeamManager: teamId=${teamId}, employeeId=${employeeId}`);
-      
-      // Query all team members for this employee to debug
+      // First, let's see all team memberships for this employee
       const allMemberships = await db
         .select()
         .from(teamMembers)
         .where(eq(teamMembers.employeeId, employeeId));
       
-      console.log(`Debug: All memberships for employee ${employeeId}:`, allMemberships);
+      console.log(`All memberships for employee ${employeeId}:`, JSON.stringify(allMemberships, null, 2));
       
-      const [member] = await db
+      // Now let's check the specific team manager query
+      const managerCheck = await db
         .select()
         .from(teamMembers)
         .where(and(
@@ -1523,10 +1525,12 @@ export class DatabaseStorage implements IStorage {
           eq(teamMembers.isActive, true)
         ));
         
-      console.log(`Debug isTeamManager result for team ${teamId}:`, member);
-      return !!member;
+      console.log(`Manager check result for team ${teamId}:`, JSON.stringify(managerCheck, null, 2));
+      console.log(`=== DEBUG isTeamManager END: ${managerCheck.length > 0} ===`);
+      
+      return managerCheck.length > 0;
     } catch (error) {
-      console.error(`Error in isTeamManager for teamId=${teamId}, employeeId=${employeeId}:`, error);
+      console.error(`ERROR in isTeamManager for teamId=${teamId}, employeeId=${employeeId}:`, error);
       return false;
     }
   }

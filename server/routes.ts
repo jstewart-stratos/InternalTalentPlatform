@@ -3239,15 +3239,22 @@ Respond with JSON in this exact format:
       const managedTeams = [];
       
       for (const team of allTeams) {
-        const isManager = await storage.isTeamManager(team.id, employee.id);
-        console.log(`Debug: Team ${team.id} (${team.name}) - isManager: ${isManager}, userRole: ${req.user.role}`);
+        console.log(`Debug: Checking team ${team.id} (${team.name}) for employee ${employee.id}`);
         
-        if (isManager || req.user.role === 'admin') {
-          const members = await storage.getTeamMembers(team.id);
-          managedTeams.push({
-            ...team,
-            memberCount: members.length
-          });
+        try {
+          const isManager = await storage.isTeamManager(team.id, employee.id);
+          console.log(`Debug: Team ${team.id} (${team.name}) - isManager: ${isManager}, userRole: ${req.user.role}`);
+          
+          if (isManager || req.user.role === 'admin') {
+            const members = await storage.getTeamMembers(team.id);
+            console.log(`Debug: Adding team ${team.id} to managed teams (${members.length} members)`);
+            managedTeams.push({
+              ...team,
+              memberCount: members.length
+            });
+          }
+        } catch (error) {
+          console.error(`Debug: Error checking team ${team.id}:`, error);
         }
       }
 
