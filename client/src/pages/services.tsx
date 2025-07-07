@@ -41,6 +41,8 @@ export default function ServicesPage() {
   const queryClient = useQueryClient();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingService, setEditingService] = useState<any>(null);
+  const [showNewCategoryInput, setShowNewCategoryInput] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
 
   const { data: myServices = [], isLoading: servicesLoading } = useQuery({
     queryKey: ["/api/my-services"],
@@ -53,6 +55,47 @@ export default function ServicesPage() {
   const { data: allSkills = [] } = useQuery({
     queryKey: ["/api/skills/all"],
   });
+
+  // Create new category mutation
+  const createCategoryMutation = useMutation({
+    mutationFn: async (categoryName: string) => {
+      const response = await apiRequest("/api/service-categories", "POST", {
+        name: categoryName,
+        description: `${categoryName} services`
+      });
+      return response.json();
+    },
+    onSuccess: (newCategory) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/service-categories"] });
+      form.setValue("categoryId", newCategory.id);
+      setShowNewCategoryInput(false);
+      setNewCategoryName("");
+      toast({
+        title: "Success",
+        description: "New category created and selected",
+        className: "bg-green-50 border-green-200 text-green-800"
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create category",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const handleCreateNewCategory = () => {
+    if (!newCategoryName.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a category name",
+        variant: "destructive"
+      });
+      return;
+    }
+    createCategoryMutation.mutate(newCategoryName.trim());
+  };
 
   const form = useForm<ServiceFormData>({
     resolver: zodResolver(serviceFormSchema),
@@ -93,8 +136,7 @@ export default function ServicesPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/my-services"] });
-      setIsCreateDialogOpen(false);
-      form.reset();
+      handleDialogClose();
       toast({
         title: "Success",
         description: "Professional service created successfully",
@@ -201,8 +243,28 @@ export default function ServicesPage() {
     }
   };
 
+  const resetCategoryDialog = () => {
+    setShowNewCategoryInput(false);
+    setNewCategoryName("");
+  };
+
+  const handleDialogClose = () => {
+    setIsCreateDialogOpen(false);
+    setEditingService(null);
+    form.reset();
+    resetCategoryDialog();
+  };
+
+  const handleCreateNew = () => {
+    setEditingService(null);
+    resetCategoryDialog();
+    form.reset();
+    setIsCreateDialogOpen(true);
+  };
+
   const handleEditService = (service: any) => {
     setEditingService(service);
+    resetCategoryDialog();
     form.reset({
       title: service.title,
       shortDescription: service.shortDescription || "",
@@ -222,12 +284,6 @@ export default function ServicesPage() {
     setIsCreateDialogOpen(true);
   };
 
-  const handleCreateNew = () => {
-    setEditingService(null);
-    form.reset();
-    setIsCreateDialogOpen(true);
-  };
-
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -241,7 +297,10 @@ export default function ServicesPage() {
             </p>
           </div>
           
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+          <Dialog open={isCreateDialogOpen} onOpenChange={(open) => {
+            if (!open) handleDialogClose();
+            else setIsCreateDialogOpen(true);
+          }}>
             <DialogTrigger asChild>
               <Button onClick={handleCreateNew} className="bg-orange-500 hover:bg-orange-600 text-white">
                 <Plus className="h-4 w-4 mr-2" />
@@ -279,21 +338,49 @@ export default function ServicesPage() {
                     name="categoryId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Category</FormLabel>
-                        <Select onValueChange={(value) => field.onChange(parseInt(value))} value={field.value?.toString()}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a category" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {categories.map((category: any) => (
-                              <SelectItem key={category.id} value={category.id.toString()}>
-                                {category.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <FormLabel>Service Category *</FormLabel>
+                        <div className="flex gap-2">
+                          <Select onValueChange={(value) => field.onChange(parseInt(value))} value={field.value?.toString()}>
+                            <FormControl>
+                              <SelectTrigger className="flex-1">
+                                <SelectValue placeholder="Select a category" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {categories.map((category: any) => (
+                                <SelectItem key={category.id} value={category.id.toString()}>
+                                  {category.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setShowNewCategoryInput(!showNewCategoryInput)}
+                            className="whitespace-nowrap"
+                          >
+                            {showNewCategoryInput ? "Cancel" : "Request New"}
+                          </Button>
+                        </div>
+                        {showNewCategoryInput && (
+                          <div className="flex gap-2 mt-2">
+                            <Input
+                              placeholder="Enter new category name"
+                              value={newCategoryName}
+                              onChange={(e) => setNewCategoryName(e.target.value)}
+                              className="flex-1"
+                            />
+                            <Button
+                              type="button"
+                              onClick={handleCreateNewCategory}
+                              disabled={createCategoryMutation.isPending}
+                              className="bg-[rgb(248,153,59)] hover:bg-[rgb(228,133,39)] text-white"
+                            >
+                              {createCategoryMutation.isPending ? "Creating..." : "Create"}
+                            </Button>
+                          </div>
+                        )}
                         <FormMessage />
                       </FormItem>
                     )}
@@ -504,7 +591,7 @@ export default function ServicesPage() {
                     <Button 
                       type="button" 
                       variant="outline" 
-                      onClick={() => setIsCreateDialogOpen(false)}
+                      onClick={handleDialogClose}
                     >
                       Cancel
                     </Button>

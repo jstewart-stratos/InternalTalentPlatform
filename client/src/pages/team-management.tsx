@@ -32,6 +32,8 @@ export default function TeamManagement() {
   const [createServiceDialogOpen, setCreateServiceDialogOpen] = useState(false);
   const [editServiceDialogOpen, setEditServiceDialogOpen] = useState(false);
   const [editingService, setEditingService] = useState<any>(null);
+  const [showNewCategoryInput, setShowNewCategoryInput] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
 
   // Service form
   const serviceForm = useForm({
@@ -49,6 +51,52 @@ export default function TeamManagement() {
       isActive: true
     }
   });
+
+  // Fetch service categories
+  const { data: serviceCategories = [] } = useQuery({
+    queryKey: ["/api/service-categories"],
+  });
+
+  // Create new category mutation
+  const createCategoryMutation = useMutation({
+    mutationFn: async (categoryName: string) => {
+      const response = await apiRequest("/api/service-categories", "POST", {
+        name: categoryName,
+        description: `${categoryName} services`
+      });
+      return response.json();
+    },
+    onSuccess: (newCategory) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/service-categories"] });
+      serviceForm.setValue("categoryId", newCategory.id.toString());
+      setShowNewCategoryInput(false);
+      setNewCategoryName("");
+      toast({
+        title: "Success",
+        description: "New category created and selected",
+        className: "bg-green-50 border-green-200 text-green-800"
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create category",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const handleCreateNewCategory = () => {
+    if (!newCategoryName.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a category name",
+        variant: "destructive"
+      });
+      return;
+    }
+    createCategoryMutation.mutate(newCategoryName.trim());
+  };
 
   // Fetch teams managed by current user  
   const { data: managedTeams, isLoading: teamsLoading, refetch: refetchTeams } = useQuery({
@@ -262,6 +310,17 @@ export default function TeamManagement() {
   });
 
   const handleCreateService = (data: any) => {
+    // Validate required fields including category
+    if (!data.categoryId) {
+      toast({
+        title: "Error",
+        description: "Please select a service category",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    console.log("=== Creating Team Service ===", data);
     createServiceMutation.mutate(data);
   };
 
@@ -764,6 +823,59 @@ export default function TeamManagement() {
                     <FormControl>
                       <Input placeholder="Brief description for listings" {...field} />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={serviceForm.control}
+                name="categoryId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Service Category *</FormLabel>
+                    <div className="flex gap-2">
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="flex-1">
+                            <SelectValue placeholder="Select a category" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {serviceCategories.map((category: any) => (
+                            <SelectItem key={category.id} value={category.id.toString()}>
+                              {category.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setShowNewCategoryInput(!showNewCategoryInput)}
+                        className="whitespace-nowrap"
+                      >
+                        {showNewCategoryInput ? "Cancel" : "Request New"}
+                      </Button>
+                    </div>
+                    {showNewCategoryInput && (
+                      <div className="flex gap-2 mt-2">
+                        <Input
+                          placeholder="Enter new category name"
+                          value={newCategoryName}
+                          onChange={(e) => setNewCategoryName(e.target.value)}
+                          className="flex-1"
+                        />
+                        <Button
+                          type="button"
+                          onClick={handleCreateNewCategory}
+                          disabled={createCategoryMutation.isPending}
+                          className="bg-[rgb(248,153,59)] hover:bg-[rgb(228,133,39)] text-white"
+                        >
+                          {createCategoryMutation.isPending ? "Creating..." : "Create"}
+                        </Button>
+                      </div>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
