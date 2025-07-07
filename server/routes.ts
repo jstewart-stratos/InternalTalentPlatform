@@ -3247,6 +3247,11 @@ Respond with JSON in this exact format:
 
   // Get teams managed by current user
   app.get("/api/team-manager/my-teams", authMiddleware, requireTeamManagerOrAdmin, async (req: any, res) => {
+    // Disable caching for this endpoint
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+    
     console.log(`=== TEAM MANAGER MY-TEAMS API CALLED ===`);
     console.log(`Request received at ${new Date().toISOString()}`);
     
