@@ -32,6 +32,22 @@ export default function TeamManagement() {
   // Fetch team members for selected team
   const { data: teamMembers, isLoading: membersLoading, error: membersError } = useQuery({
     queryKey: ["/api/team-manager/teams", selectedTeam?.id, "members"],
+    queryFn: async () => {
+      if (!selectedTeam) return null;
+      console.log(`=== Making API call to /api/team-manager/teams/${selectedTeam.id}/members ===`);
+      const response = await fetch(`/api/team-manager/teams/${selectedTeam.id}/members`, {
+        credentials: 'include', // Include session cookies
+      });
+      console.log(`=== API Response status: ${response.status} ===`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.log(`=== API Error: ${errorText} ===`);
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+      const data = await response.json();
+      console.log(`=== API Success data: ===`, data);
+      return data;
+    },
     enabled: !!selectedTeam,
   });
   
