@@ -56,9 +56,10 @@ The application follows a monorepo structure with clear separation between clien
 ## Data Flow
 
 ### Authentication Flow
-1. Users authenticate via Replit Auth OIDC integration
-2. Session data stored in PostgreSQL sessions table
+1. Users authenticate via custom email/password authentication system
+2. Session data stored in PostgreSQL sessions table with secure password hashing
 3. User profiles linked to employee records for role-based access
+4. Role-based access control with admin and user roles
 
 ### Skill Management Flow
 1. Employees create profiles with individual skill records and experience levels
@@ -132,6 +133,7 @@ Changelog:
 - June 18, 2025. Azure deployment configuration completed - Infrastructure as Code templates, CI/CD pipeline, and comprehensive deployment documentation prepared
 - June 18, 2025. LinkedIn skills import functionality completely removed - Eliminated all LinkedIn integration due to API restrictions, simplified skills entry to manual input only
 - January 8, 2025. Sample data completely removed - System cleaned to contain only jstewart administrator account, ready for production use
+- January 8, 2025. Custom authentication system implemented - Replaced Replit authentication with secure email/password system, password hashing with salt, session-based authentication, role-based access control
 
 ## User Preferences
 
