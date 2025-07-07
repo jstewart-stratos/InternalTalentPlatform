@@ -3095,6 +3095,46 @@ Respond with JSON in this exact format:
     }
   });
 
+  // Update team (Admin only)  
+  app.put("/api/admin/teams/:id", authMiddleware, requireAdminRole, async (req: any, res) => {
+    try {
+      const teamId = parseInt(req.params.id);
+      const { name, description, expertiseAreas = [], visibility = 'public' } = req.body;
+
+      // Validate required fields
+      if (!name || !description) {
+        return res.status(400).json({ error: "Team name and description are required" });
+      }
+
+      // Update team
+      const updatedTeam = await storage.updateTeam(teamId, {
+        name,
+        description,
+        specialties: expertiseAreas
+      });
+
+      if (!updatedTeam) {
+        return res.status(404).json({ error: "Team not found" });
+      }
+
+      // Log admin action
+      await storage.logAdminAction({
+        userId: req.user.id,
+        action: "team_updated",
+        targetType: "team",
+        targetId: teamId.toString(),
+        changes: { name, description, expertiseAreas, visibility },
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent')
+      });
+
+      res.json(updatedTeam);
+    } catch (error) {
+      console.error("Error updating team:", error);
+      res.status(500).json({ error: "Failed to update team" });
+    }
+  });
+
   // Create new team (Admin only)
   app.post("/api/admin/teams", authMiddleware, requireAdminRole, async (req: any, res) => {
     try {

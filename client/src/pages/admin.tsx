@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
-import { Users, Activity, Settings, Shield, Lock, Unlock, UserCheck, Clock, AlertTriangle, Plus } from "lucide-react";
+import { Users, Activity, Settings, Shield, Lock, Unlock, UserCheck, Clock, AlertTriangle, Plus, Save } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { User, SiteSetting, AuditLog, ServiceCategory } from "@shared/schema";
 
@@ -42,6 +42,13 @@ export default function Admin() {
   const [newTeamExpertiseAreas, setNewTeamExpertiseAreas] = useState("");
   const [newTeamVisibility, setNewTeamVisibility] = useState("public");
   const [selectedTeamMembers, setSelectedTeamMembers] = useState<number[]>([]);
+  
+  // Team editing state
+  const [editingTeam, setEditingTeam] = useState<any>(null);
+  const [editTeamName, setEditTeamName] = useState("");
+  const [editTeamDescription, setEditTeamDescription] = useState("");
+  const [editTeamExpertiseAreas, setEditTeamExpertiseAreas] = useState("");
+  const [editTeamVisibility, setEditTeamVisibility] = useState("public");
 
   // Fetch admin data
   const { data: users = [], isLoading: usersLoading } = useQuery({
@@ -154,6 +161,22 @@ export default function Admin() {
     }
   });
 
+  const updateTeamMutation = useMutation({
+    mutationFn: async (teamData: { id: number; name: string; description: string; expertiseAreas: string[]; visibility: string }) => {
+      return await apiRequest(`/api/admin/teams/${teamData.id}`, 'PUT', teamData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/teams'] });
+      setEditingTeam(null);
+      setActiveTab("teams");
+      toast({ title: "Success", description: "Team updated successfully" });
+    },
+    onError: (error) => {
+      console.error("Team update error:", error);
+      toast({ title: "Error", description: "Failed to update team", variant: "destructive" });
+    }
+  });
+
   const createCategoryMutation = useMutation({
     mutationFn: async (categoryData: { name: string; description: string }) => {
       return await apiRequest('/api/admin/service-categories', 'POST', categoryData);
@@ -207,7 +230,7 @@ export default function Admin() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid grid-cols-7 w-full">
+        <TabsList className={`grid ${editingTeam ? 'grid-cols-8' : 'grid-cols-7'} w-full`}>
           <TabsTrigger value="users" className="flex items-center space-x-2">
             <Users className="h-4 w-4" />
             <span>Users</span>
@@ -224,6 +247,12 @@ export default function Admin() {
             <Plus className="h-4 w-4" />
             <span>Add Team</span>
           </TabsTrigger>
+          {editingTeam && (
+            <TabsTrigger value="edit-team" className="flex items-center space-x-2">
+              <Settings className="h-4 w-4" />
+              <span>Edit Team</span>
+            </TabsTrigger>
+          )}
           <TabsTrigger value="service-categories" className="flex items-center space-x-2">
             <Settings className="h-4 w-4" />
             <span>Service Categories</span>
@@ -484,7 +513,18 @@ export default function Admin() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Button size="sm" variant="outline">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => {
+                                setEditingTeam(team);
+                                setEditTeamName(team.name);
+                                setEditTeamDescription(team.description);
+                                setEditTeamExpertiseAreas(team.specialties?.join(', ') || '');
+                                setEditTeamVisibility(team.visibility || 'public');
+                                setActiveTab("edit-team");
+                              }}
+                            >
                               Edit
                             </Button>
                           </TableCell>
@@ -631,6 +671,99 @@ export default function Admin() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* Edit Team Tab */}
+        {editingTeam && (
+          <TabsContent value="edit-team" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Edit Team: {editingTeam.name}</CardTitle>
+                <CardDescription>
+                  Update team information and settings
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="editTeamName">Team Name</Label>
+                      <Input
+                        id="editTeamName"
+                        value={editTeamName}
+                        onChange={(e) => setEditTeamName(e.target.value)}
+                        placeholder="Enter team name"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="editTeamDescription">Description</Label>
+                      <Input
+                        id="editTeamDescription"
+                        value={editTeamDescription}
+                        onChange={(e) => setEditTeamDescription(e.target.value)}
+                        placeholder="Brief description of the team"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="editTeamExpertiseAreas">Expertise Areas (comma-separated)</Label>
+                      <Input
+                        id="editTeamExpertiseAreas"
+                        value={editTeamExpertiseAreas}
+                        onChange={(e) => setEditTeamExpertiseAreas(e.target.value)}
+                        placeholder="Finance, Risk Management, Compliance"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="editTeamVisibility">Team Visibility</Label>
+                      <Select value={editTeamVisibility} onValueChange={setEditTeamVisibility}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select visibility" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="public">Public</SelectItem>
+                          <SelectItem value="private">Private</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex justify-between">
+                  <Button 
+                    variant="outline"
+                    onClick={() => {
+                      setEditingTeam(null);
+                      setActiveTab("teams");
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={() => {
+                      if (!editTeamName || !editTeamDescription) {
+                        toast({ title: "Error", description: "Please fill in required fields", variant: "destructive" });
+                        return;
+                      }
+                      const expertiseAreas = editTeamExpertiseAreas.split(',').map(area => area.trim()).filter(area => area);
+                      updateTeamMutation.mutate({
+                        id: editingTeam.id,
+                        name: editTeamName,
+                        description: editTeamDescription,
+                        expertiseAreas,
+                        visibility: editTeamVisibility
+                      });
+                    }}
+                    disabled={updateTeamMutation.isPending}
+                    className="px-8"
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    {updateTeamMutation.isPending ? "Updating..." : "Update Team"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
 
         {/* Service Categories Tab */}
         <TabsContent value="service-categories" className="space-y-6">
