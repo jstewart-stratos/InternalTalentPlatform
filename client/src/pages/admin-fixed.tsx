@@ -774,14 +774,20 @@ export default function Admin() {
                 </Select>
               </div>
             </div>
-            <div>
-              <Label htmlFor="newTeamDescription">Description</Label>
-              <Input
+            {/* Team Description */}
+            <div className="space-y-2">
+              <Label htmlFor="newTeamDescription" className="text-base font-semibold">Team Description</Label>
+              <textarea
                 id="newTeamDescription"
                 value={newTeamDescription}
                 onChange={(e) => setNewTeamDescription(e.target.value)}
-                placeholder="Brief description of the team"
+                placeholder="Enter a detailed description of the team, its purpose, goals, and areas of focus..."
+                className="min-h-[100px] w-full px-3 py-2 text-sm border border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 rounded-md resize-vertical"
+                rows={4}
               />
+              <p className="text-xs text-muted-foreground">
+                {newTeamDescription.length}/500 characters
+              </p>
             </div>
             {/* Expertise Areas Management */}
             <div className="space-y-3">
@@ -1169,14 +1175,39 @@ export default function Admin() {
                 </Select>
               </div>
             </div>
-            <div>
-              <Label htmlFor="editTeamDescription">Description</Label>
-              <Input
-                id="editTeamDescription"
-                value={editTeamDescription}
-                onChange={(e) => setEditTeamDescription(e.target.value)}
-                placeholder="Brief description of the team"
-              />
+            {/* Team Description Management */}
+            <div className="space-y-3">
+              <Label className="text-base font-semibold">Team Description</Label>
+              
+              {/* Current Description Display */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Current Description:</Label>
+                {!editTeamDescription || editTeamDescription.trim().length === 0 ? (
+                  <div className="text-center py-4 text-muted-foreground text-sm border rounded-lg">
+                    No description provided
+                  </div>
+                ) : (
+                  <div className="p-3 border rounded-lg bg-muted/30">
+                    <p className="text-sm">{editTeamDescription}</p>
+                  </div>
+                )}
+              </div>
+              
+              {/* Edit Description */}
+              <div className="space-y-2">
+                <Label htmlFor="editTeamDescription" className="text-sm font-medium">Edit Description:</Label>
+                <textarea
+                  id="editTeamDescription"
+                  value={editTeamDescription}
+                  onChange={(e) => setEditTeamDescription(e.target.value)}
+                  placeholder="Enter a detailed description of the team, its purpose, goals, and areas of focus..."
+                  className="min-h-[100px] w-full px-3 py-2 text-sm border border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 rounded-md resize-vertical"
+                  rows={4}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {editTeamDescription.length}/500 characters
+                </p>
+              </div>
             </div>
             {/* Expertise Areas Management */}
             <div className="space-y-3">
