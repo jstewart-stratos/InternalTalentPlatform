@@ -20,6 +20,7 @@ export interface IStorage {
   deleteEmployee(id: number): Promise<boolean>;
   getAllEmployees(): Promise<Employee[]>;
   searchEmployees(query: string, experienceLevel?: string): Promise<Employee[]>;
+  searchEmployeesWithAllSkills(query: string): Promise<number[]>;
 
   // Skill endorsement methods
   createSkillEndorsement(endorsement: InsertSkillEndorsement): Promise<SkillEndorsement>;
@@ -346,7 +347,85 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(employees);
   }
 
+  async searchEmployeesWithAllSkills(query: string): Promise<number[]> {
+    const searchLower = query.toLowerCase();
+    
+    // Search across multiple skill sources:
+    // 1. Employee personal skills
+    // 2. Team skills (from teams they belong to)
+    // 3. Service skills (from services they offer)
+    
+    const employeesWithSkills = await db
+      .select({
+        employeeId: employees.id,
+        employeeName: employees.name,
+        employeeTitle: employees.title,
+        employeeBio: employees.bio,
+        employeeSkills: employees.skills,
+        teamSkills: teams.specialties,
+        serviceSkills: professionalServices.offeredSkills
+      })
+      .from(employees)
+      .leftJoin(teamMembers, and(
+        eq(employees.id, teamMembers.employeeId),
+        eq(teamMembers.isActive, true)
+      ))
+      .leftJoin(teams, eq(teamMembers.teamId, teams.id))
+      .leftJoin(professionalServices, and(
+        eq(employees.id, professionalServices.providerId),
+        eq(professionalServices.isActive, true)
+      ));
 
+    // Filter employees that match the search query
+    const matchingEmployeeIds = new Set<number>();
+    
+    for (const row of employeesWithSkills) {
+      let matches = false;
+      
+      // Check employee name, title, bio
+      if (row.employeeName.toLowerCase().includes(searchLower) ||
+          row.employeeTitle.toLowerCase().includes(searchLower) ||
+          (row.employeeBio && row.employeeBio.toLowerCase().includes(searchLower))) {
+        matches = true;
+      }
+      
+      // Check employee skills
+      if (row.employeeSkills && Array.isArray(row.employeeSkills)) {
+        for (const skill of row.employeeSkills) {
+          if (skill.toLowerCase().includes(searchLower)) {
+            matches = true;
+            break;
+          }
+        }
+      }
+      
+      // Check team skills
+      if (row.teamSkills && Array.isArray(row.teamSkills)) {
+        for (const skill of row.teamSkills) {
+          if (skill.toLowerCase().includes(searchLower)) {
+            matches = true;
+            break;
+          }
+        }
+      }
+      
+      // Check service skills
+      if (row.serviceSkills && Array.isArray(row.serviceSkills)) {
+        for (const skill of row.serviceSkills) {
+          if (skill.toLowerCase().includes(searchLower)) {
+            matches = true;
+            break;
+          }
+        }
+      }
+      
+      if (matches) {
+        matchingEmployeeIds.add(row.employeeId);
+      }
+    }
+    
+    return Array.from(matchingEmployeeIds);
+  }
 
   async createSkillEndorsement(insertEndorsement: InsertSkillEndorsement): Promise<SkillEndorsement> {
     const [endorsement] = await db

@@ -1611,22 +1611,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Filter visible experts only
       employees = employees.filter(emp => emp.isExpertDirectoryVisible !== false);
       
-      // Apply search filter
+      // Enhanced search filter - includes team skills and service skills
       if (search && typeof search === 'string') {
         const searchLower = search.toLowerCase();
-        employees = employees.filter(emp => 
-          emp.name.toLowerCase().includes(searchLower) ||
-          emp.title.toLowerCase().includes(searchLower) ||
-          emp.skills.some(s => s.toLowerCase().includes(searchLower)) ||
-          (emp.bio && emp.bio.toLowerCase().includes(searchLower))
-        );
+        
+        const matchingEmployeeIds = await storage.searchEmployeesWithAllSkills(searchLower);
+        employees = employees.filter(emp => matchingEmployeeIds.includes(emp.id));
       }
       
-      // Apply skill filter
+      // Enhanced skill filter - includes team skills and service skills
       if (skill && typeof skill === 'string') {
-        employees = employees.filter(emp => 
-          emp.skills.some(s => s.toLowerCase().includes(skill.toLowerCase()))
-        );
+        const matchingEmployeeIds = await storage.searchEmployeesWithAllSkills(skill);
+        employees = employees.filter(emp => matchingEmployeeIds.includes(emp.id));
       }
       
       // Apply availability filter
