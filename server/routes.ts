@@ -3266,10 +3266,26 @@ Respond with JSON in this exact format:
         console.log(`Debug: Checking team ${team.id} (${team.name}) for employee ${employee.id}`);
         
         try {
-          const isManager = await storage.isTeamManager(team.id, employee.id);
-          console.log(`Debug: Team ${team.id} (${team.name}) - isManager: ${isManager}, userRole: ${req.user.role}`);
+          console.log(`Debug: About to call isTeamManager for team ${team.id}, employee ${employee.id}`);
           
-          if (isManager || req.user.role === 'admin') {
+          // Let's bypass the storage function and query directly for debugging
+          const directManagerCheck = await db
+            .select()
+            .from(teamMembers)
+            .where(and(
+              eq(teamMembers.teamId, team.id),
+              eq(teamMembers.employeeId, employee.id),
+              eq(teamMembers.role, 'manager'),
+              eq(teamMembers.isActive, true)
+            ));
+            
+          console.log(`Debug: Direct query result for team ${team.id}:`, directManagerCheck);
+          const isManagerDirect = directManagerCheck.length > 0;
+          
+          const isManager = await storage.isTeamManager(team.id, employee.id);
+          console.log(`Debug: Team ${team.id} (${team.name}) - isManagerDirect: ${isManagerDirect}, isManagerStorage: ${isManager}, userRole: ${req.user.role}`);
+          
+          if (isManager || isManagerDirect || req.user.role === 'admin') {
             const members = await storage.getTeamMembers(team.id);
             console.log(`Debug: Adding team ${team.id} to managed teams (${members.length} members)`);
             managedTeams.push({
