@@ -468,15 +468,12 @@ export default function Admin() {
                                     // Use employeeId for team member selection, not userId
                                     const memberIds = members.map((member: any) => member.employeeId);
                                     setEditSelectedMembers(memberIds);
-                                    setCurrentTeamMembers(members);
                                   } else {
                                     setEditSelectedMembers([]);
-                                    setCurrentTeamMembers([]);
                                   }
                                 } catch (error) {
                                   console.error("Error fetching team members:", error);
                                   setEditSelectedMembers([]);
-                                  setCurrentTeamMembers([]);
                                 }
                                 
                                 setEditTeamDialogOpen(true);
@@ -1411,7 +1408,11 @@ export default function Admin() {
               {/* Current Members List */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Current Members:</Label>
-                {currentTeamMembers.length === 0 ? (
+                {currentMembersLoading ? (
+                  <div className="text-center py-4 text-muted-foreground text-sm border rounded-lg">
+                    Loading members...
+                  </div>
+                ) : currentTeamMembers.length === 0 ? (
                   <div className="text-center py-4 text-muted-foreground text-sm border rounded-lg">
                     No members in this team
                   </div>
