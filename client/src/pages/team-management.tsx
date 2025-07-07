@@ -12,6 +12,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Settings, Users, Plus, Edit, Trash2, UserCheck, UserX } from "lucide-react";
 
 export default function TeamManagement() {
+  console.log("=== TeamManagement page loaded ===");
   const { toast } = useToast();
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [editTeamDialogOpen, setEditTeamDialogOpen] = useState(false);
@@ -21,6 +22,7 @@ export default function TeamManagement() {
   const [newExpertiseArea, setNewExpertiseArea] = useState("");
 
   // Fetch teams managed by current user
+  console.log("=== About to fetch managed teams from /api/team-manager/my-teams ===");
   const { data: managedTeams, isLoading: teamsLoading } = useQuery({
     queryKey: ["/api/team-manager/my-teams"],
   });
