@@ -90,15 +90,10 @@ export default function TeamManagement() {
 
   // Fetch team services
   const { data: teamServices, isLoading: servicesLoading } = useQuery({
-    queryKey: ["/api/professional-services", "team", selectedTeam?.id],
+    queryKey: ["/api/professional-services", { teamId: selectedTeam?.id }],
     queryFn: async () => {
       if (!selectedTeam) return [];
-      const response = await fetch(`/api/professional-services?teamId=${selectedTeam.id}`, {
-        credentials: 'include',
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${await response.text()}`);
-      }
+      const response = await apiRequest("GET", `/api/professional-services?teamId=${selectedTeam.id}`);
       return response.json();
     },
     enabled: !!selectedTeam,
@@ -217,7 +212,7 @@ export default function TeamManagement() {
 
     try {
       await apiRequest("DELETE", `/api/professional-services/${service.id}`);
-      queryClient.invalidateQueries({ queryKey: ["/api/professional-services", "team", selectedTeam?.id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/professional-services", { teamId: selectedTeam?.id }] });
       toast({
         title: "Success",
         description: "Service deleted successfully",
@@ -248,7 +243,7 @@ export default function TeamManagement() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/professional-services", "team", selectedTeam?.id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/professional-services", { teamId: selectedTeam?.id }] });
       setCreateServiceDialogOpen(false);
       serviceForm.reset();
       toast({
