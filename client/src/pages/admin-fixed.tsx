@@ -1359,13 +1359,19 @@ export default function Admin() {
                       <div className="text-center py-2 text-muted-foreground text-sm">Loading...</div>
                     ) : (
                       <div className="p-1">
-                        {(allUsersForTeams as any[])
-                          .filter(user => 
+                        {(() => {
+                          console.log('All users for teams:', allUsersForTeams);
+                          console.log('Search query:', memberSearchQuery);
+                          console.log('Edit selected members:', editSelectedMembers);
+                          const filteredUsers = (allUsersForTeams as any[]).filter(user => 
                             user.hasEmployeeProfile && 
                             !editSelectedMembers.includes(user.id) &&
                             (user.name.toLowerCase().includes(memberSearchQuery.toLowerCase()) ||
                              user.email.toLowerCase().includes(memberSearchQuery.toLowerCase()))
-                          )
+                          );
+                          console.log('Filtered users:', filteredUsers);
+                          return filteredUsers;
+                        })()
                           .slice(0, 5)
                           .map((user) => (
                             <div 
