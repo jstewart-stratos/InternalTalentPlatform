@@ -52,6 +52,13 @@ export default function Admin() {
   const [currentTeamMembers, setCurrentTeamMembers] = useState<any[]>([]);
   const [editSelectedMembers, setEditSelectedMembers] = useState<number[]>([]);
 
+  // User editing state
+  const [editingUser, setEditingUser] = useState<any>(null);
+  const [editUserFirstName, setEditUserFirstName] = useState("");
+  const [editUserLastName, setEditUserLastName] = useState("");
+  const [editUserEmail, setEditUserEmail] = useState("");
+  const [editUserRole, setEditUserRole] = useState("user");
+
   // Fetch admin data
   const { data: users = [], isLoading: usersLoading } = useQuery({
     queryKey: ['/api/admin/users']
@@ -194,6 +201,22 @@ export default function Admin() {
     }
   });
 
+  const updateUserMutation = useMutation({
+    mutationFn: async (userData: { id: number; firstName: string; lastName: string; email: string; role: string }) => {
+      return await apiRequest(`/api/admin/users/${userData.id}`, 'PUT', userData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
+      setEditingUser(null);
+      setActiveTab("users");
+      toast({ title: "Success", description: "User updated successfully" });
+    },
+    onError: (error) => {
+      console.error("User update error:", error);
+      toast({ title: "Error", description: "Failed to update user", variant: "destructive" });
+    }
+  });
+
   const createCategoryMutation = useMutation({
     mutationFn: async (categoryData: { name: string; description: string }) => {
       return await apiRequest('/api/admin/service-categories', 'POST', categoryData);
@@ -247,7 +270,7 @@ export default function Admin() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className={`grid ${editingTeam ? 'grid-cols-8' : 'grid-cols-7'} w-full`}>
+        <TabsList className={`grid ${editingTeam || editingUser ? 'grid-cols-8' : 'grid-cols-7'} w-full`}>
           <TabsTrigger value="users" className="flex items-center space-x-2">
             <Users className="h-4 w-4" />
             <span>Users</span>
@@ -268,6 +291,12 @@ export default function Admin() {
             <TabsTrigger value="edit-team" className="flex items-center space-x-2">
               <Settings className="h-4 w-4" />
               <span>Edit Team</span>
+            </TabsTrigger>
+          )}
+          {editingUser && (
+            <TabsTrigger value="edit-user" className="flex items-center space-x-2">
+              <Settings className="h-4 w-4" />
+              <span>Edit User</span>
             </TabsTrigger>
           )}
           <TabsTrigger value="service-categories" className="flex items-center space-x-2">
@@ -357,16 +386,32 @@ export default function Admin() {
                               </span>
                             </div>
                           </TableCell>
-                          <TableCell className="min-w-[140px]">
-                            <Button
-                              size="sm"
-                              variant={user.isActive ? "destructive" : "default"}
-                              onClick={() => handleUserToggle(user.id, user.isActive)}
-                              className="whitespace-nowrap"
-                            >
-                              {user.isActive ? <Lock className="h-3 w-3" /> : <Unlock className="h-3 w-3" />}
-                              <span className="ml-1">{user.isActive ? "Deactivate" : "Activate"}</span>
-                            </Button>
+                          <TableCell className="min-w-[180px]">
+                            <div className="flex items-center space-x-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setEditingUser(user);
+                                  setEditUserFirstName(user.firstName);
+                                  setEditUserLastName(user.lastName);
+                                  setEditUserEmail(user.email);
+                                  setEditUserRole(user.role || 'user');
+                                  setActiveTab("edit-user");
+                                }}
+                              >
+                                Edit
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant={user.isActive ? "destructive" : "default"}
+                                onClick={() => handleUserToggle(user.id, user.isActive)}
+                                className="whitespace-nowrap"
+                              >
+                                {user.isActive ? <Lock className="h-3 w-3" /> : <Unlock className="h-3 w-3" />}
+                                <span className="ml-1">{user.isActive ? "Deactivate" : "Activate"}</span>
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -470,6 +515,100 @@ export default function Admin() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* Edit User Tab */}
+        {editingUser && (
+          <TabsContent value="edit-user" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Edit User: {editingUser.firstName} {editingUser.lastName}</CardTitle>
+                <CardDescription>
+                  Update user information and settings
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="editUserFirstName">First Name</Label>
+                      <Input
+                        id="editUserFirstName"
+                        value={editUserFirstName}
+                        onChange={(e) => setEditUserFirstName(e.target.value)}
+                        placeholder="First name"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="editUserLastName">Last Name</Label>
+                      <Input
+                        id="editUserLastName"
+                        value={editUserLastName}
+                        onChange={(e) => setEditUserLastName(e.target.value)}
+                        placeholder="Last name"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="editUserEmail">Email Address</Label>
+                      <Input
+                        id="editUserEmail"
+                        type="email"
+                        value={editUserEmail}
+                        onChange={(e) => setEditUserEmail(e.target.value)}
+                        placeholder="user@example.com"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="editUserRole">Role</Label>
+                      <Select value={editUserRole} onValueChange={setEditUserRole}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="user">User</SelectItem>
+                          <SelectItem value="team-manager">Team Manager</SelectItem>
+                          <SelectItem value="admin">Admin</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex justify-between">
+                  <Button 
+                    variant="outline"
+                    onClick={() => {
+                      setEditingUser(null);
+                      setActiveTab("users");
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={() => {
+                      if (!editUserFirstName || !editUserLastName || !editUserEmail) {
+                        toast({ title: "Error", description: "Please fill in all required fields", variant: "destructive" });
+                        return;
+                      }
+                      updateUserMutation.mutate({
+                        id: editingUser.id,
+                        firstName: editUserFirstName,
+                        lastName: editUserLastName,
+                        email: editUserEmail,
+                        role: editUserRole
+                      });
+                    }}
+                    disabled={updateUserMutation.isPending}
+                    className="px-8"
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    {updateUserMutation.isPending ? "Updating..." : "Update User"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
 
         {/* Teams Tab */}
         <TabsContent value="teams" className="space-y-6">

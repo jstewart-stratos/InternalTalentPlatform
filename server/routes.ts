@@ -991,6 +991,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update user (Admin only)
+  app.put("/api/admin/users/:id", authMiddleware, requireAdminRole, async (req: any, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const { firstName, lastName, email, role } = req.body;
+
+      // Validate required fields
+      if (!firstName || !lastName || !email || !role) {
+        return res.status(400).json({ error: "All fields are required" });
+      }
+
+      // Check if email is already taken by another user
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser && existingUser.id !== userId) {
+        return res.status(400).json({ error: "Email already in use by another user" });
+      }
+
+      // Update user information
+      const updatedUser = await storage.updateUser(userId, {
+        firstName,
+        lastName,
+        email,
+        role
+      });
+
+      if (!updatedUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Log admin action
+      await storage.logAdminAction({
+        userId: req.user.id,
+        action: "user_updated",
+        targetType: "user",
+        targetId: userId.toString(),
+        changes: { firstName, lastName, email, role },
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent')
+      });
+
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating user:", error);
+      res.status(500).json({ error: "Failed to update user" });
+    }
+  });
+
   // Create new user (Admin only)
   app.post("/api/admin/users", authMiddleware, requireAdminRole, async (req: any, res) => {
     try {
