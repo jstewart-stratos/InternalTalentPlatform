@@ -3370,10 +3370,11 @@ Respond with JSON in this exact format:
   });
 
   // Get team members (team managers)
-  app.get("/api/team-manager/teams/:teamId/members", authMiddleware, requireTeamManagerAccess, async (req, res) => {
+  app.get("/api/team-manager/teams/:teamId/members", authMiddleware, requireTeamManagerOrAdmin, async (req, res) => {
     try {
       const teamId = parseInt(req.params.teamId);
       console.log(`=== FETCHING TEAM MEMBERS FOR TEAM ${teamId} ===`);
+      console.log(`Debug: User ${req.user.id}, Role: ${req.user.role}, Team: ${teamId}`);
       
       const members = await storage.getTeamMembers(teamId);
       console.log(`Debug: Found ${members.length} members for team ${teamId}:`, members);
