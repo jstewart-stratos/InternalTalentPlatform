@@ -206,7 +206,7 @@ export default function TeamManagement() {
     if (!confirmed) return;
 
     try {
-      await apiRequest("DELETE", `/api/professional-services/${service.id}`);
+      await apiRequest(`/api/professional-services/${service.id}`, "DELETE");
       queryClient.invalidateQueries({ queryKey: [`/api/professional-services?teamId=${selectedTeam?.id}`] });
       toast({
         title: "Success",
@@ -224,7 +224,7 @@ export default function TeamManagement() {
 
   const createServiceMutation = useMutation({
     mutationFn: async (serviceData: any) => {
-      const response = await apiRequest("POST", "/api/professional-services", {
+      const response = await apiRequest("/api/professional-services", "POST", {
         ...serviceData,
         teamId: selectedTeam?.id,
         providerId: null, // Team services don't have individual providers
