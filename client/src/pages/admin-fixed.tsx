@@ -153,6 +153,7 @@ export default function Admin() {
     },
     onSuccess: (data, variables) => {
       console.log(`Member added successfully, invalidating cache for team ${variables.teamId}`);
+      // Force multiple cache invalidations for comprehensive refresh
       queryClient.invalidateQueries({ queryKey: ['/api/admin/teams'] });
       queryClient.invalidateQueries({ queryKey: [`/api/admin/teams/${variables.teamId}/members`] });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/all-users-for-teams'] });
@@ -160,11 +161,18 @@ export default function Admin() {
       if (editingTeam && editingTeam.id === variables.teamId) {
         queryClient.invalidateQueries({ queryKey: [`/api/admin/teams/${editingTeam.id}/members`] });
       }
-      // Force immediate cache refresh to prevent stale data
+      // Force immediate data refetch to ensure UI shows updated counts
+      queryClient.refetchQueries({ queryKey: ['/api/admin/teams'] });
+      queryClient.refetchQueries({ queryKey: [`/api/admin/teams/${variables.teamId}/members`] });
+      // Additional delayed refresh to handle any race conditions
       setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: ['/api/admin/teams'] });
-        queryClient.invalidateQueries({ queryKey: [`/api/admin/teams/${variables.teamId}/members`] });
+        queryClient.refetchQueries({ queryKey: ['/api/admin/teams'] });
       }, 100);
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['/api/admin/teams'] });
+        queryClient.refetchQueries({ queryKey: ['/api/admin/teams'] });
+      }, 500);
       toast({ title: "Success", description: "Team member added successfully" });
     },
     onError: (error: any) => {
@@ -181,6 +189,7 @@ export default function Admin() {
     },
     onSuccess: (data, variables) => {
       console.log(`Member removed successfully, invalidating cache for team ${variables.teamId}`);
+      // Force multiple cache invalidations for comprehensive refresh
       queryClient.invalidateQueries({ queryKey: ['/api/admin/teams'] });
       queryClient.invalidateQueries({ queryKey: [`/api/admin/teams/${variables.teamId}/members`] });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/all-users-for-teams'] });
@@ -188,11 +197,18 @@ export default function Admin() {
       if (editingTeam && editingTeam.id === variables.teamId) {
         queryClient.invalidateQueries({ queryKey: [`/api/admin/teams/${editingTeam.id}/members`] });
       }
-      // Force immediate cache refresh to prevent stale data
+      // Force immediate data refetch to ensure UI shows updated counts
+      queryClient.refetchQueries({ queryKey: ['/api/admin/teams'] });
+      queryClient.refetchQueries({ queryKey: [`/api/admin/teams/${variables.teamId}/members`] });
+      // Additional delayed refresh to handle any race conditions
       setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: ['/api/admin/teams'] });
-        queryClient.invalidateQueries({ queryKey: [`/api/admin/teams/${variables.teamId}/members`] });
+        queryClient.refetchQueries({ queryKey: ['/api/admin/teams'] });
       }, 100);
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['/api/admin/teams'] });
+        queryClient.refetchQueries({ queryKey: ['/api/admin/teams'] });
+      }, 500);
       toast({ title: "Success", description: "Team member removed successfully" });
     },
     onError: (error: any) => {
