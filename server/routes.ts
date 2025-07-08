@@ -1601,7 +1601,137 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return 'Other';
   }
 
-  // Expert Directory Routes
+  // Combined Expert and Team Search API
+  app.get("/api/search-experts-and-teams", async (req, res) => {
+    try {
+      const { search, skill, availability, experience } = req.query;
+      const results: any[] = [];
+      
+      // Search for individual experts
+      let employees = await storage.getAllEmployees();
+      employees = employees.filter(emp => emp.isExpertDirectoryVisible !== false);
+      
+      // Enhanced search filter for employees
+      if (search && typeof search === 'string') {
+        const searchLower = search.toLowerCase();
+        const matchingEmployeeIds = await storage.searchEmployeesWithAllSkills(searchLower);
+        employees = employees.filter(emp => matchingEmployeeIds.includes(emp.id));
+      }
+      
+      if (skill && typeof skill === 'string') {
+        const matchingEmployeeIds = await storage.searchEmployeesWithAllSkills(skill);
+        employees = employees.filter(emp => matchingEmployeeIds.includes(emp.id));
+      }
+      
+      // Apply filters to employees
+      if (availability && typeof availability === 'string') {
+        employees = employees.filter(emp => emp.availabilityStatus === availability);
+      }
+      
+      if (experience && typeof experience === 'string') {
+        employees = employees.filter(emp => emp.experienceLevel === experience);
+      }
+      
+      // Add employees to results with metadata
+      const expertsWithMetadata = await Promise.all(employees.map(async (employee) => {
+        const endorsements = await storage.getSkillEndorsements(employee.id);
+        return {
+          ...employee,
+          type: 'individual',
+          totalEndorsements: endorsements.length,
+          menteeCount: Math.floor(Math.random() * 5),
+          responseTime: getRandomResponseTime(),
+        };
+      }));
+      
+      results.push(...expertsWithMetadata);
+      
+      // Search for teams with matching skills
+      const teams = await storage.getAllTeams();
+      const activeTeams = teams.filter(team => team.isActive);
+      
+      for (const team of activeTeams) {
+        let teamMatches = false;
+        
+        // Check if team matches search criteria
+        if (search && typeof search === 'string') {
+          const searchLower = search.toLowerCase();
+          
+          // Search team name, description
+          if (team.name.toLowerCase().includes(searchLower) ||
+              (team.description && team.description.toLowerCase().includes(searchLower))) {
+            teamMatches = true;
+          }
+          
+          // Search team specialties/skills
+          if (team.specialties && Array.isArray(team.specialties)) {
+            for (const specialty of team.specialties) {
+              if (specialty.toLowerCase().includes(searchLower)) {
+                teamMatches = true;
+                break;
+              }
+            }
+          }
+        }
+        
+        if (skill && typeof skill === 'string') {
+          const skillLower = skill.toLowerCase();
+          if (team.specialties && Array.isArray(team.specialties)) {
+            for (const specialty of team.specialties) {
+              if (specialty.toLowerCase().includes(skillLower)) {
+                teamMatches = true;
+                break;
+              }
+            }
+          }
+        }
+        
+        // If no search/skill filters, include all teams
+        if (!search && !skill) {
+          teamMatches = true;
+        }
+        
+        if (teamMatches) {
+          // Get team member count and services
+          const teamMembers = await storage.getTeamMembers(team.id);
+          const teamServices = await storage.getProfessionalServicesByTeam(team.id);
+          
+          results.push({
+            id: team.id,
+            type: 'team',
+            name: team.name,
+            description: team.description,
+            profileImage: team.profileImage,
+            skills: team.specialties || [],
+            memberCount: teamMembers.length,
+            serviceCount: teamServices.length,
+            website: team.website,
+            createdAt: team.createdAt,
+          });
+        }
+      }
+      
+      // Sort results: individual experts first, then teams
+      results.sort((a, b) => {
+        if (a.type === 'individual' && b.type === 'team') return -1;
+        if (a.type === 'team' && b.type === 'individual') return 1;
+        
+        // Within same type, sort by relevance
+        if (a.type === 'individual') {
+          return (b.totalEndorsements || 0) - (a.totalEndorsements || 0);
+        } else {
+          return (b.memberCount || 0) - (a.memberCount || 0);
+        }
+      });
+      
+      res.json(results);
+    } catch (error) {
+      console.error("Error fetching experts and teams:", error);
+      res.status(500).json({ error: "Failed to fetch experts and teams" });
+    }
+  });
+
+  // Expert Directory Routes (keeping for backward compatibility)
   app.get("/api/experts", async (req, res) => {
     try {
       const { search, skill, availability, experience } = req.query;

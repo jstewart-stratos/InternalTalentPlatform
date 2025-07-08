@@ -36,24 +36,28 @@ export default function ExpertDirectory() {
     if (experienceParam) setExperienceFilter(experienceParam);
   }, []);
 
-  const { data: experts = [], isLoading, error } = useQuery({
-    queryKey: ["/api/experts", searchTerm, selectedSkill, experienceFilter],
+  const { data: searchResults = [], isLoading, error } = useQuery({
+    queryKey: ["/api/search-experts-and-teams", searchTerm, selectedSkill, experienceFilter],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (searchTerm) params.append("search", searchTerm);
       if (selectedSkill && selectedSkill !== "all") params.append("skill", selectedSkill);
       if (experienceFilter && experienceFilter !== "all") params.append("experience", experienceFilter);
       
-      console.log('Fetching experts with params:', params.toString());
-      const response = await fetch(`/api/experts?${params}`);
-      if (!response.ok) throw new Error("Failed to fetch experts");
-      const data = await response.json() as ExpertProfile[];
-      console.log('Received experts data:', data.length, 'experts');
+      console.log('Fetching experts and teams with params:', params.toString());
+      const response = await fetch(`/api/search-experts-and-teams?${params}`);
+      if (!response.ok) throw new Error("Failed to fetch experts and teams");
+      const data = await response.json();
+      console.log('Received search results:', data.length, 'items');
       return data;
     },
     staleTime: 0, // Force fresh data
     cacheTime: 0, // Don't cache
   });
+
+  // Separate experts and teams for display
+  const experts = searchResults.filter((item: any) => item.type === 'individual');
+  const teams = searchResults.filter((item: any) => item.type === 'team');
 
   const { data: skills = [] } = useQuery({
     queryKey: ["/api/skills/all"],
@@ -203,21 +207,110 @@ export default function ExpertDirectory() {
           <h3 className="text-lg font-semibold text-red-900 mb-2">Error loading experts</h3>
           <p className="text-red-600">{error.message}</p>
         </div>
-      ) : experts.length === 0 ? (
+      ) : searchResults.length === 0 ? (
         <div className="text-center py-12">
           <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No experts found</h3>
-          <p className="text-gray-600">Try adjusting your search criteria to find relevant experts.</p>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">No experts or teams found</h3>
+          <p className="text-gray-600">Try adjusting your search criteria to find relevant experts and teams.</p>
         </div>
       ) : (
         <>
           <div className="flex justify-between items-center mb-6">
             <p className="text-gray-600">
-              Found {experts.length} expert{experts.length !== 1 ? 's' : ''}
+              Found {experts.length} expert{experts.length !== 1 ? 's' : ''} and {teams.length} team{teams.length !== 1 ? 's' : ''}
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Teams Section */}
+          {teams.length > 0 && (
+            <div className="mb-8">
+              <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                <Users className="h-5 w-5 mr-2" />
+                Teams ({teams.length})
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                {teams.map((team: any) => (
+                  <Card key={`team-${team.id}`} className="hover:shadow-lg transition-shadow border-l-4 border-l-blue-500">
+                    <CardHeader className="pb-4">
+                      <div className="flex items-start space-x-4">
+                        <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                          <Users className="h-6 w-6 text-blue-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <CardTitle className="text-lg font-semibold truncate">
+                            {team.name}
+                          </CardTitle>
+                          <p className="text-sm text-gray-600 mb-2">Team • {team.memberCount} members</p>
+                          <div className="flex items-center space-x-2">
+                            <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700">
+                              Team
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                    </CardHeader>
+
+                    <CardContent className="pt-0">
+                      {team.description && (
+                        <p className="text-sm text-gray-700 mb-4 line-clamp-2">
+                          {team.description}
+                        </p>
+                      )}
+
+                      <div className="mb-4">
+                        <h4 className="text-sm font-medium text-gray-900 mb-2">Team Skills</h4>
+                        <div className="flex flex-wrap gap-1">
+                          {team.skills?.slice(0, 4).map((skill: string) => (
+                            <Badge key={skill} variant="secondary" className="text-xs">
+                              {skill}
+                            </Badge>
+                          ))}
+                          {team.skills?.length > 4 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{team.skills.length - 4} more
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-4 border-t">
+                        <div className="flex items-center space-x-4 text-sm text-gray-500">
+                          <div className="flex items-center">
+                            <Users className="h-4 w-4 mr-1" />
+                            {team.memberCount} members
+                          </div>
+                          {team.serviceCount > 0 && (
+                            <div className="flex items-center">
+                              <Badge variant="outline" className="text-xs">
+                                {team.serviceCount} services
+                              </Badge>
+                            </div>
+                          )}
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setLocation(`/teams/${team.id}`)}
+                          className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                        >
+                          View Team
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Individual Experts Section */}
+          {experts.length > 0 && (
+            <div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                <User className="h-5 w-5 mr-2" />
+                Individual Experts ({experts.length})
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {experts.map((expert) => (
               <Card key={expert.id} className="hover:shadow-lg transition-shadow">
                 <CardHeader className="pb-4">
@@ -306,7 +399,9 @@ export default function ExpertDirectory() {
                 </CardContent>
               </Card>
             ))}
-          </div>
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>
