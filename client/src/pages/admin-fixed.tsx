@@ -150,9 +150,10 @@ export default function Admin() {
       const response = await apiRequest(`/api/admin/teams/${teamId}/members`, 'POST', { employeeId, role });
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/teams'] });
-      queryClient.invalidateQueries({ queryKey: [`/api/admin/teams/${editingTeam?.id}/members`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/teams/${variables.teamId}/members`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/all-users-for-teams'] });
       toast({ title: "Success", description: "Team member added successfully" });
     },
     onError: (error: any) => {
@@ -165,9 +166,10 @@ export default function Admin() {
       const response = await apiRequest(`/api/admin/teams/${teamId}/members/${employeeId}`, 'DELETE');
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/teams'] });
-      queryClient.invalidateQueries({ queryKey: [`/api/admin/teams/${editingTeam?.id}/members`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/teams/${variables.teamId}/members`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/all-users-for-teams'] });
       toast({ title: "Success", description: "Team member removed successfully" });
     },
     onError: (error: any) => {
