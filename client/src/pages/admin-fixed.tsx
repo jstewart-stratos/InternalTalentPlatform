@@ -915,6 +915,9 @@ export default function Admin() {
               
               {/* Search and Add Members */}
               <div className="space-y-3">
+                <p className="text-xs text-muted-foreground">
+                  Search by name or email. Employee profiles will be created automatically if needed.
+                </p>
                 <div className="flex gap-2">
                   <div className="flex-1">
                     <Input
@@ -1341,6 +1344,9 @@ export default function Admin() {
               
               {/* Search and Add Members */}
               <div className="space-y-3">
+                <p className="text-xs text-muted-foreground">
+                  Search by name or email. Employee profiles will be created automatically if needed.
+                </p>
                 <div className="flex gap-2">
                   <div className="flex-1">
                     <Input

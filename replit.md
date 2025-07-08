@@ -152,6 +152,7 @@ Changelog:
 - January 8, 2025. Team service booking buttons added - Implemented "Book This Service" buttons on team service cards in team details pages, added orange accent button styling consistent with platform branding, button navigation to service details page for booking functionality, enhanced team services display with proper spacing and call-to-action buttons
 - January 8, 2025. Team membership self-service removed - Eliminated "Join Team" button from teams listing page as team membership will be managed exclusively by platform admins and team managers, cleaned up related mutation code and unused imports for streamlined admin-controlled team management
 - January 8, 2025. Onboarding tour implementation completed - Created comprehensive guided tour system with OnboardingProvider and OnboardingTour components, reworked tour content to emphasize profile creation requirement and admin-managed team membership, added "Platform Tour" button to navigation dropdown for easy access, tour automatically shows for new users and can be restarted anytime through help menu
+- January 8, 2025. Team member addition issues resolved - Fixed cache invalidation bug in admin interface preventing immediate UI refresh after adding team members, clarified that users can be added to teams without existing employee profiles (profiles auto-created by system), added helpful messaging to admin interface explaining automatic profile creation
 
 ## User Preferences
 
