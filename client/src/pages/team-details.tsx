@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams } from "wouter";
+import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +27,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function TeamDetails() {
   const { id } = useParams();
+  const [, setLocation] = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
   
@@ -301,7 +302,7 @@ export default function TeamDetails() {
                       <p className="text-sm mb-3">{service.description}</p>
                       
                       {service.skills && service.skills.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
+                        <div className="flex flex-wrap gap-1 mb-4">
                           {service.skills.map((skill: string, index: number) => (
                             <Badge key={index} variant="secondary" className="text-xs">
                               {skill}
@@ -309,6 +310,16 @@ export default function TeamDetails() {
                           ))}
                         </div>
                       )}
+                      
+                      <div className="flex justify-end pt-2">
+                        <Button 
+                          size="sm"
+                          onClick={() => setLocation(`/services/${service.id}`)}
+                          className="bg-orange-500 hover:bg-orange-600 text-white"
+                        >
+                          Book This Service
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
