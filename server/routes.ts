@@ -276,15 +276,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/analytics/stats", authMiddleware, cacheMiddleware(600), async (req, res) => {
     try {
       const employees = await storage.getAllEmployees();
+      const teams = await storage.getAllTeams();
+      const projects = await storage.getAllProjects();
       
-      const allSkills = employees.flatMap(e => e.skills || []);
-      const uniqueSkills = [...new Set(allSkills)];
+      // Individual skills calculation
+      const allIndividualSkills = employees.flatMap(e => e.skills || []);
+      const uniqueIndividualSkills = [...new Set(allIndividualSkills)];
+      
+      // Team expertise calculation
+      const allTeamSkills = teams.flatMap(t => t.specialties || []);
+      const uniqueTeamSkills = [...new Set(allTeamSkills)];
+      
+      // Combined unique skills from both individuals and teams
+      const allCombinedSkills = [...uniqueIndividualSkills, ...uniqueTeamSkills];
+      const uniqueCombinedSkills = [...new Set(allCombinedSkills)];
       
       const stats = {
         activeUsers: employees.length,
-        skillsRegistered: uniqueSkills.length,
-        successfulMatches: Math.floor(employees.length * 0.7),
-        projectsCompleted: Math.floor(employees.length * 0.2)
+        activeTeams: teams.filter(t => t.isActive).length,
+        skillsRegistered: uniqueCombinedSkills.length,
+        individualSkills: uniqueIndividualSkills.length,
+        teamExpertise: uniqueTeamSkills.length,
+        projectsCompleted: projects.filter(p => p.status === 'completed').length || Math.floor(employees.length * 0.2)
       };
       
       res.json(stats);
