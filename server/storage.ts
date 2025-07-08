@@ -1839,24 +1839,7 @@ export class DatabaseStorage implements IStorage {
     return userTeams;
   }
 
-  async isTeamManager(userId: string, teamId: number): Promise<boolean> {
-    const employee = await this.getEmployeeByUserId(parseInt(userId));
-    if (!employee) return false;
 
-    const membership = await db
-      .select()
-      .from(teamMembers)
-      .where(
-        and(
-          eq(teamMembers.teamId, teamId),
-          eq(teamMembers.employeeId, employee.id),
-          eq(teamMembers.isActive, true),
-          eq(teamMembers.role, "leader")
-        )
-      );
-
-    return membership.length > 0;
-  }
 
   async getTeamMembers(teamId: number): Promise<any[]> {
     const members = await db
