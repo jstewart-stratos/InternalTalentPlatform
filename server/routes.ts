@@ -595,9 +595,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
         project.requiredSkills.forEach(skill => allSkills.add(skill));
       });
       
+      // Add team specialties to skills network
+      const teams = await storage.getAllTeams();
+      teams.forEach(team => {
+        if (team.specialties && Array.isArray(team.specialties)) {
+          team.specialties.forEach(specialty => allSkills.add(specialty));
+        }
+      });
+      
       res.json(Array.from(allSkills).sort());
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch skills" });
+    }
+  });
+
+  // Enhanced skills API with team information for network view
+  app.get("/api/skills/network", async (req, res) => {
+    try {
+      const employees = await storage.getAllEmployees();
+      const teams = await storage.getAllTeams();
+      const endorsements = await storage.getAllSkillEndorsements();
+      const skillData: { [key: string]: { 
+        employeeCount: number; 
+        teamCount: number; 
+        endorsements: number;
+        employees: Array<{ id: number; name: string; }>;
+        teams: Array<{ id: number; name: string; }>;
+      } } = {};
+      
+      // Process individual employee skills
+      employees.forEach(employee => {
+        employee.skills.forEach(skill => {
+          if (!skillData[skill]) {
+            skillData[skill] = { 
+              employeeCount: 0, 
+              teamCount: 0, 
+              endorsements: 0,
+              employees: [],
+              teams: []
+            };
+          }
+          skillData[skill].employeeCount++;
+          skillData[skill].employees.push({ id: employee.id, name: employee.name });
+        });
+      });
+
+      // Process team specialties
+      teams.forEach(team => {
+        if (team.specialties && Array.isArray(team.specialties)) {
+          team.specialties.forEach(specialty => {
+            if (!skillData[specialty]) {
+              skillData[specialty] = { 
+                employeeCount: 0, 
+                teamCount: 0, 
+                endorsements: 0,
+                employees: [],
+                teams: []
+              };
+            }
+            skillData[specialty].teamCount++;
+            skillData[specialty].teams.push({ id: team.id, name: team.name });
+          });
+        }
+      });
+
+      // Process endorsements
+      endorsements.forEach(endorsement => {
+        if (skillData[endorsement.skill]) {
+          skillData[endorsement.skill].endorsements++;
+        }
+      });
+      
+      res.json(skillData);
+    } catch (error) {
+      console.error("Skills network error:", error);
+      res.status(500).json({ error: "Failed to fetch skills network data" });
     }
   });
 

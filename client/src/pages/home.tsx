@@ -113,13 +113,21 @@ export default function Home() {
     },
   });
 
-  // Skills network data
-  const { data: allEndorsements = [] } = useQuery({
-    queryKey: ["/api/all-endorsements"],
+  // Skills network data with team information
+  const { data: skillsNetworkData = {} } = useQuery({
+    queryKey: ["/api/skills/network"],
     queryFn: async () => {
-      const response = await fetch("/api/all-endorsements");
-      if (!response.ok) throw new Error("Failed to fetch endorsements");
-      return response.json() as Promise<SkillEndorsement[]>;
+      const response = await fetch("/api/skills/network");
+      if (!response.ok) throw new Error("Failed to fetch skills network");
+      return response.json() as Promise<{
+        [skill: string]: {
+          employeeCount: number;
+          teamCount: number;
+          endorsements: number;
+          employees: Array<{ id: number; name: string; }>;
+          teams: Array<{ id: number; name: string; }>;
+        };
+      }>;
     },
   });
 
@@ -162,27 +170,18 @@ export default function Home() {
     setSelectedSkills([]);
   };
 
-  // Process skills data for network view
+  // Process skills data for network view including team expertise
   const getSkillsWithCounts = () => {
-    const skillCounts: { [key: string]: { count: number; endorsements: number } } = {};
-    
-    allEmployees.forEach(employee => {
-      employee.skills.forEach(skill => {
-        if (!skillCounts[skill]) {
-          skillCounts[skill] = { count: 0, endorsements: 0 };
-        }
-        skillCounts[skill].count++;
-      });
-    });
-
-    allEndorsements.forEach(endorsement => {
-      if (skillCounts[endorsement.skill]) {
-        skillCounts[endorsement.skill].endorsements++;
-      }
-    });
-
-    return Object.entries(skillCounts)
-      .map(([skill, data]) => ({ skill, ...data }))
+    return Object.entries(skillsNetworkData)
+      .map(([skill, data]) => ({ 
+        skill, 
+        count: data.employeeCount + data.teamCount, // Total presence (individuals + teams)
+        employeeCount: data.employeeCount,
+        teamCount: data.teamCount,
+        endorsements: data.endorsements,
+        employees: data.employees,
+        teams: data.teams
+      }))
       .sort((a, b) => b.count - a.count);
   };
 
@@ -312,9 +311,15 @@ export default function Home() {
                 >
                   <CardContent className="p-4">
                     <h3 className="font-medium text-sm mb-2 truncate">{skillData.skill}</h3>
-                    <div className="flex justify-between text-xs text-gray-500">
-                      <span>{skillData.count} people</span>
-                      <span>{skillData.endorsements} endorsements</span>
+                    <div className="space-y-1 text-xs text-gray-500">
+                      <div className="flex justify-between">
+                        <span>{skillData.employeeCount || 0} individuals</span>
+                        <span>{skillData.teamCount || 0} teams</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>{skillData.endorsements || 0} endorsements</span>
+                        <span className="font-medium text-primary">{skillData.count || 0} total</span>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>

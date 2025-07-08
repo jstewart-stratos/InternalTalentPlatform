@@ -25,6 +25,7 @@ export interface IStorage {
   // Skill endorsement methods
   createSkillEndorsement(endorsement: InsertSkillEndorsement): Promise<SkillEndorsement>;
   getSkillEndorsements(employeeId: number): Promise<SkillEndorsement[]>;
+  getAllSkillEndorsements(): Promise<SkillEndorsement[]>;
   getSkillEndorsementsBySkill(employeeId: number, skill: string): Promise<SkillEndorsement[]>;
   removeSkillEndorsement(employeeId: number, endorserId: number, skill: string): Promise<boolean>;
 
@@ -443,6 +444,10 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(skillEndorsements)
       .where(eq(skillEndorsements.employeeId, employeeId));
+  }
+
+  async getAllSkillEndorsements(): Promise<SkillEndorsement[]> {
+    return await db.select().from(skillEndorsements);
   }
 
   async getSkillEndorsementsBySkill(employeeId: number, skill: string): Promise<SkillEndorsement[]> {
