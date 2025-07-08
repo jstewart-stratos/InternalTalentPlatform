@@ -3939,7 +3939,40 @@ Respond with JSON in this exact format:
     }
   });
 
-  // Get all users for team member selection
+  // Get all users for team member selection (Team Manager version)
+  app.get("/api/team-manager/all-users-for-teams", authMiddleware, requireTeamManagerOrAdmin, async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      const employees = await storage.getAllEmployees();
+      
+      // Create a map of userId to employee data
+      const employeeByUserId = new Map();
+      employees.forEach(emp => {
+        employeeByUserId.set(emp.userId, emp);
+      });
+      
+      // Combine user and employee data
+      const usersForTeams = users.map(user => {
+        const employee = employeeByUserId.get(user.id);
+        return {
+          id: employee ? employee.id : user.id, // Use employee ID if exists, otherwise user ID
+          userId: user.id,
+          name: employee ? employee.name : `${user.firstName} ${user.lastName}`,
+          email: user.email,
+          title: employee ? employee.title : 'User', // Default title if no employee profile
+          skills: employee ? employee.skills || [] : [],
+          hasEmployeeProfile: !!employee
+        };
+      });
+      
+      res.json(usersForTeams);
+    } catch (error) {
+      console.error("Error fetching users for teams:", error);
+      res.status(500).json({ error: "Failed to fetch users for teams" });
+    }
+  });
+
+  // Get all users for team member selection (Admin version)
   app.get("/api/admin/all-users-for-teams", authMiddleware, requireAdminRole, async (req, res) => {
     try {
       const users = await storage.getAllUsers();

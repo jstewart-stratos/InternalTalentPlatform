@@ -35,6 +35,12 @@ export default function TeamManagement() {
   const [showNewCategoryInput, setShowNewCategoryInput] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
 
+  // Member management state
+  const [addMemberDialogOpen, setAddMemberDialogOpen] = useState(false);
+  const [memberSearchQuery, setMemberSearchQuery] = useState("");
+  const [selectedMemberToAdd, setSelectedMemberToAdd] = useState<any>(null);
+  const [selectedMemberRole, setSelectedMemberRole] = useState("member");
+
   // Service form
   const serviceForm = useForm({
     defaultValues: {
@@ -55,6 +61,11 @@ export default function TeamManagement() {
   // Fetch service categories
   const { data: serviceCategories = [] } = useQuery({
     queryKey: ["/api/service-categories"],
+  });
+
+  // Fetch all users for team member selection
+  const { data: allUsers = [], isLoading: allUsersLoading } = useQuery({
+    queryKey: ["/api/team-manager/all-users-for-teams"],
   });
 
   // Create new category mutation
@@ -191,6 +202,37 @@ export default function TeamManagement() {
       toast({
         title: "Error",
         description: error.message || "Failed to update member role",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Add member mutation
+  const addMemberMutation = useMutation({
+    mutationFn: async ({ teamId, employeeId, role }: any) => {
+      console.log(`=== Adding team member: Team ${teamId}, Employee ${employeeId}, Role ${role} ===`);
+      const response = await apiRequest("POST", `/api/team-manager/teams/${teamId}/members`, { employeeId, role });
+      return response.json();
+    },
+    onSuccess: (data: any, variables: any) => {
+      console.log(`=== Member addition successful ===`, data);
+      toast({
+        title: "Success",
+        description: "Team member added successfully",
+        className: "bg-green-50 border-green-200 text-green-800"
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/team-manager/teams", selectedTeam?.id, "members"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/team-manager/my-teams"] });
+      setAddMemberDialogOpen(false);
+      setMemberSearchQuery("");
+      setSelectedMemberToAdd(null);
+      setSelectedMemberRole("member");
+    },
+    onError: (error: Error) => {
+      console.error(`=== Member addition failed ===`, error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to add team member",
         variant: "destructive",
       });
     },
@@ -353,6 +395,35 @@ export default function TeamManagement() {
     }
   };
 
+  const handleAddMember = () => {
+    if (!selectedMemberToAdd) {
+      toast({
+        title: "Error",
+        description: "Please select a member to add",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    addMemberMutation.mutate({
+      teamId: selectedTeam.id,
+      employeeId: selectedMemberToAdd.id,
+      role: selectedMemberRole
+    });
+  };
+
+  // Filter users for search
+  const filteredUsers = allUsers.filter((user: any) => {
+    const matchesSearch = user.name.toLowerCase().includes(memberSearchQuery.toLowerCase()) ||
+                         user.email.toLowerCase().includes(memberSearchQuery.toLowerCase());
+    
+    // Exclude users who are already team members
+    const currentMemberIds = teamMembers?.map(m => m.employeeId) || [];
+    const isNotCurrentMember = !currentMemberIds.includes(user.id);
+    
+    return matchesSearch && isNotCurrentMember;
+  });
+
   if (teamsLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -507,9 +578,19 @@ export default function TeamManagement() {
                     <CardHeader>
                       <div className="flex items-center justify-between">
                         <CardTitle>Team Members</CardTitle>
-                        <Badge variant="secondary">
-                          {teamMembers?.length || 0} members
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary">
+                            {teamMembers?.length || 0} members
+                          </Badge>
+                          <Button
+                            size="sm"
+                            onClick={() => setAddMemberDialogOpen(true)}
+                            className="bg-[rgb(248,153,59)] hover:bg-[rgb(228,133,39)] text-white"
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Member
+                          </Button>
+                        </div>
                       </div>
                     </CardHeader>
                     <CardContent>
@@ -1178,6 +1259,111 @@ export default function TeamManagement() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Add Member Dialog */}
+      <Dialog open={addMemberDialogOpen} onOpenChange={setAddMemberDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Team Member</DialogTitle>
+            <DialogDescription>
+              Search and select a user to add to your team. Employee profiles will be created automatically if needed.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {/* Search Input */}
+            <div>
+              <Label htmlFor="memberSearch">Search Users</Label>
+              <Input
+                id="memberSearch"
+                placeholder="Search by name or email..."
+                value={memberSearchQuery}
+                onChange={(e) => setMemberSearchQuery(e.target.value)}
+              />
+            </div>
+
+            {/* User Search Results */}
+            {memberSearchQuery && (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Search Results</Label>
+                <div className="border rounded-lg max-h-40 overflow-y-auto">
+                  {allUsersLoading ? (
+                    <div className="text-center py-4 text-muted-foreground text-sm">Loading...</div>
+                  ) : filteredUsers.length === 0 ? (
+                    <div className="text-center py-4 text-muted-foreground text-sm">
+                      {memberSearchQuery ? "No users found matching your search" : "Start typing to search for users"}
+                    </div>
+                  ) : (
+                    <div className="p-2 space-y-1">
+                      {filteredUsers.slice(0, 10).map((user: any) => (
+                        <div
+                          key={user.id}
+                          className={`p-2 rounded cursor-pointer hover:bg-muted transition-colors ${
+                            selectedMemberToAdd?.id === user.id ? 'bg-[rgb(248,153,59)]/10 border border-[rgb(248,153,59)]' : ''
+                          }`}
+                          onClick={() => setSelectedMemberToAdd(user)}
+                        >
+                          <div className="font-medium text-sm">{user.name}</div>
+                          <div className="text-xs text-muted-foreground">{user.email}</div>
+                          {!user.hasEmployeeProfile && (
+                            <div className="text-xs text-blue-600 mt-1">Profile will be created automatically</div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Selected Member */}
+            {selectedMemberToAdd && (
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">Selected Member</Label>
+                <div className="p-3 border rounded-lg bg-muted/50">
+                  <div className="font-medium">{selectedMemberToAdd.name}</div>
+                  <div className="text-sm text-muted-foreground">{selectedMemberToAdd.email}</div>
+                </div>
+
+                {/* Role Selection */}
+                <div>
+                  <Label htmlFor="memberRole">Role</Label>
+                  <Select value={selectedMemberRole} onValueChange={setSelectedMemberRole}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="member">Member</SelectItem>
+                      <SelectItem value="manager">Team Manager</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex justify-end gap-3 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setAddMemberDialogOpen(false);
+                  setMemberSearchQuery("");
+                  setSelectedMemberToAdd(null);
+                  setSelectedMemberRole("member");
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleAddMember}
+                disabled={!selectedMemberToAdd || addMemberMutation.isPending}
+                className="bg-[rgb(248,153,59)] hover:bg-[rgb(228,133,39)] text-white"
+              >
+                {addMemberMutation.isPending ? "Adding..." : "Add Member"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
