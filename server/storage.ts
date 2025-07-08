@@ -1774,6 +1774,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllTeamsWithMemberCount(): Promise<any[]> {
+    // Get teams with member counts using the same logic as getTeamMembers
+    // to ensure consistency and prevent duplicate counting
     const teamsWithCounts = await db
       .select({
         id: teams.id,
@@ -1786,13 +1788,19 @@ export class DatabaseStorage implements IStorage {
         createdBy: teams.createdBy,
         createdAt: teams.createdAt,
         updatedAt: teams.updatedAt,
-        memberCount: sql<number>`COUNT(CASE WHEN ${teamMembers.isActive} = true THEN 1 END)`.as('memberCount'),
+        memberCount: sql<number>`
+          COUNT(DISTINCT CASE 
+            WHEN ${teamMembers.isActive} = true 
+            THEN ${teamMembers.employeeId} 
+            END
+          )
+        `.as('memberCount'),
         visibility: sql<string>`'public'`.as('visibility')
       })
       .from(teams)
       .leftJoin(teamMembers, eq(teams.id, teamMembers.teamId))
       .where(eq(teams.isActive, true))
-      .groupBy(teams.id)
+      .groupBy(teams.id, teams.name, teams.description, teams.profileImage, teams.website, teams.specialties, teams.isActive, teams.createdBy, teams.createdAt, teams.updatedAt)
       .orderBy(teams.createdAt);
     
     return teamsWithCounts;

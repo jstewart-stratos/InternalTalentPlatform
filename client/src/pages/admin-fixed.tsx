@@ -172,6 +172,10 @@ export default function Admin() {
       setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: ['/api/admin/teams'] });
         queryClient.refetchQueries({ queryKey: ['/api/admin/teams'] });
+        // Force page refresh as backup if cache is still stale after 1 second
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
       }, 500);
       toast({ title: "Success", description: "Team member added successfully" });
     },
@@ -208,6 +212,10 @@ export default function Admin() {
       setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: ['/api/admin/teams'] });
         queryClient.refetchQueries({ queryKey: ['/api/admin/teams'] });
+        // Force page refresh as backup if cache is still stale after 1 second
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
       }, 500);
       toast({ title: "Success", description: "Team member removed successfully" });
     },
