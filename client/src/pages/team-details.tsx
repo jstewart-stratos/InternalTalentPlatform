@@ -134,7 +134,6 @@ export default function TeamDetails() {
           </Button>
         )}
       </div>
-      
       {/* Team Overview */}
       <Card>
         <CardHeader>
@@ -187,7 +186,6 @@ export default function TeamDetails() {
           )}
         </CardContent>
       </Card>
-      
       {/* Tabs */}
       <Tabs defaultValue="members" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
@@ -316,9 +314,7 @@ export default function TeamDetails() {
                           size="sm"
                           onClick={() => setLocation(`/services/${service.id}`)}
                           className="bg-orange-500 hover:bg-orange-600 text-white"
-                        >
-                          Book This Service
-                        </Button>
+                        >Service Details</Button>
                       </div>
                     </div>
                   ))}
