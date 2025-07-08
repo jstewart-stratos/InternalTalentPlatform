@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { UserProvider } from "@/contexts/user-context";
 import { useAuth } from "@/hooks/useAuth";
 import Navigation from "@/components/navigation";
+import { OnboardingProvider } from "@/components/onboarding-provider";
 import Landing from "@/pages/landing";
 import AuthPage from "@/pages/auth";
 import Home from "@/pages/home";
@@ -98,10 +99,10 @@ function AuthenticatedLayout() {
   }
   
   return (
-    <>
+    <OnboardingProvider>
       <Navigation />
       <Router />
-    </>
+    </OnboardingProvider>
   );
 }
 

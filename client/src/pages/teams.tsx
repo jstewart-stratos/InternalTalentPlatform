@@ -15,7 +15,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Users, Plus, Star, Building, Globe, UserPlus, Settings, Crown } from "lucide-react";
+import { Users, Plus, Star, Building, Globe, Settings, Crown } from "lucide-react";
 import { Link } from "wouter";
 
 const createTeamSchema = z.object({
@@ -107,28 +107,7 @@ export default function Teams() {
     },
   });
 
-  const joinTeamMutation = useMutation({
-    mutationFn: async (teamId: number) => {
-      return await apiRequest(`/api/teams/${teamId}/join`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/teams"] });
-      toast({
-        title: "Success",
-        description: "Team join request submitted for approval",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to join team",
-        variant: "destructive",
-      });
-    },
-  });
+
 
   const handleAddSpecialty = () => {
     if (specialtyInput.trim()) {
@@ -283,7 +262,6 @@ export default function Teams() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {teams.map((team: Team) => {
           const userRole = getUserRoleInTeam(team);
-          const isMember = isUserMemberOfTeam(team);
           
           return (
             <Card key={team.id} className="relative">
@@ -356,16 +334,7 @@ export default function Teams() {
                     </Button>
                   </Link>
                   
-                  {!isMember && (
-                    <Button 
-                      size="sm" 
-                      onClick={() => joinTeamMutation.mutate(team.id)}
-                      disabled={joinTeamMutation.isPending}
-                    >
-                      <UserPlus className="h-3 w-3 mr-1" />
-                      Join Team
-                    </Button>
-                  )}
+
                   
                   {(userRole === 'leader' || isAdmin) && (
                     <Link href={`/teams/${team.id}/manage`}>
