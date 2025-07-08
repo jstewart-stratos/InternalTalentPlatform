@@ -414,7 +414,6 @@ export default function Admin() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Team Name</TableHead>
-                      <TableHead>Description</TableHead>
                       <TableHead>Members</TableHead>
                       <TableHead>Visibility</TableHead>
                       <TableHead>Created</TableHead>
@@ -424,7 +423,7 @@ export default function Admin() {
                   <TableBody>
                     {teams.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center text-gray-500 py-8">
+                        <TableCell colSpan={5} className="text-center text-gray-500 py-8">
                           No teams found. Create a team to get started.
                         </TableCell>
                       </TableRow>
@@ -432,7 +431,6 @@ export default function Admin() {
                       teams.map((team: any) => (
                         <TableRow key={team.id}>
                           <TableCell className="font-medium">{team.name}</TableCell>
-                          <TableCell>{team.description || '-'}</TableCell>
                           <TableCell>
                             <Badge variant="secondary">{team.memberCount || 0} members</Badge>
                           </TableCell>
