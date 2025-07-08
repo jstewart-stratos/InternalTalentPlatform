@@ -39,7 +39,7 @@ export interface IStorage {
 
   // Skill search tracking methods
   trackSkillSearch(skill: string): Promise<void>;
-  getTrendingSkills(): Promise<Array<{ skill: string; searchCount: number; employeeCount: number; trending: boolean }>>;
+  getTrendingSkills(): Promise<Array<{ skill: string; searchCount: number; employeeCount: number; teamCount: number; trending: boolean }>>;
   getAllSkills(): Promise<string[]>;
   getAllEmployeeSkillsWithDetails(): Promise<Array<{
     id: number;
@@ -485,16 +485,31 @@ export class DatabaseStorage implements IStorage {
       });
   }
 
-  async getTrendingSkills(): Promise<Array<{ skill: string; searchCount: number; employeeCount: number; trending: boolean }>> {
+  async getTrendingSkills(): Promise<Array<{ skill: string; searchCount: number; employeeCount: number; teamCount: number; trending: boolean }>> {
     const employees = await this.getAllEmployees();
+    const teams = await this.getAllTeams();
     
     // Create skill frequency map from all employee skills
-    const skillMap = new Map<string, number>();
+    const skillMap = new Map<string, { employeeCount: number; teamCount: number }>();
+    
+    // Process individual employee skills
     employees.forEach(emp => {
       emp.skills.forEach(skill => {
         const normalizedSkill = skill.trim();
-        skillMap.set(normalizedSkill, (skillMap.get(normalizedSkill) || 0) + 1);
+        const existing = skillMap.get(normalizedSkill) || { employeeCount: 0, teamCount: 0 };
+        skillMap.set(normalizedSkill, { ...existing, employeeCount: existing.employeeCount + 1 });
       });
+    });
+
+    // Process team specialties
+    teams.forEach(team => {
+      if (team.specialties && Array.isArray(team.specialties)) {
+        team.specialties.forEach(specialty => {
+          const normalizedSkill = specialty.trim();
+          const existing = skillMap.get(normalizedSkill) || { employeeCount: 0, teamCount: 0 };
+          skillMap.set(normalizedSkill, { ...existing, teamCount: existing.teamCount + 1 });
+        });
+      }
     });
 
     // Get recent search data (last 30 days) if available
@@ -520,25 +535,29 @@ export class DatabaseStorage implements IStorage {
     // Combine search data with skill popularity
     const searchMap = new Map(searchData.map(item => [item.skill.toLowerCase(), item.searchCount]));
     
-    // Create trending skills based on employee count and search frequency
+    // Create trending skills based on employee count, team count, and search frequency
     const trendingSkills = Array.from(skillMap.entries())
-      .map(([skill, employeeCount]) => {
+      .map(([skill, counts]) => {
         const searchCount = searchMap.get(skill.toLowerCase()) || 0;
-        const trending = employeeCount >= 2 || searchCount >= 2; // Trending if 2+ employees or 2+ searches
+        const totalPresence = counts.employeeCount + counts.teamCount;
+        const trending = totalPresence >= 2 || searchCount >= 2; // Trending if 2+ total presence or 2+ searches
         
         return {
           skill,
           searchCount,
-          employeeCount,
+          employeeCount: counts.employeeCount,
+          teamCount: counts.teamCount,
           trending
         };
       })
       .sort((a, b) => {
-        // Sort by search count first, then by employee count
+        // Sort by search count first, then by total presence (employees + teams)
         if (b.searchCount !== a.searchCount) {
           return b.searchCount - a.searchCount;
         }
-        return b.employeeCount - a.employeeCount;
+        const aTotalPresence = a.employeeCount + a.teamCount;
+        const bTotalPresence = b.employeeCount + b.teamCount;
+        return bTotalPresence - aTotalPresence;
       })
       .slice(0, 12);
 

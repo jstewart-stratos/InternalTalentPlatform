@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { TrendingUp, Users, Clock, Star } from "lucide-react";
+import { TrendingUp, Users, Clock, Star, Building2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -7,6 +7,7 @@ interface TrendingSkill {
   skill: string;
   searchCount: number;
   employeeCount: number;
+  teamCount: number;
   trending: boolean;
 }
 
@@ -69,8 +70,14 @@ export default function TrendingSkills() {
                     <div className="flex items-center gap-4 text-sm text-secondary">
                       <div className="flex items-center gap-1">
                         <Users className="h-4 w-4" />
-                        <span>{item.employeeCount} experts</span>
+                        <span>{item.employeeCount} individuals</span>
                       </div>
+                      {item.teamCount > 0 && (
+                        <div className="flex items-center gap-1">
+                          <Building2 className="h-4 w-4" />
+                          <span>{item.teamCount} teams</span>
+                        </div>
+                      )}
                       <div className="flex items-center gap-1">
                         <Clock className="h-4 w-4" />
                         <span>{item.searchCount} searches</span>
