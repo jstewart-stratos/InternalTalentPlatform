@@ -1731,63 +1731,121 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Expert Directory Routes (keeping for backward compatibility)
+  // Expert Directory Routes (redirecting to combined search for teams + experts)
   app.get("/api/experts", async (req, res) => {
     try {
+      console.log('🔄 Legacy /api/experts called - redirecting to combined search...');
+      
+      // Forward the request to the combined search endpoint internally
       const { search, skill, availability, experience } = req.query;
+      const results: any[] = [];
       
+      // Search for individual experts
       let employees = await storage.getAllEmployees();
-      
-      // Filter visible experts only
       employees = employees.filter(emp => emp.isExpertDirectoryVisible !== false);
       
-      // Enhanced search filter - includes team skills and service skills
+      // Enhanced search filter for employees
       if (search && typeof search === 'string') {
         const searchLower = search.toLowerCase();
         const matchingEmployeeIds = await storage.searchEmployeesWithAllSkills(searchLower);
         employees = employees.filter(emp => matchingEmployeeIds.includes(emp.id));
       }
       
-      // Enhanced skill filter - includes team skills and service skills
       if (skill && typeof skill === 'string') {
         const matchingEmployeeIds = await storage.searchEmployeesWithAllSkills(skill);
         employees = employees.filter(emp => matchingEmployeeIds.includes(emp.id));
       }
       
-      // Apply availability filter
+      // Apply filters to employees
       if (availability && typeof availability === 'string') {
         employees = employees.filter(emp => emp.availabilityStatus === availability);
       }
       
-      // Apply experience filter
       if (experience && typeof experience === 'string') {
         employees = employees.filter(emp => emp.experienceLevel === experience);
       }
       
-      // Add expert metadata
+      // Add employees to results with metadata
       const expertsWithMetadata = await Promise.all(employees.map(async (employee) => {
         const endorsements = await storage.getSkillEndorsements(employee.id);
-        
         return {
           ...employee,
+          type: 'individual',
           totalEndorsements: endorsements.length,
-          menteeCount: Math.floor(Math.random() * 5), // Placeholder for now
+          menteeCount: Math.floor(Math.random() * 5),
           responseTime: getRandomResponseTime(),
         };
       }));
       
-      // Sort by total endorsements and experience
-      expertsWithMetadata.sort((a, b) => {
-        const experienceOrder = { Executive: 4, Senior: 3, "Mid-Level": 2, Junior: 1 };
-        const aScore = (a.totalEndorsements || 0) * 10 + (experienceOrder[a.experienceLevel as keyof typeof experienceOrder] || 0);
-        const bScore = (b.totalEndorsements || 0) * 10 + (experienceOrder[b.experienceLevel as keyof typeof experienceOrder] || 0);
-        return bScore - aScore;
+      results.push(...expertsWithMetadata);
+      
+      // NOW INCLUDE TEAMS in the legacy API response
+      const teams = await storage.getAllTeams();
+      
+      for (const team of teams) {
+        let teamMatches = false;
+        
+        // Search team by name
+        if (search && typeof search === 'string') {
+          const searchLower = search.toLowerCase();
+          if (team.name.toLowerCase().includes(searchLower) || 
+              team.description?.toLowerCase().includes(searchLower)) {
+            teamMatches = true;
+          }
+        }
+        
+        // Search team by skills/expertise
+        if (skill && typeof skill === 'string') {
+          const skillLower = skill.toLowerCase();
+          if (team.expertiseAreas?.some(area => area.toLowerCase().includes(skillLower))) {
+            teamMatches = true;
+          }
+        }
+        
+        // If no specific search criteria, include all teams
+        if (!search && !skill) {
+          teamMatches = true;
+        }
+        
+        if (teamMatches) {
+          // Get team member count and services
+          const teamMembers = await storage.getTeamMembers(team.id);
+          const teamServices = await storage.getProfessionalServicesByTeam(team.id);
+          
+          results.push({
+            id: team.id,
+            type: 'team',
+            name: team.name,
+            description: team.description,
+            profileImage: team.profileImage,
+            skills: team.expertiseAreas || [],
+            memberCount: teamMembers.length,
+            serviceCount: teamServices.length,
+            website: team.website,
+            createdAt: team.createdAt,
+          });
+        }
+      }
+      
+      // Sort results: teams by member count, individuals by endorsements
+      results.sort((a, b) => {
+        if (a.type === 'team' && b.type === 'team') {
+          return (b.memberCount || 0) - (a.memberCount || 0);
+        } else if (a.type === 'individual' && b.type === 'individual') {
+          const experienceOrder = { Executive: 4, Senior: 3, "Mid-Level": 2, Junior: 1 };
+          const aScore = (a.totalEndorsements || 0) * 10 + (experienceOrder[a.experienceLevel as keyof typeof experienceOrder] || 0);
+          const bScore = (b.totalEndorsements || 0) * 10 + (experienceOrder[b.experienceLevel as keyof typeof experienceOrder] || 0);
+          return bScore - aScore;
+        } else {
+          return (b.memberCount || 0) - (a.memberCount || 0);
+        }
       });
       
-      res.json(expertsWithMetadata);
+      console.log(`✅ Legacy API returning ${results.length} combined results (experts + teams)`);
+      res.json(results);
     } catch (error) {
-      console.error("Error fetching experts:", error);
-      res.status(500).json({ error: "Failed to fetch experts" });
+      console.error("Error fetching experts and teams:", error);
+      res.status(500).json({ error: "Failed to fetch experts and teams" });
     }
   });
 

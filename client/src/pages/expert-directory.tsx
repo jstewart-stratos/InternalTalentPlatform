@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -37,7 +38,7 @@ export default function ExpertDirectory() {
   }, []);
 
   const { data: searchResults = [], isLoading, error } = useQuery({
-    queryKey: ["search-experts-and-teams-v2", searchTerm, selectedSkill, experienceFilter],
+    queryKey: ["search-experts-and-teams-v3", searchTerm, selectedSkill, experienceFilter],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (searchTerm) params.append("search", searchTerm);
@@ -56,11 +57,25 @@ export default function ExpertDirectory() {
     gcTime: 0, // Don't cache (v5 syntax)
   });
 
-  // Separate experts and teams for display
-  const experts = searchResults.filter((item: any) => item.type === 'individual');
-  const teams = searchResults.filter((item: any) => item.type === 'team');
+  // Separate experts and teams for display - handle both new and legacy API responses
+  const experts = searchResults.filter((item: any) => {
+    // New API format has explicit type field
+    if (item.type === 'individual') return true;
+    // Legacy API format - items without type or with employee-like fields are individuals
+    if (!item.type && (item.userId || item.email || item.experienceLevel)) return true;
+    return false;
+  });
+  
+  const teams = searchResults.filter((item: any) => {
+    // New API format has explicit type field
+    if (item.type === 'team') return true;
+    // Legacy API format - items with memberCount but no userId are teams
+    if (!item.type && item.memberCount !== undefined && !item.userId) return true;
+    return false;
+  });
   
   console.log('🔍 Filtered results:', { experts: experts.length, teams: teams.length });
+  console.log('🔍 Sample items:', searchResults.slice(0, 2));
 
   const { data: skills = [] } = useQuery({
     queryKey: ["/api/skills/all"],
