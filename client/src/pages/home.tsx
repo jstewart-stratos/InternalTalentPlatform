@@ -600,7 +600,7 @@ export default function Home() {
       {stats && (
         <div className="bg-gray-50 py-16">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
               <div className="text-center">
                 <div className="text-3xl lg:text-4xl font-bold text-primary mb-2">
                   {stats.activeUsers.toLocaleString()}
@@ -617,28 +617,13 @@ export default function Home() {
                 <div className="text-3xl lg:text-4xl font-bold text-primary mb-2">
                   {stats.skillsRegistered.toLocaleString()}
                 </div>
-                <div className="text-secondary">Total Skills & Expertise</div>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-12">
-              <div className="text-center">
-                <div className="text-2xl lg:text-3xl font-bold text-secondary mb-2">
-                  {stats.individualSkills.toLocaleString()}
-                </div>
-                <div className="text-sm text-gray-500">Individual Skills</div>
+                <div className="text-secondary">Skills & Expertise</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl lg:text-3xl font-bold text-secondary mb-2">
-                  {stats.teamExpertise.toLocaleString()}
-                </div>
-                <div className="text-sm text-gray-500">Team Specialties</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl lg:text-3xl font-bold text-secondary mb-2">
+                <div className="text-3xl lg:text-4xl font-bold text-primary mb-2">
                   {stats.projectsCompleted.toLocaleString()}
                 </div>
-                <div className="text-sm text-gray-500">Projects Completed</div>
+                <div className="text-secondary">Projects Completed</div>
               </div>
             </div>
           </div>
