@@ -41,11 +41,12 @@ const tourSteps: TourStep[] = [
   },
   {
     id: "profile",
-    title: "Complete Your Profile",
-    description: "Start by creating your professional profile. Add your skills, experience, and areas of expertise to help colleagues find and connect with you.",
+    title: "Profile Required",
+    description: "Before you can access any platform features, you must create your professional profile. This is required to showcase your skills and connect with colleagues.",
     icon: <UserCheck className="h-6 w-6" />,
     route: "/profile",
-    action: "Complete Profile"
+    action: "Create Profile",
+    highlight: true
   },
   {
     id: "discover",
@@ -82,10 +83,10 @@ const tourSteps: TourStep[] = [
   {
     id: "teams",
     title: "Team Collaboration",
-    description: "Join or create teams to work on projects together. Teams can offer collective services and share expertise.",
+    description: "Browse organizational teams to discover specialized expertise. Team membership is managed by platform administrators and team managers.",
     icon: <Users className="h-6 w-6" />,
     route: "/teams",
-    action: "Explore Teams"
+    action: "View Teams"
   },
   {
     id: "projects",
@@ -105,8 +106,8 @@ const tourSteps: TourStep[] = [
   },
   {
     id: "complete",
-    title: "You're All Set!",
-    description: "You now know the key features of Stratos Skill Swap. Start by completing your profile, then explore the talent network and begin collaborating!",
+    title: "Ready to Begin!",
+    description: "Remember: You must create your profile first before accessing any platform features. Once your profile is complete, you can explore talent, join projects, and start collaborating!",
     icon: <Award className="h-6 w-6" />,
     highlight: true
   }

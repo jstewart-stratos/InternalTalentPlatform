@@ -1,17 +1,19 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Bell, Users, ChevronDown, LogOut, UserCircle, Menu, X, FolderOpen, Briefcase, BookOpen } from "lucide-react";
+import { Bell, Users, ChevronDown, LogOut, UserCircle, Menu, X, FolderOpen, Briefcase, BookOpen, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { Employee } from "@shared/schema";
+import { useOnboarding } from "@/components/onboarding-provider";
 
 export default function Navigation() {
   const [location] = useLocation();
   const { user, isAuthenticated } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { showTour } = useOnboarding();
 
   // Fetch current user's employee profile
   const { data: currentEmployee } = useQuery({
@@ -159,6 +161,11 @@ export default function Navigation() {
                       </Link>
                     </DropdownMenuItem>
                   )}
+
+                  <DropdownMenuItem onClick={showTour} className="flex items-center">
+                    <HelpCircle className="h-4 w-4 mr-2" />
+                    Platform Tour
+                  </DropdownMenuItem>
 
                   <DropdownMenuItem onClick={handleLogout} className="flex items-center text-red-600">
                     <LogOut className="h-4 w-4 mr-2" />
