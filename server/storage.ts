@@ -1531,6 +1531,30 @@ export class DatabaseStorage implements IStorage {
       console.log(`=== DATABASE: Adding team member ===`);
       console.log(`Input values:`, insertMember);
       
+      // Check if member already exists and is active
+      const existingMember = await db
+        .select()
+        .from(teamMembers)
+        .where(and(
+          eq(teamMembers.teamId, insertMember.teamId),
+          eq(teamMembers.employeeId, insertMember.employeeId),
+          eq(teamMembers.isActive, true)
+        ));
+      
+      if (existingMember.length > 0) {
+        console.log(`Team member already exists and is active, returning existing member`);
+        return existingMember[0];
+      }
+
+      // Deactivate any existing inactive records for this team/employee combination
+      await db
+        .update(teamMembers)
+        .set({ isActive: false })
+        .where(and(
+          eq(teamMembers.teamId, insertMember.teamId),
+          eq(teamMembers.employeeId, insertMember.employeeId)
+        ));
+      
       const valuesToInsert = {
         teamId: insertMember.teamId,
         employeeId: insertMember.employeeId,
@@ -1556,25 +1580,46 @@ export class DatabaseStorage implements IStorage {
   }
 
   async removeTeamMember(teamId: number, employeeId: number): Promise<boolean> {
-    const [result] = await db
-      .update(teamMembers)
-      .set({ isActive: false })
-      .where(and(
-        eq(teamMembers.teamId, teamId),
-        eq(teamMembers.employeeId, employeeId)
-      ))
-      .returning({ id: teamMembers.id });
-    return !!result;
+    try {
+      console.log(`=== DATABASE: Removing team member ===`);
+      console.log(`Team: ${teamId}, Employee: ${employeeId}`);
+      
+      // Update ALL records for this team/employee combination to inactive
+      const result = await db
+        .update(teamMembers)
+        .set({ isActive: false })
+        .where(and(
+          eq(teamMembers.teamId, teamId),
+          eq(teamMembers.employeeId, employeeId)
+        ))
+        .returning({ id: teamMembers.id });
+      
+      console.log(`Updated ${result.length} team member records to inactive`);
+      return result.length > 0;
+    } catch (error) {
+      console.error("Error removing team member:", error);
+      return false;
+    }
   }
 
   async getTeamMembers(teamId: number): Promise<TeamMember[]> {
-    return await db
-      .select()
+    // Get the most recent active record for each employee in the team
+    const subquery = db
+      .select({ 
+        maxId: sql<number>`MAX(${teamMembers.id})`.as('maxId')
+      })
       .from(teamMembers)
       .where(and(
         eq(teamMembers.teamId, teamId),
         eq(teamMembers.isActive, true)
       ))
+      .groupBy(teamMembers.employeeId)
+      .as('latest_members');
+
+    return await db
+      .select()
+      .from(teamMembers)
+      .innerJoin(subquery, eq(teamMembers.id, subquery.maxId))
       .orderBy(teamMembers.joinedAt);
   }
 
