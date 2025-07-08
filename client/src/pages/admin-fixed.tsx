@@ -163,16 +163,28 @@ export default function Admin() {
 
   const removeTeamMemberMutation = useMutation({
     mutationFn: async ({ teamId, employeeId }: { teamId: number, employeeId: number }) => {
+      console.log(`Admin removing team member: Team ${teamId}, Employee ${employeeId}`);
       const response = await apiRequest(`/api/admin/teams/${teamId}/members/${employeeId}`, 'DELETE');
       return response.json();
     },
     onSuccess: (data, variables) => {
+      console.log(`Member removed successfully, invalidating cache for team ${variables.teamId}`);
       queryClient.invalidateQueries({ queryKey: ['/api/admin/teams'] });
       queryClient.invalidateQueries({ queryKey: [`/api/admin/teams/${variables.teamId}/members`] });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/all-users-for-teams'] });
+      // Force refresh the current editing team members if this team is being edited
+      if (editingTeam && editingTeam.id === variables.teamId) {
+        queryClient.invalidateQueries({ queryKey: [`/api/admin/teams/${editingTeam.id}/members`] });
+      }
+      // Force immediate cache refresh to prevent stale data
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['/api/admin/teams'] });
+        queryClient.invalidateQueries({ queryKey: [`/api/admin/teams/${variables.teamId}/members`] });
+      }, 100);
       toast({ title: "Success", description: "Team member removed successfully" });
     },
     onError: (error: any) => {
+      console.error(`Failed to remove team member:`, error);
       toast({ title: "Error", description: error.message || "Failed to remove team member", variant: "destructive" });
     }
   });
