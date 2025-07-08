@@ -147,16 +147,28 @@ export default function Admin() {
 
   const addTeamMemberMutation = useMutation({
     mutationFn: async ({ teamId, employeeId, role = 'member' }: { teamId: number, employeeId: number, role?: string }) => {
+      console.log(`Admin adding team member: Team ${teamId}, Employee ${employeeId}, Role ${role}`);
       const response = await apiRequest(`/api/admin/teams/${teamId}/members`, 'POST', { employeeId, role });
       return response.json();
     },
     onSuccess: (data, variables) => {
+      console.log(`Member added successfully, invalidating cache for team ${variables.teamId}`);
       queryClient.invalidateQueries({ queryKey: ['/api/admin/teams'] });
       queryClient.invalidateQueries({ queryKey: [`/api/admin/teams/${variables.teamId}/members`] });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/all-users-for-teams'] });
+      // Force refresh the current editing team members if this team is being edited
+      if (editingTeam && editingTeam.id === variables.teamId) {
+        queryClient.invalidateQueries({ queryKey: [`/api/admin/teams/${editingTeam.id}/members`] });
+      }
+      // Force immediate cache refresh to prevent stale data
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['/api/admin/teams'] });
+        queryClient.invalidateQueries({ queryKey: [`/api/admin/teams/${variables.teamId}/members`] });
+      }, 100);
       toast({ title: "Success", description: "Team member added successfully" });
     },
     onError: (error: any) => {
+      console.error(`Failed to add team member:`, error);
       toast({ title: "Error", description: error.message || "Failed to add team member", variant: "destructive" });
     }
   });
