@@ -686,11 +686,9 @@ export class DatabaseStorage implements IStorage {
 
     if (skills && skills.length > 0) {
       // Search for projects that need any of the specified skills
-      // Use parameterized queries to prevent SQL injection
+      // Use proper parameterized queries to prevent SQL injection
       const skillConditions = skills.map(skill => {
-        // Sanitize skill input and use proper SQL parameterization
-        const sanitizedSkill = skill.replace(/['"\\]/g, '');
-        return sql`${projects.requiredSkills} @> ARRAY[${sanitizedSkill}]::text[]`;
+        return sql`${projects.requiredSkills} && ARRAY[${skill}]`;
       });
       
       conditions.push(or(...skillConditions));
