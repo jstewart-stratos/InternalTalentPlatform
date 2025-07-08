@@ -155,6 +155,7 @@ Changelog:
 - January 8, 2025. Team membership self-service removed - Eliminated "Join Team" button from teams listing page as team membership will be managed exclusively by platform admins and team managers, cleaned up related mutation code and unused imports for streamlined admin-controlled team management
 - January 8, 2025. Onboarding tour implementation completed - Created comprehensive guided tour system with OnboardingProvider and OnboardingTour components, reworked tour content to emphasize profile creation requirement and admin-managed team membership, added "Platform Tour" button to navigation dropdown for easy access, tour automatically shows for new users and can be restarted anytime through help menu
 - January 8, 2025. Team member addition issues resolved - Fixed cache invalidation bug in admin interface preventing immediate UI refresh after adding team members, clarified that users can be added to teams without existing employee profiles (profiles auto-created by system), added helpful messaging to admin interface explaining automatic profile creation
+- January 8, 2025. Team member UI consistency completely fixed - Resolved issue where team members were occasionally being created with inactive status instead of active, enhanced cache invalidation with aggressive refresh strategies including immediate refetch and delayed invalidation, implemented comprehensive debugging for both add and remove operations, verified member count calculations work correctly with proper active member filtering
 
 ## User Preferences
 
