@@ -74,8 +74,10 @@ export default function ExpertDirectory() {
     return false;
   });
   
+  console.log('🔍 Raw search results:', searchResults.length, 'items');
+  console.log('🔍 Raw items with types:', searchResults.map(item => ({ name: item.name, type: item.type, id: item.id })));
   console.log('🔍 Filtered results:', { experts: experts.length, teams: teams.length });
-  console.log('🔍 Sample items:', searchResults.slice(0, 2));
+  console.log('🔍 Teams found:', teams.map(t => ({ name: t.name, skills: t.skills })));
 
   const { data: skills = [] } = useQuery({
     queryKey: ["/api/skills/all"],
