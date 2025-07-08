@@ -34,12 +34,12 @@ export default function Home() {
     }
   }, []);
 
-  const { data: allEmployees = [], isLoading: isLoadingEmployees } = useQuery({
-    queryKey: ["/api/employees", searchQuery, selectedExperience],
+  const { data: allResults = [], isLoading: isLoadingEmployees } = useQuery({
+    queryKey: ["/api/experts", searchQuery, selectedExperience],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (searchQuery) {
-        params.append("q", searchQuery);
+        params.append("search", searchQuery);
         // Track skill search when user searches
         if (searchQuery.trim()) {
           try {
@@ -56,11 +56,15 @@ export default function Home() {
 
       if (selectedExperience !== "Any Level") params.append("experienceLevel", selectedExperience);
       
-      const response = await fetch(`/api/employees?${params}`);
-      if (!response.ok) throw new Error("Failed to fetch employees");
-      return response.json() as Promise<Employee[]>;
+      const response = await fetch(`/api/experts?${params}`);
+      if (!response.ok) throw new Error("Failed to fetch talent");
+      return response.json() as Promise<any[]>;
     },
   });
+
+  // Separate employees and teams from the combined results
+  const allEmployees = allResults.filter((item: any) => item.type !== 'team');
+  const allTeams = allResults.filter((item: any) => item.type === 'team');
 
   // Function to randomize and limit employees to 9
   const getDisplayEmployees = (employees: Employee[]): Employee[] => {
@@ -337,7 +341,7 @@ export default function Home() {
               <h3 className="text-2xl font-bold text-gray-900">Available Talent</h3>
               <div className="flex items-center space-x-4">
                 <span className="text-sm text-secondary">
-                  {employees.length} results found
+                  {employees.length} experts and {allTeams.length} teams found
                 </span>
                 <Select value={sortBy} onValueChange={setSortBy}>
                   <SelectTrigger className="w-48">
@@ -372,17 +376,97 @@ export default function Home() {
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {employees.map((employee) => (
-                  <EmployeeCard key={employee.id} employee={employee} />
-                ))}
-              </div>
+              <>
+                {/* Teams Section */}
+                {allTeams.length > 0 && (
+                  <div className="mb-8">
+                    <h4 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                      <Users className="h-5 w-5 mr-2" />
+                      Teams ({allTeams.length})
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                      {allTeams.map((team: any) => (
+                        <Card key={`team-${team.id}`} className="hover:shadow-lg transition-shadow border-l-4 border-l-blue-500">
+                          <CardHeader className="pb-4">
+                            <div className="flex items-start space-x-4">
+                              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                                <Users className="h-6 w-6 text-blue-600" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <CardTitle className="text-lg font-semibold truncate">
+                                  {team.name}
+                                </CardTitle>
+                                <p className="text-sm text-gray-600 mb-2">Team • {team.memberCount} members</p>
+                                <div className="flex items-center space-x-2">
+                                  <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700">
+                                    Team
+                                  </Badge>
+                                </div>
+                              </div>
+                            </div>
+                          </CardHeader>
+
+                          <CardContent className="pt-0">
+                            {team.description && (
+                              <p className="text-sm text-gray-700 mb-4 line-clamp-2">
+                                {team.description}
+                              </p>
+                            )}
+
+                            <div className="mb-4">
+                              <h4 className="text-sm font-medium text-gray-900 mb-2">Team Skills</h4>
+                              <div className="flex flex-wrap gap-1">
+                                {team.skills?.slice(0, 4).map((skill: string) => (
+                                  <Badge key={skill} variant="secondary" className="text-xs">
+                                    {skill}
+                                  </Badge>
+                                ))}
+                                {team.skills?.length > 4 && (
+                                  <Badge variant="outline" className="text-xs">
+                                    +{team.skills.length - 4} more
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="flex space-x-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => setLocation(`/teams/${team.id}`)}
+                                className="flex-1"
+                              >
+                                View Details
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Individual Experts Section */}
+                {employees.length > 0 && (
+                  <div className="mb-8">
+                    <h4 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                      <User className="h-5 w-5 mr-2" />
+                      Individual Experts ({employees.length})
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {employees.map((employee) => (
+                        <EmployeeCard key={employee.id} employee={employee} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
             )}
 
-            {!isLoadingEmployees && employees.length === 0 && (
+            {!isLoadingEmployees && employees.length === 0 && allTeams.length === 0 && (
               <div className="text-center py-12">
                 <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No employees found</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No talent found</h3>
                 <p className="text-gray-500">Try adjusting your search criteria to find more results.</p>
               </div>
             )}
