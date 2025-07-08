@@ -37,27 +37,30 @@ export default function ExpertDirectory() {
   }, []);
 
   const { data: searchResults = [], isLoading, error } = useQuery({
-    queryKey: ["/api/search-experts-and-teams", searchTerm, selectedSkill, experienceFilter],
+    queryKey: ["search-experts-and-teams-v2", searchTerm, selectedSkill, experienceFilter],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (searchTerm) params.append("search", searchTerm);
       if (selectedSkill && selectedSkill !== "all") params.append("skill", selectedSkill);
       if (experienceFilter && experienceFilter !== "all") params.append("experience", experienceFilter);
       
-      console.log('Fetching experts and teams with params:', params.toString());
+      console.log('🔍 Fetching experts and teams with params:', params.toString());
       const response = await fetch(`/api/search-experts-and-teams?${params}`);
       if (!response.ok) throw new Error("Failed to fetch experts and teams");
       const data = await response.json();
-      console.log('Received search results:', data.length, 'items');
+      console.log('✅ Received search results:', data.length, 'items');
+      console.log('🔍 Data types:', data.map((item: any) => item.type));
       return data;
     },
     staleTime: 0, // Force fresh data
-    cacheTime: 0, // Don't cache
+    gcTime: 0, // Don't cache (v5 syntax)
   });
 
   // Separate experts and teams for display
   const experts = searchResults.filter((item: any) => item.type === 'individual');
   const teams = searchResults.filter((item: any) => item.type === 'team');
+  
+  console.log('🔍 Filtered results:', { experts: experts.length, teams: teams.length });
 
   const { data: skills = [] } = useQuery({
     queryKey: ["/api/skills/all"],
