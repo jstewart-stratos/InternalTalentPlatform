@@ -1528,17 +1528,26 @@ export class DatabaseStorage implements IStorage {
   // Team member management
   async addTeamMember(insertMember: InsertTeamMember): Promise<TeamMember> {
     try {
+      console.log(`=== DATABASE: Adding team member ===`);
+      console.log(`Input values:`, insertMember);
+      
+      const valuesToInsert = {
+        teamId: insertMember.teamId,
+        employeeId: insertMember.employeeId,
+        role: insertMember.role || 'member',
+        isActive: true,
+        approvedBy: insertMember.approvedBy || null,
+        approvedAt: insertMember.approvedAt || null
+      };
+      
+      console.log(`Values to insert:`, valuesToInsert);
+      
       const [member] = await db
         .insert(teamMembers)
-        .values({
-          teamId: insertMember.teamId,
-          employeeId: insertMember.employeeId,
-          role: insertMember.role || 'member',
-          isActive: true,
-          approvedBy: insertMember.approvedBy || null,
-          approvedAt: insertMember.approvedAt || null
-        })
+        .values(valuesToInsert)
         .returning();
+      
+      console.log(`Result from database:`, member);
       return member;
     } catch (error) {
       console.error("Error adding team member:", error);

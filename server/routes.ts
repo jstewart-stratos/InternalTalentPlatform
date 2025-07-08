@@ -3467,19 +3467,26 @@ Respond with JSON in this exact format:
       // First, check if this employeeId exists in the employees table
       const existingEmployee = await storage.getEmployee(employeeId);
       if (!existingEmployee) {
-        // This might be a user ID, check if user exists and create employee profile
+        // This might be a user ID, check if user exists
         const user = await storage.getUser(employeeId);
         if (user) {
-          console.log(`Creating employee profile for user: ${user.email}`);
-          const newEmployee = await storage.createEmployee({
-            userId: user.id,
-            name: `${user.firstName} ${user.lastName}`,
-            email: user.email,
-            title: 'Team Member',
-            yearsExperience: 0,
-            skills: []
-          });
-          actualEmployeeId = newEmployee.id;
+          // Check if an employee profile already exists for this user
+          const existingEmployeeByUserId = await storage.getEmployeeByUserId(user.id);
+          if (existingEmployeeByUserId) {
+            console.log(`Using existing employee profile for user: ${user.email}`);
+            actualEmployeeId = existingEmployeeByUserId.id;
+          } else {
+            console.log(`Creating employee profile for user: ${user.email}`);
+            const newEmployee = await storage.createEmployee({
+              userId: user.id,
+              name: `${user.firstName} ${user.lastName}`,
+              email: user.email,
+              title: 'Team Member',
+              yearsExperience: 0,
+              skills: []
+            });
+            actualEmployeeId = newEmployee.id;
+          }
         } else {
           return res.status(400).json({ error: "User not found" });
         }
