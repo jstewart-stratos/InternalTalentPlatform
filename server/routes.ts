@@ -1779,30 +1779,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       results.push(...expertsWithMetadata);
       
-      // NOW INCLUDE TEAMS in the legacy API response
+      // NOW INCLUDE TEAMS in the legacy API response (using working logic from new endpoint)
       const teams = await storage.getAllTeams();
+      const activeTeams = teams.filter(team => team.isActive);
+      console.log(`🔍 Found ${activeTeams.length} active teams to search through`);
       
-      for (const team of teams) {
+      for (const team of activeTeams) {
         let teamMatches = false;
+        console.log(`🔍 Checking team: ${team.name}, specialties:`, team.specialties);
         
-        // Search team by name
+        // Check if team matches search criteria (exact logic from working endpoint)
         if (search && typeof search === 'string') {
           const searchLower = search.toLowerCase();
-          if (team.name.toLowerCase().includes(searchLower) || 
-              team.description?.toLowerCase().includes(searchLower)) {
+          
+          // Search team name, description
+          if (team.name.toLowerCase().includes(searchLower) ||
+              (team.description && team.description.toLowerCase().includes(searchLower))) {
             teamMatches = true;
+          }
+          
+          // Search team specialties/skills
+          if (team.specialties && Array.isArray(team.specialties)) {
+            for (const specialty of team.specialties) {
+              if (specialty.toLowerCase().includes(searchLower)) {
+                teamMatches = true;
+                break;
+              }
+            }
           }
         }
         
-        // Search team by skills/expertise
         if (skill && typeof skill === 'string') {
           const skillLower = skill.toLowerCase();
-          if (team.expertiseAreas?.some(area => area.toLowerCase().includes(skillLower))) {
-            teamMatches = true;
+          if (team.specialties && Array.isArray(team.specialties)) {
+            for (const specialty of team.specialties) {
+              if (specialty.toLowerCase().includes(skillLower)) {
+                teamMatches = true;
+                break;
+              }
+            }
           }
         }
         
-        // If no specific search criteria, include all teams
+        // If no search/skill filters, include all teams
         if (!search && !skill) {
           teamMatches = true;
         }
@@ -1818,7 +1837,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             name: team.name,
             description: team.description,
             profileImage: team.profileImage,
-            skills: team.expertiseAreas || [],
+            skills: team.specialties || [],
             memberCount: teamMembers.length,
             serviceCount: teamServices.length,
             website: team.website,
