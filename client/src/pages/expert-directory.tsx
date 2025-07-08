@@ -78,6 +78,11 @@ export default function ExpertDirectory() {
   console.log('🔍 Raw items with types:', searchResults.map(item => ({ name: item.name, type: item.type, id: item.id })));
   console.log('🔍 Filtered results:', { experts: experts.length, teams: teams.length });
   console.log('🔍 Teams found:', teams.map(t => ({ name: t.name, skills: t.skills })));
+  
+  // Add alert for easier debugging
+  if (searchQuery.includes('tax')) {
+    alert(`Search Results: ${searchResults.length} total, ${teams.length} teams found. Teams: ${teams.map(t => t.name).join(', ')}`);
+  }
 
   const { data: skills = [] } = useQuery({
     queryKey: ["/api/skills/all"],
