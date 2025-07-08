@@ -354,6 +354,7 @@ export default function Admin() {
                         <TableHead>User</TableHead>
                         <TableHead>Role</TableHead>
                         <TableHead>Status</TableHead>
+                        <TableHead>Last Login</TableHead>
                         <TableHead>Joined</TableHead>
                         <TableHead>Actions</TableHead>
                       </TableRow>
@@ -361,7 +362,7 @@ export default function Admin() {
                     <TableBody>
                       {users.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={5} className="text-center text-gray-500 py-8">
+                          <TableCell colSpan={6} className="text-center text-gray-500 py-8">
                             No users found.
                           </TableCell>
                         </TableRow>
@@ -393,6 +394,17 @@ export default function Admin() {
                               <Badge variant={user.isActive ? 'default' : 'secondary'}>
                                 {user.isActive ? 'Active' : 'Inactive'}
                               </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center space-x-1 text-sm text-gray-500">
+                                <Clock className="h-3 w-3" />
+                                <span>
+                                  {user.lastLoginAt 
+                                    ? new Date(user.lastLoginAt).toLocaleDateString()
+                                    : 'Never'
+                                  }
+                                </span>
+                              </div>
                             </TableCell>
                             <TableCell>
                               <div className="flex items-center space-x-1 text-sm text-gray-500">
