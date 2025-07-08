@@ -159,7 +159,7 @@ export default function TeamManagement() {
   // Update team mutation
   const updateTeamMutation = useMutation({
     mutationFn: async ({ teamId, teamData }: any) => {
-      const response = await apiRequest("PUT", `/api/team-manager/teams/${teamId}`, teamData);
+      const response = await apiRequest(`/api/team-manager/teams/${teamId}`, "PUT", teamData);
       return response.json();
     },
     onSuccess: () => {
@@ -183,7 +183,7 @@ export default function TeamManagement() {
   const updateMemberRoleMutation = useMutation({
     mutationFn: async ({ teamId, employeeId, role }: any) => {
       console.log(`=== Updating member role: Team ${teamId}, Employee ${employeeId}, Role ${role} ===`);
-      const response = await apiRequest("PUT", `/api/team-manager/teams/${teamId}/members/${employeeId}/role`, { role });
+      const response = await apiRequest(`/api/team-manager/teams/${teamId}/members/${employeeId}/role`, "PUT", { role });
       return response.json();
     },
     onSuccess: (data: any, variables: any) => {
@@ -211,7 +211,7 @@ export default function TeamManagement() {
   const addMemberMutation = useMutation({
     mutationFn: async ({ teamId, employeeId, role }: any) => {
       console.log(`=== Adding team member: Team ${teamId}, Employee ${employeeId}, Role ${role} ===`);
-      const response = await apiRequest("POST", `/api/team-manager/teams/${teamId}/members`, { employeeId, role });
+      const response = await apiRequest(`/api/team-manager/teams/${teamId}/members`, "POST", { employeeId, role });
       return response.json();
     },
     onSuccess: (data: any, variables: any) => {
@@ -241,7 +241,7 @@ export default function TeamManagement() {
   // Remove member mutation
   const removeMemberMutation = useMutation({
     mutationFn: async ({ teamId, employeeId }: any) => {
-      const response = await apiRequest("DELETE", `/api/team-manager/teams/${teamId}/members/${employeeId}`);
+      const response = await apiRequest(`/api/team-manager/teams/${teamId}/members/${employeeId}`, "DELETE");
       return response.json();
     },
     onSuccess: () => {
